@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "name": "Paracetamol 500",
+    "brand": "MediCure",
+    "composition": "Paracetamol 500mg",
+    "price": 49,
+    "requiresRx": false,
+    "isRx": false
+  },
+  {
+    "id": 2,
+    "name": "Amoxicillin 500",
+    "brand": "HealWell",
+    "composition": "Amoxicillin 500mg",
+    "price": 120,
+    "requiresRx": true,
+    "isRx": true
+  },
+  {
+    "id": 3,
+    "name": "Vitamin C Chewables",
+    "brand": "NutriPlus",
+    "composition": "Vitamin C 500mg",
+    "price": 199,
+    "requiresRx": false,
+    "isRx": false
+  },
+  {
+    "id": 4,
+    "name": "ORS Pack",
+    "brand": "HydroFast",
+    "composition": "WHO ORS Formula",
+    "price": 35,
+    "requiresRx": false,
+    "isRx": false
+  },
+  {
+    "id": 5,
+    "name": "Metformin 500",
+    "brand": "GlucoCare",
+    "composition": "Metformin 500mg",
+    "price": 85,
+    "requiresRx": true,
+    "isRx": true
+  }
+]
