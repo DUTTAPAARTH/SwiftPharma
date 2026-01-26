@@ -11,8 +11,9 @@ const Cart = () => {
 
   const savings = useMemo(() => {
     return items.reduce((sum, item) => {
-      const mrp = item.mrp || item.price;
-      return sum + (mrp - item.price) * item.quantity;
+      const mrp = item.mrp || item.price || 0;
+      const price = item.price || 0;
+      return sum + (mrp - price) * item.quantity;
     }, 0);
   }, [items]);
 
@@ -143,7 +144,7 @@ const Cart = () => {
                           </button>
                         </div>
                         <p className="text-xl font-nexus-bold text-primary-text">
-                          ₹{(item.price * item.quantity).toFixed(2)}
+                          ₹{((item.price || 0) * item.quantity).toFixed(2)}
                         </p>
                       </div>
                     </div>

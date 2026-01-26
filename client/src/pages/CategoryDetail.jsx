@@ -1,12 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
+import { useWishlist } from "../hooks/useWishlist";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import {
   fetchProductsByCategory,
   fetchCategories,
 } from "../services/productService";
+import SubstituteModal from "../components/modals/SubstituteModal";
+import { ensureAuthenticated } from "../utils/auth";
 
 const ProductCard = ({
   product,
@@ -15,6 +18,7 @@ const ProductCard = ({
   onSubstitute,
   onToggleSave,
   isSaved,
+  isAdding,
 }) => {
   const discount =
     product.mrp && product.mrp > product.price
@@ -86,8 +90,9 @@ const ProductCard = ({
           <button
             className="px-3 py-2 rounded-full bg-brand-coral text-white text-sm font-semibold shadow-soft hover:shadow-card transition"
             onClick={() => onAdd(product)}
+            disabled={isAdding}
           >
-            Add to cart
+            {isAdding ? "Added" : "Add to cart"}
           </button>
         </div>
 
@@ -148,13 +153,20 @@ const filtersConfig = {
 const CategoryDetail = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { addItem } = useCart();
+  const { addItem, items, replaceItem } = useCart();
+  const { toggle, isSaved } = useWishlist();
 
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(true);
-  const [savedIds, setSavedIds] = useState(new Set());
+  const [addingId, setAddingId] = useState(null);
+  const [substituteModal, setSubstituteModal] = useState({
+    open: false,
+    base: null,
+    options: [],
+  });
+  const [substituteLoading, setSubstituteLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Fetch category data and products
@@ -164,25 +176,22 @@ const CategoryDetail = () => {
         setCategoryLoading(true);
         setLoading(true);
 
-        // Decode slug to get category name
-        const categoryName = decodeURIComponent(slug).replace(/-/g, " ");
-
         const [productsData, categoriesData] = await Promise.all([
-          fetchProductsByCategory(categoryName),
+          fetchProductsByCategory(slug),
           fetchCategories(),
         ]);
 
         setProducts(productsData || []);
 
         const matchedCategory = (categoriesData || []).find(
-          (cat) => cat.name?.toLowerCase() === categoryName.toLowerCase(),
+          (cat) => cat.slug === slug,
         );
 
         setCategory(
           matchedCategory ||
             (productsData?.length
               ? {
-                  name: categoryName,
+                  name: slug.replace(/-/g, " "),
                   slug,
                   productCount: productsData.length,
                   description: "Curated medicines in this category",
@@ -262,37 +271,102 @@ const CategoryDetail = () => {
 
   const [openFaq, setOpenFaq] = useState("paracetamol");
 
+  const normalizeCartProduct = (product) => ({
+    id: product?._id || product?.id,
+    productId: product?._id || product?.id,
+    name: product?.name,
+    price: product?.price || 0,
+    mrp: product?.mrp || product?.price || 0,
+    isRx: product?.requiresRx,
+    requiresRx: product?.requiresRx,
+    image: product?.images?.[0],
+    composition: product?.composition || "",
+    strength: product?.strength || "",
+    manufacturer: product?.manufacturer || "",
+  });
+
   const handleAdd = (product) => {
-    addItem({
-      id: product._id,
-      name: product.name,
-      price: product.price,
-      isRx: product.requiresRx,
-      image: product.images?.[0],
-    });
+    const productId = product?._id || product?.id;
+    if (!productId) return;
+    if (!ensureAuthenticated(navigate)) return;
+    setAddingId(productId);
+    addItem(normalizeCartProduct(product), 1);
+    setTimeout(() => setAddingId(null), 800);
   };
 
   const handleView = (product) => {
-    navigate(`/product/${product._id}`);
+    const id = product?._id || product?.id;
+    if (!id) return;
+    navigate(`/product/${id}`);
   };
 
   const handleSubstitute = (product) => {
-    setFilters((prev) => ({
-      ...prev,
-      salts: product.composition
-        ? [product.composition.split(",")[0]]
-        : prev.salts,
-      otcOnly: false,
-    }));
+    if (!product) return;
+    const saltKey = (product.composition || "")
+      .split(/,|\+/)[0]
+      ?.trim()
+      .toLowerCase();
+
+    setSubstituteLoading(true);
+
+    const sameSalt = (products || []).filter((p) => {
+      if (!p) return false;
+      if (p._id === product._id || p.id === product._id) return false;
+      if (!saltKey) return false;
+      const matchesSalt = (p.composition || "").toLowerCase().includes(saltKey);
+      const matchesStrength =
+        product.strength && p.strength
+          ? p.strength.toLowerCase() === product.strength.toLowerCase()
+          : true;
+      return matchesSalt && matchesStrength;
+    });
+
+    const cheaper = sameSalt.filter(
+      (p) => Number(p.price || Infinity) < Number(product.price || Infinity),
+    );
+
+    const options = (cheaper.length ? cheaper : sameSalt).sort(
+      (a, b) => Number(a.price || 0) - Number(b.price || 0),
+    );
+
+    setSubstituteModal({
+      open: true,
+      base: product,
+      options,
+    });
+
+    setSubstituteLoading(false);
   };
 
   const handleToggleSave = (product) => {
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(product._id)) next.delete(product._id);
-      else next.add(product._id);
-      return next;
+    if (!product) return;
+    if (!ensureAuthenticated(navigate)) return;
+    toggle({
+      id: product._id || product.id,
+      name: product.name,
+      price: product.price,
+      image: product.images?.[0],
+      composition: product.composition,
+      manufacturer: product.manufacturer,
     });
+  };
+
+  const handleAddSubstituteToCart = (option) => {
+    if (!ensureAuthenticated(navigate)) return;
+    addItem(normalizeCartProduct(option), 1);
+    setSubstituteModal({ open: false, base: null, options: [] });
+  };
+
+  const handleReplaceWithSubstitute = (option) => {
+    if (!ensureAuthenticated(navigate)) return;
+    const baseId = substituteModal.base?._id || substituteModal.base?.id;
+    const existing = items.find(
+      (p) => p.productId === baseId || p.id === baseId,
+    );
+    const qty = existing?.quantity || 1;
+
+    replaceItem(baseId, normalizeCartProduct(option), qty);
+    setSubstituteModal({ open: false, base: null, options: [] });
   };
 
   if (categoryLoading) {
@@ -741,7 +815,8 @@ const CategoryDetail = () => {
                     onView={handleView}
                     onSubstitute={handleSubstitute}
                     onToggleSave={handleToggleSave}
-                    isSaved={savedIds.has(product._id)}
+                    isSaved={isSaved(product._id || product.id)}
+                    isAdding={addingId === (product._id || product.id)}
                   />
                 ))}
               </div>
@@ -836,6 +911,19 @@ const CategoryDetail = () => {
       </div>
 
       <Footer />
+
+      {substituteModal.open && (
+        <SubstituteModal
+          baseProduct={substituteModal.base}
+          options={substituteModal.options}
+          loading={substituteLoading}
+          onClose={() =>
+            setSubstituteModal({ open: false, base: null, options: [] })
+          }
+          onAddToCart={handleAddSubstituteToCart}
+          onReplaceInCart={handleReplaceWithSubstitute}
+        />
+      )}
     </div>
   );
 };

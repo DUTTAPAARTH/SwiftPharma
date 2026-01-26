@@ -1,6 +1,8 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../../hooks/useCart";
+import { useWishlist } from "../../hooks/useWishlist";
+import { ensureAuthenticated } from "../../utils/auth";
 const ProductCard = ({
   id,
   name,
@@ -12,11 +14,51 @@ const ProductCard = ({
   rating = 4.5,
   popular = false,
   fastDelivery = true,
+  onSubstitute,
 }) => {
   const { addItem } = useCart();
+  const { toggle, isSaved } = useWishlist();
+  const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const productPayload = {
+    id,
+    productId: id,
+    name,
+    price,
+    requiresRx,
+    composition,
+    manufacturer,
+    packSize,
+  };
 
   const handleAdd = () => {
-    addItem({ id, name, price, requiresRx, composition });
+    if (!ensureAuthenticated(navigate)) return;
+    setAdding(true);
+    addItem({
+      ...productPayload,
+      isRx: requiresRx,
+      requiresRx,
+    });
+    setTimeout(() => setAdding(false), 800);
+  };
+
+  const handleSave = () => {
+    if (!ensureAuthenticated(navigate)) return;
+    setSaving(true);
+    toggle(productPayload);
+    setTimeout(() => setSaving(false), 500);
+  };
+
+  const handleView = () => {
+    navigate(`/product/${id}`);
+  };
+
+  const handleSubstitute = () => {
+    if (onSubstitute) {
+      onSubstitute(productPayload);
+    }
   };
 
   return (
@@ -96,16 +138,36 @@ const ProductCard = ({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link to={`/product/${id}`}>
-              <button className="px-3 py-2 text-sm font-medium text-text-strong border border-border rounded-lg hover:border-brand-coral hover:bg-[#FFF4F2] transition-all duration-200">
-                View
+            <button
+              onClick={handleView}
+              className="px-3 py-2 text-sm font-medium text-text-strong border border-border rounded-lg hover:border-brand-coral hover:bg-[#FFF4F2] transition-all duration-200"
+            >
+              View
+            </button>
+            {onSubstitute ? (
+              <button
+                onClick={handleSubstitute}
+                className="px-3 py-2 text-sm font-medium text-text-strong border border-border rounded-lg hover:border-brand-coral hover:bg-[#FFF4F2] transition-all duration-200"
+              >
+                Substitute
               </button>
-            </Link>
+            ) : null}
+            <button
+              onClick={handleSave}
+              className={`px-3 py-2 text-sm font-medium border rounded-lg transition-all duration-200 ${
+                isSaved(id)
+                  ? "border-brand-coral text-brand-coral bg-[#FFF4F2]"
+                  : "border-border text-text-strong hover:border-brand-coral hover:bg-[#FFF4F2]"
+              }`}
+            >
+              {isSaved(id) ? "Saved" : saving ? "Saving" : "Save"}
+            </button>
             <button
               onClick={handleAdd}
-              className="px-4 py-2 text-sm font-semibold bg-gradient-cta text-white rounded-lg hover:shadow-glow hover:scale-105 transition-all duration-200"
+              className="px-4 py-2 text-sm font-semibold bg-gradient-cta text-white rounded-lg hover:shadow-glow hover:scale-105 transition-all duration-200 disabled:opacity-80"
+              disabled={adding}
             >
-              Add
+              {adding ? "Added" : "Add"}
             </button>
           </div>
         </div>

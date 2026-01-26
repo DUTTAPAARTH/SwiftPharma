@@ -55,9 +55,13 @@ export const getProductsByCategory = async (req, res) => {
     const { categoryName } = req.params;
     const { limit = 50, skip = 0 } = req.query;
 
-    // Find category by name (case-insensitive)
+    // Find category by slug or name (case-insensitive)
     const category = await Category.findOne({
-      name: { $regex: categoryName, $options: "i" },
+      $or: [
+        { slug: categoryName },
+        { slug: { $regex: categoryName, $options: "i" } },
+        { name: { $regex: categoryName, $options: "i" } },
+      ],
     });
 
     if (!category) {

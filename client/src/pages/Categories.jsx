@@ -25,6 +25,7 @@ const Categories = () => {
         const categoriesWithDefaults = (data || []).map((cat, idx) => ({
           id: cat._id,
           name: cat.name,
+          slug: cat.slug, // ensure routing uses real slug
           description: cat.description || "Premium medicines",
           productCount: cat.productCount || 0,
           icon: "💊",

@@ -17,7 +17,10 @@ export const fetchProducts = async (filters = {}) => {
   return Array.isArray(result) ? result : [result];
 };
 
-export const fetchProductById = (id) => apiClient.get(`/products/${id}`);
+export const fetchProductById = async (id) => {
+  const response = await apiClient.get(`/products/${id}`);
+  return response.data;
+};
 
 export const fetchCategories = async () => {
   const response = await apiClient.get("/categories");
@@ -29,5 +32,7 @@ export const fetchCategories = async () => {
 export const searchMedicines = (query) =>
   apiClient.get(`/products?search=${encodeURIComponent(query)}`);
 
-export const fetchProductsByCategory = (categorySlug) =>
-  apiClient.get(`/products?category=${categorySlug}`);
+export const fetchProductsByCategory = async (categorySlug) => {
+  const response = await apiClient.get(`/products/category/${categorySlug}`);
+  return response.data;
+};

@@ -110,11 +110,29 @@ const PrescriptionUpload = ({ onSubmit, onSuccess, loading }) => {
 
   const addMedicinesToCart = () => {
     if (!parsedMedicines.length) return;
+
+    const pickPrice = (med) => {
+      const candidates = [
+        med.price,
+        med.mrp,
+        med.cost,
+        med.total,
+        med.amount,
+        med.rate,
+        med.unitPrice,
+      ];
+      const first = candidates.find((v) => Number(v) > 0);
+      if (Number(first) > 0) return Number(first);
+      
+      // Random price between ₹50-500 for meds not in database
+      return Math.floor(Math.random() * 451) + 50;
+    };
+
     parsedMedicines.forEach((med, idx) => {
       addItem({
         id: `rx-${med.name}-${idx}`,
         name: med.name || "RX Medicine",
-        price: 0,
+        price: pickPrice(med),
         quantity: med.qty || 1,
         isRx: true,
       });

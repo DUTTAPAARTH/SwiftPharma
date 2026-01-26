@@ -4,11 +4,15 @@ import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { useCart } from "../hooks/useCart";
 import { fetchProductById, fetchProducts } from "../services/productService";
+import { useWishlist } from "../hooks/useWishlist";
+import SubstituteModal from "../components/modals/SubstituteModal";
+import { ensureAuthenticated } from "../utils/auth";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addItem, items } = useCart();
+  const { addItem, items, replaceItem } = useCart();
+  const { toggle, isSaved } = useWishlist();
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -16,9 +20,21 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("overview");
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [substituteOpen, setSubstituteOpen] = useState(false);
+  const [substituteOptions, setSubstituteOptions] = useState([]);
+  const [substituteLoading, setSubstituteLoading] = useState(false);
 
   const cartItem = useMemo(
-    () => items.find((i) => i.id === id || i.id === product?._id),
+    () =>
+      items.find(
+        (i) =>
+          i.productId === id ||
+          i.id === id ||
+          i.productId === product?._id ||
+          i.id === product?._id,
+      ),
     [items, id, product],
   );
 
@@ -53,6 +69,66 @@ const ProductDetail = () => {
     loadProduct();
   }, [id]);
 
+  useEffect(() => {
+    const loadSubstitutes = async () => {
+      if (!product?.composition) {
+        setSubstituteOptions([]);
+        return;
+      }
+
+      const saltKey = product.composition.split(/,|\+/)[0]?.trim();
+      if (!saltKey) return;
+
+      try {
+        setSubstituteLoading(true);
+        const results = await fetchProducts({ search: saltKey, limit: 20 });
+        const options = (results || [])
+          .filter((p) => {
+            if (!p) return false;
+            const pid = p._id || p.id;
+            if (pid === (product._id || product.id)) return false;
+            const matchesSalt = (p.composition || "")
+              .toLowerCase()
+              .includes(saltKey.toLowerCase());
+            const matchesStrength =
+              product.strength && p.strength
+                ? p.strength.toLowerCase() === product.strength.toLowerCase()
+                : true;
+            return matchesSalt && matchesStrength;
+          })
+          .sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+
+        const cheaper = options.filter(
+          (p) =>
+            Number(p.price || Infinity) < Number(product.price || Infinity),
+        );
+
+        setSubstituteOptions(cheaper.length ? cheaper : options);
+      } catch (err) {
+        console.error("Error loading substitutes", err);
+        setSubstituteOptions([]);
+      } finally {
+        setSubstituteLoading(false);
+      }
+    };
+
+    loadSubstitutes();
+  }, [product?._id, product?.composition]);
+
+  const normalizeCartProduct = (p) => ({
+    id: p?._id || p?.id,
+    productId: p?._id || p?.id,
+    name: p?.name,
+    price: p?.price || 0,
+    mrp: p?.mrp || p?.price || 0,
+    isRx: p?.requiresRx,
+    requiresRx: p?.requiresRx,
+    image: p?.images?.[0],
+    composition: p?.composition || "",
+    strength: p?.strength || "",
+    manufacturer: p?.manufacturer || "",
+  });
+
   const primaryImage =
     product?.images?.[0] ||
     `https://via.placeholder.com/600x600/f7f6f4/666666?text=${encodeURIComponent(
@@ -65,15 +141,37 @@ const ProductDetail = () => {
       : null;
 
   const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
-      addItem({
-        id: product._id,
-        name: product.name,
-        price: product.price,
-        isRx: product.requiresRx,
-        image: product.images?.[0],
-      });
-    }
+    if (!product) return;
+    if (!ensureAuthenticated(navigate)) return;
+    setAdding(true);
+    addItem(normalizeCartProduct(product), quantity);
+    setTimeout(() => setAdding(false), 800);
+  };
+
+  const handleToggleSave = () => {
+    if (!product) return;
+    if (!ensureAuthenticated(navigate)) return;
+    setSaving(true);
+    toggle(normalizeCartProduct(product));
+    setTimeout(() => setSaving(false), 500);
+  };
+
+  const handleOpenSubstitutes = () => {
+    setSubstituteOpen(true);
+  };
+
+  const handleAddSubstituteToCart = (option) => {
+    if (!ensureAuthenticated(navigate)) return;
+    addItem(normalizeCartProduct(option), 1);
+    setSubstituteOpen(false);
+  };
+
+  const handleReplaceWithSubstitute = (option) => {
+    if (!ensureAuthenticated(navigate)) return;
+    const baseId = product?._id || product?.id;
+    const qty = cartItem?.quantity || quantity || 1;
+    replaceItem(baseId, normalizeCartProduct(option), qty);
+    setSubstituteOpen(false);
   };
 
   const categorySlug = product.category
@@ -321,21 +419,37 @@ const ProductDetail = () => {
               <button
                 className="flex-1 px-6 py-3 rounded-full bg-brand-coral text-white font-semibold shadow-soft hover:shadow-card transition"
                 onClick={handleAddToCart}
+                disabled={adding}
               >
-                {cartItem ? `In cart (${cartItem.quantity})` : "Add to cart"}
+                {adding
+                  ? "Added"
+                  : cartItem
+                    ? `In cart (${cartItem.quantity})`
+                    : "Add to cart"}
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <button className="px-4 py-2 rounded-full border border-border bg-white text-primary-text font-semibold hover:-translate-y-0.5 hover:shadow-card transition">
-                ❤️ Save for later
+              <button
+                className={`px-4 py-2 rounded-full border bg-white text-primary-text font-semibold hover:-translate-y-0.5 hover:shadow-card transition ${
+                  isSaved(product._id || product.id)
+                    ? "border-brand-coral text-brand-coral"
+                    : "border-border"
+                }`}
+                onClick={handleToggleSave}
+              >
+                {isSaved(product._id || product.id)
+                  ? "💖 Saved"
+                  : saving
+                    ? "Saving..."
+                    : "❤️ Save for later"}
               </button>
-              <Link
-                to={`/categories/${categorySlug}`}
+              <button
+                onClick={handleOpenSubstitutes}
                 className="px-4 py-2 rounded-full border border-border bg-white text-primary-text font-semibold hover:-translate-y-0.5 hover:shadow-card transition text-center"
               >
                 🔁 Find substitutes
-              </Link>
+              </button>
             </div>
           </div>
         </section>
@@ -542,6 +656,16 @@ const ProductDetail = () => {
           </section>
         )}
       </main>
+      {substituteOpen && (
+        <SubstituteModal
+          baseProduct={product}
+          options={substituteOptions}
+          loading={substituteLoading}
+          onClose={() => setSubstituteOpen(false)}
+          onAddToCart={handleAddSubstituteToCart}
+          onReplaceInCart={handleReplaceWithSubstitute}
+        />
+      )}
       <Footer />
     </div>
   );

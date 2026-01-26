@@ -60,16 +60,47 @@ const Home = () => {
       ? categories.map((cat) => ({
           icon: categoryIcons[cat.name] || "💊",
           name: cat.name,
+          slug: cat.slug,
           caption: cat.description || "Premium medicines",
           count: cat.productCount || 0,
         }))
       : [
-          { icon: "💊", name: "Antibiotics", caption: "Prescription only" },
-          { icon: "🩹", name: "Pain Relief", caption: "OTC available" },
-          { icon: "💉", name: "Vitamins", caption: "Health boost" },
-          { icon: "🫁", name: "Digestive", caption: "Gut health" },
-          { icon: "🧴", name: "Skin Care", caption: "Derma care" },
-          { icon: "🤧", name: "Cold & Cough", caption: "Quick relief" },
+          {
+            icon: "💊",
+            name: "Antibiotics",
+            slug: "antibiotics",
+            caption: "Prescription only",
+          },
+          {
+            icon: "🩹",
+            name: "Pain Relief",
+            slug: "pain-relief",
+            caption: "OTC available",
+          },
+          {
+            icon: "💉",
+            name: "Vitamins",
+            slug: "vitamins",
+            caption: "Health boost",
+          },
+          {
+            icon: "🫁",
+            name: "Digestive",
+            slug: "digestive",
+            caption: "Gut health",
+          },
+          {
+            icon: "🧴",
+            name: "Skin Care",
+            slug: "skin-care",
+            caption: "Derma care",
+          },
+          {
+            icon: "🤧",
+            name: "Cold & Cough",
+            slug: "cold-cough",
+            caption: "Quick relief",
+          },
         ];
 
   return (
@@ -115,7 +146,7 @@ const Home = () => {
             {displayCategories.map((category, idx) => (
               <Link
                 key={category.name}
-                to={`/categories?category=${encodeURIComponent(category.name)}`}
+                to={`/categories/${category.slug || category.name.toLowerCase().replace(/\s+/g, "-").replace(/&/g, "and")}`}
               >
                 <button className="w-full group relative bg-card-surface border border-border rounded-2xl p-5 text-center hover:shadow-lifted hover:translate-y-[-4px] hover:border-brand-coral transition-all duration-300">
                   <div className="absolute inset-0 bg-gradient-cta opacity-0 group-hover:opacity-5 rounded-2xl transition-opacity duration-300"></div>

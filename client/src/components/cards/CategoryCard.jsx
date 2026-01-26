@@ -34,7 +34,7 @@ const CategoryCard = ({
 
   return (
     <Link
-      to={ctaHref || `/categories/${slug || "category"}`}
+      to={ctaHref || (slug ? `/categories/${slug}` : "/categories")}
       className="category-card group h-full rounded-2xl border border-[#E5E4E0] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-coral focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-all duration-300"
       style={{ "--x": glowPos.x, "--y": glowPos.y }}
       onMouseMove={handleMouseMove}

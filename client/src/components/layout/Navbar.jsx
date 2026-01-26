@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, User } from "lucide-react";
 import { AuthContext } from "../../context/AuthContext";
+import { useCart } from "../../hooks/useCart";
 
 const links = [
   { href: "/home", label: "Home" },
@@ -15,6 +16,7 @@ const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user, logout } = useContext(AuthContext);
+  const { cartCount } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,7 +72,14 @@ const Navbar = () => {
               to={link.href}
               className="text-ink hover:text-brand transition-colors duration-300 relative group"
             >
-              {link.label}
+              <span className="inline-flex items-center gap-2">
+                {link.label}
+                {link.href === "/cart" && cartCount > 0 ? (
+                  <span className="min-w-[22px] h-[22px] inline-flex items-center justify-center rounded-full bg-brand-coral text-white text-[11px] font-bold">
+                    {cartCount}
+                  </span>
+                ) : null}
+              </span>
               <span className="absolute bottom-0 left-0 w-0 h-1 bg-gradient-coral-sunset group-hover:w-full transition-all duration-300 rounded-full"></span>
             </Link>
           ))}
@@ -108,7 +117,14 @@ const Navbar = () => {
                 className="py-2 px-2 rounded-lg text-ink hover:bg-page hover:text-brand transition-colors duration-200"
                 onClick={() => setOpen(false)}
               >
-                {link.label}
+                <span className="inline-flex items-center gap-2">
+                  {link.label}
+                  {link.href === "/cart" && cartCount > 0 ? (
+                    <span className="min-w-[22px] h-[22px] inline-flex items-center justify-center rounded-full bg-brand-coral text-white text-[11px] font-bold">
+                      {cartCount}
+                    </span>
+                  ) : null}
+                </span>
               </Link>
             ))}
             {user && (
