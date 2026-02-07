@@ -11,6 +11,7 @@ import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
 import AIPrescriptionScanner from "./pages/AIPrescriptionScanner";
+import AIHealthAssistant from "./pages/AIHealthAssistant";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
 import AdminOrders from "./pages/AdminOrders";
@@ -73,6 +74,10 @@ const RoutesConfig = () => (
       <Route
         path="/ai-prescription"
         element={<ProtectedRoute element={<AIPrescriptionScanner />} />}
+      />
+      <Route
+        path="/ai-assistant"
+        element={<ProtectedRoute element={<AIHealthAssistant />} />}
       />
       <Route
         path="/admin"

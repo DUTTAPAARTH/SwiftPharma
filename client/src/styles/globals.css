@@ -20,6 +20,93 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ========== AI CHAT ANIMATIONS ========== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Gradient flow animation for header */
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientMove 10s ease infinite;
+}
+
+/* Float animation for welcome icon */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Hover effects for buttons */
+.button-hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.2);
+  transition: all 0.2s ease;
+}
+
+.button-hover-lift {
+  transition: all 0.2s ease;
+}
+
+/* Input focus glow */
+.input-focus-glow:focus {
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  transform: scale(1.01);
+  transition: all 0.2s ease;
+}
+
+.input-focus-glow {
+  transition: all 0.2s ease;
+}
+
+/* Send button animation */
+.send-btn:hover {
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+.send-btn:active {
+  transform: scale(0.95);
+  transition: all 0.1s ease;
+}
+
+.send-btn {
+  transition: all 0.2s ease;
+}
+
 /* ========== MEDICAL LOGIN ANIMATIONS ========== */
 
 /* Doctor Float Animation */
@@ -474,7 +561,9 @@ a:hover {
 .category-card {
   position: relative;
   overflow: hidden;
-  transition: transform 300ms ease, box-shadow 300ms ease,
+  transition:
+    transform 300ms ease,
+    box-shadow 300ms ease,
     border-color 300ms ease;
 }
 
@@ -558,7 +647,8 @@ a:hover {
 .pill-3d__main:before {
   animation-name: pillLeft;
   border-radius: 2rem 0 0 2rem;
-  box-shadow: -1px 0 0 hsl(0, 0%, 100%) inset,
+  box-shadow:
+    -1px 0 0 hsl(0, 0%, 100%) inset,
     0.25rem 0.25rem 1rem hsl(3, 10%, 85%) inset,
     -0.25rem -1.5rem 1rem hsl(3, 10%, 90%) inset;
 }
@@ -566,7 +656,8 @@ a:hover {
 .pill-3d__main:after {
   animation-name: pillRight;
   border-radius: 0 2rem 2rem 0;
-  box-shadow: -1px 0 0.5rem hsl(3, 90%, 50%) inset,
+  box-shadow:
+    -1px 0 0.5rem hsl(3, 90%, 50%) inset,
     -0.5rem -0.5rem 0.5rem hsl(3, 90%, 65%) inset,
     0.5rem -1rem 1rem hsl(3, 90%, 40%) inset,
     -1.5rem 1rem 1rem hsl(3, 90%, 65%) inset;
@@ -627,13 +718,15 @@ a:hover {
   16.67%,
   83.33%,
   to {
-    box-shadow: -1px 0 0 hsl(0, 0%, 100%) inset,
+    box-shadow:
+      -1px 0 0 hsl(0, 0%, 100%) inset,
       0.25rem 0.25rem 1rem hsl(3, 10%, 85%) inset,
       -0.25rem -1.5rem 1rem hsl(3, 10%, 90%) inset;
   }
   33.33%,
   66.67% {
-    box-shadow: -1px 0 0 hsl(0, 0%, 100%) inset,
+    box-shadow:
+      -1px 0 0 hsl(0, 0%, 100%) inset,
       0.25rem -0.25rem 1rem hsl(3, 10%, 85%) inset,
       -0.25rem 1.5rem 1rem hsl(3, 10%, 90%) inset;
   }
@@ -644,14 +737,16 @@ a:hover {
   16.67%,
   83.33%,
   to {
-    box-shadow: -1px 0 0.5rem hsl(3, 90%, 50%) inset,
+    box-shadow:
+      -1px 0 0.5rem hsl(3, 90%, 50%) inset,
       -0.5rem -0.5rem 0.5rem hsl(3, 90%, 65%) inset,
       0.5rem -1rem 1rem hsl(3, 90%, 40%) inset,
       -1.5rem 1rem 1rem hsl(3, 90%, 65%) inset;
   }
   33.33%,
   66.67% {
-    box-shadow: -1px 0 0.5rem hsl(3, 90%, 50%) inset,
+    box-shadow:
+      -1px 0 0.5rem hsl(3, 90%, 50%) inset,
       -0.5rem 0.5rem 0.5rem hsl(3, 90%, 65%) inset,
       0.5rem 1rem 1rem hsl(3, 90%, 40%) inset,
       -1.5rem -1rem 1rem hsl(3, 90%, 65%) inset;
@@ -826,7 +921,8 @@ a:hover {
   animation-name: categoryPillLeft;
   animation-delay: var(--animation-delay, 0s);
   border-radius: 0.875rem 0 0 0.875rem;
-  box-shadow: -0.5px 0 0 hsl(0, 0%, 100%) inset,
+  box-shadow:
+    -0.5px 0 0 hsl(0, 0%, 100%) inset,
     0.125rem 0.125rem 0.5rem hsl(var(--category-hue, 3), 10%, 85%) inset,
     -0.125rem -0.75rem 0.5rem hsl(var(--category-hue, 3), 10%, 90%) inset;
 }
@@ -835,7 +931,8 @@ a:hover {
   animation-name: categoryPillRight;
   animation-delay: var(--animation-delay, 0s);
   border-radius: 0 0.875rem 0.875rem 0;
-  box-shadow: -0.5px 0 0.25rem hsl(var(--category-hue, 3), 90%, 50%) inset,
+  box-shadow:
+    -0.5px 0 0.25rem hsl(var(--category-hue, 3), 90%, 50%) inset,
     -0.25rem -0.25rem 0.25rem hsl(var(--category-hue, 3), 90%, 65%) inset,
     0.25rem -0.5rem 0.5rem hsl(var(--category-hue, 3), 90%, 40%) inset,
     -0.75rem 0.5rem 0.5rem hsl(var(--category-hue, 3), 90%, 65%) inset;
@@ -898,13 +995,15 @@ a:hover {
   16.67%,
   83.33%,
   to {
-    box-shadow: -0.5px 0 0 hsl(0, 0%, 100%) inset,
+    box-shadow:
+      -0.5px 0 0 hsl(0, 0%, 100%) inset,
       0.125rem 0.125rem 0.5rem hsl(var(--category-hue, 3), 10%, 85%) inset,
       -0.125rem -0.75rem 0.5rem hsl(var(--category-hue, 3), 10%, 90%) inset;
   }
   33.33%,
   66.67% {
-    box-shadow: -0.5px 0 0 hsl(0, 0%, 100%) inset,
+    box-shadow:
+      -0.5px 0 0 hsl(0, 0%, 100%) inset,
       0.125rem -0.125rem 0.5rem hsl(var(--category-hue, 3), 10%, 85%) inset,
       -0.125rem 0.75rem 0.5rem hsl(var(--category-hue, 3), 10%, 90%) inset;
   }
@@ -915,14 +1014,16 @@ a:hover {
   16.67%,
   83.33%,
   to {
-    box-shadow: -0.5px 0 0.25rem hsl(var(--category-hue, 3), 90%, 50%) inset,
+    box-shadow:
+      -0.5px 0 0.25rem hsl(var(--category-hue, 3), 90%, 50%) inset,
       -0.25rem -0.25rem 0.25rem hsl(var(--category-hue, 3), 90%, 65%) inset,
       0.25rem -0.5rem 0.5rem hsl(var(--category-hue, 3), 90%, 40%) inset,
       -0.75rem 0.5rem 0.5rem hsl(var(--category-hue, 3), 90%, 65%) inset;
   }
   33.33%,
   66.67% {
-    box-shadow: -0.5px 0 0.25rem hsl(var(--category-hue, 3), 90%, 50%) inset,
+    box-shadow:
+      -0.5px 0 0.25rem hsl(var(--category-hue, 3), 90%, 50%) inset,
       -0.25rem 0.25rem 0.25rem hsl(var(--category-hue, 3), 90%, 65%) inset,
       0.25rem 0.5rem 0.5rem hsl(var(--category-hue, 3), 90%, 40%) inset,
       -0.75rem -0.5rem 0.5rem hsl(var(--category-hue, 3), 90%, 65%) inset;

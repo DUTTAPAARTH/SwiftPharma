@@ -109,7 +109,7 @@ const Home = () => {
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-12 space-y-20">
         {/* Hero Section */}
         <div className="pt-6">
-          <Hero />
+          <Hero categories={displayCategories} />
         </div>
 
         {/* Category Section - App Store Style */}

@@ -506,10 +506,10 @@ const CategoryDetail = () => {
           </div>
           <div className="flex gap-3">
             <Link
-              to="/ai-prescription"
+              to="/ai-assistant"
               className="px-4 py-2 rounded-full bg-brand-coral text-white font-semibold shadow-soft hover:shadow-card transition"
             >
-              Use AI Assistant
+              Use AI Health Assistant
             </Link>
             <Link
               to="/prescriptions"

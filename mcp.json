@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "SwiftPharma Docs": {
+      "type": "sse",
+      "url": "https://gitmcp.io/DUTTAPAARTH/SwiftPharma"
+    }
+  }
+}

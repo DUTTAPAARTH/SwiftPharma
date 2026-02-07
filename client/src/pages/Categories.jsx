@@ -1,10 +1,12 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import CategoryCard from "../components/cards/CategoryCard";
 import { fetchCategories } from "../services/productService";
 
 const Categories = () => {
+  const [searchParams] = useSearchParams();
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,13 +48,33 @@ const Categories = () => {
   }, []);
 
   const filteredCategories = useMemo(() => {
-    if (selectedFilter === "all") return categories;
-    return categories.filter((cat) => {
-      if (selectedFilter === "OTC") return cat.rxType === "OTC";
-      if (selectedFilter === "Rx") return cat.rxType === "Rx";
-      return true;
+    const searchTerm = String(searchParams.get("search") || "")
+      .trim()
+      .toLowerCase();
+
+    let filtered = categories;
+
+    if (selectedFilter !== "all") {
+      filtered = filtered.filter((cat) => {
+        if (selectedFilter === "OTC") return cat.rxType === "OTC";
+        if (selectedFilter === "Rx") return cat.rxType === "Rx";
+        return true;
+      });
+    }
+
+    if (!searchTerm) return filtered;
+
+    return filtered.filter((cat) => {
+      const name = String(cat?.name || "").toLowerCase();
+      const description = String(cat?.description || "").toLowerCase();
+      const slug = String(cat?.slug || "").toLowerCase();
+      return (
+        name.includes(searchTerm) ||
+        description.includes(searchTerm) ||
+        slug.includes(searchTerm)
+      );
     });
-  }, [selectedFilter, categories]);
+  }, [selectedFilter, categories, searchParams]);
 
   const handleHeroMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();

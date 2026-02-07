@@ -7,6 +7,7 @@ import { useCart } from "../../hooks/useCart";
 const links = [
   { href: "/home", label: "Home" },
   { href: "/categories", label: "Categories" },
+  { href: "/ai-assistant", label: "AI Assistant" },
   { href: "/ai-prescription", label: "Prescriptions" },
   { href: "/cart", label: "Cart" },
   { href: "/profile", label: "Profile" },

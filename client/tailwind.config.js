@@ -2,6 +2,40 @@ export default {
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      animation: {
+        float: "float 6s ease-in-out infinite",
+        gradient: "gradient 6s ease infinite",
+        shimmer: "shimmer 1.5s infinite linear",
+        pop: "pop 0.3s ease-out",
+        slideUp: "slideUp 0.35s ease-out",
+        pulseSoft: "pulseSoft 2s ease-in-out infinite",
+      },
+      keyframes: {
+        float: {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
+        gradient: {
+          "0%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+          "100%": { backgroundPosition: "0% 50%" },
+        },
+        shimmer: {
+          "100%": { transform: "translateX(100%)" },
+        },
+        pop: {
+          "0%": { transform: "scale(0.95)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" },
+        },
+        slideUp: {
+          "0%": { transform: "translateY(12px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" },
+        },
+        pulseSoft: {
+          "0%, 100%": { opacity: "0.6" },
+          "50%": { opacity: "1" },
+        },
+      },
       fontFamily: {
         "nexus-bold": ["Inter", "system-ui", "sans-serif"],
         mergian: ["Inter", "system-ui", "sans-serif"],
@@ -9,11 +43,21 @@ export default {
         serif: ["Georgia", "Cambria", "Times New Roman", "serif"],
       },
       colors: {
-        "primary-text": "#1F1C1A",
-        "secondary-text": "#7B6C63",
-        "text-strong": "#1F1C1A",
-        "text-muted": "#7B6C63",
-        background: "#F7F4EF",
+        bg: "#F8FAFC",
+        surface: "#FFFFFF",
+        primary: "#2563EB",
+        primarySoft: "#EFF6FF",
+        textPrimary: "#0F172A",
+        textSecondary: "#475569",
+        border: "#E2E8F0",
+        success: "#22C55E",
+        warning: "#F59E0B",
+        danger: "#EF4444",
+        "primary-text": "#0F172A",
+        "secondary-text": "#475569",
+        "text-strong": "#0F172A",
+        "text-muted": "#475569",
+        background: "#F8FAFC",
         "card-bg": "#FFFFFF",
         "card-surface": "#FFFFFF",
         border: "#E7E1DC",
