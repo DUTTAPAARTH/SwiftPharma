@@ -49,7 +49,8 @@ const buildMedicineContext = (medicine) => {
     manufacturer: medicine.manufacturer || "Not specified",
     strength: medicine.strength || "As per label",
     type: medicine.type || "General medicine",
-    prescriptionRequired: medicine.prescriptionRequired || medicine.isRx || false,
+    prescriptionRequired:
+      medicine.prescriptionRequired || medicine.isRx || false,
     uses: medicine.uses || "General health condition",
     sideEffects: medicine.sideEffects || "May vary - check package insert",
     precautions: medicine.precautions || "Follow doctor's advice",
@@ -361,7 +362,7 @@ const buildAnswer = (medicine, question, context = {}) => {
 
   // Get medicine context for RAG
   const medicineContext = buildMedicineContext(medicine);
-  
+
   // Build conversational prompt using system prompt + RAG context
   const conversationalPrompt = `
 ${SYSTEM_PROMPT}
@@ -389,12 +390,16 @@ Now, as an experienced pharmacist, provide a helpful, accurate answer that:
 
   // Analyze the question type for structured response
   const qLower = (question || "").toLowerCase();
-  const isMissedDose = /miss(ed)? dose|forget|skip(ped)?|bhul gaya/i.test(qLower);
+  const isMissedDose = /miss(ed)? dose|forget|skip(ped)?|bhul gaya/i.test(
+    qLower,
+  );
   const isSideEffect =
     /side effect|adverse|reaction|problem|allergy|nuksan/i.test(qLower);
   const isDosage =
     /dosage|dose|kitna|how much|how many|when to take|kab lena/i.test(qLower);
-  const isFood = /food|khana|before|after|empty stomach|khali pet/i.test(qLower);
+  const isFood = /food|khana|before|after|empty stomach|khali pet/i.test(
+    qLower,
+  );
   const isTiming =
     /timing|time|kab|when|subah|shaam|raat|morning|evening|night/i.test(qLower);
   const isStorage = /store|storage|rakhna|keep|temperature/i.test(qLower);
@@ -411,19 +416,33 @@ Now, as an experienced pharmacist, provide a helpful, accurate answer that:
   // Answer based on question type - pharmacist style
   if (isMissedDose) {
     lines.push("I understand you missed a dose. Here's what I recommend:\n");
-    lines.push("✓ **If it's close to your next dose:** Skip the missed one and continue your regular schedule");
-    lines.push("✓ **If you remember within a few hours:** Take it as soon as you remember");
-    lines.push("✗ **Don't double up:** Never take two doses together to make up for a missed one\n");
-    lines.push("It's generally safe to miss one dose occasionally, but try to take your medicines at the same time daily. Setting a phone reminder can help!");
+    lines.push(
+      "✓ **If it's close to your next dose:** Skip the missed one and continue your regular schedule",
+    );
+    lines.push(
+      "✓ **If you remember within a few hours:** Take it as soon as you remember",
+    );
+    lines.push(
+      "✗ **Don't double up:** Never take two doses together to make up for a missed one\n",
+    );
+    lines.push(
+      "It's generally safe to miss one dose occasionally, but try to take your medicines at the same time daily. Setting a phone reminder can help!",
+    );
   } else if (isSideEffect) {
     lines.push("Let me help you understand the side effects:\n");
     if (medicine?.sideEffects) {
       lines.push(`**Common side effects:** ${medicine.sideEffects}\n`);
     }
     lines.push("Most side effects are mild and go away on their own. However:");
-    lines.push("⚠️ **Stop and see a doctor if you experience:** Severe rash, difficulty breathing, chest pain, or severe stomach pain");
-    lines.push("💡 **Mild side effects:** Usually improve as your body adjusts (2-3 days)\n");
-    lines.push("Keep taking the medicine unless side effects are severe. If you're concerned, call your doctor before stopping.");
+    lines.push(
+      "⚠️ **Stop and see a doctor if you experience:** Severe rash, difficulty breathing, chest pain, or severe stomach pain",
+    );
+    lines.push(
+      "💡 **Mild side effects:** Usually improve as your body adjusts (2-3 days)\n",
+    );
+    lines.push(
+      "Keep taking the medicine unless side effects are severe. If you're concerned, call your doctor before stopping.",
+    );
   } else if (isDosage || isTiming) {
     lines.push("About taking this medicine:\n");
     if (medicine?.strength) {
@@ -443,18 +462,25 @@ Now, as an experienced pharmacist, provide a helpful, accurate answer that:
       lines.push("- Take at the same time(s) each day");
       lines.push("- Don't skip doses or stop early");
     }
-    lines.push("\n**Best practice:** Take it consistently - your body responds better with regular timing.");
+    lines.push(
+      "\n**Best practice:** Take it consistently - your body responds better with regular timing.",
+    );
   } else if (isFood) {
     lines.push("About taking this with food:\n");
     lines.push("**General rule:** Check your medicine label - it will say:");
     lines.push("• 'Before food' = 30-60 minutes before eating");
-    lines.push("• 'After food' = Right after your meal");  
+    lines.push("• 'After food' = Right after your meal");
     lines.push("• 'With food' = Take while eating");
     lines.push("• 'Empty stomach' = 2 hours after eating\n");
-    if (medicine?.precautions && /food|meal|stomach/i.test(medicine.precautions)) {
+    if (
+      medicine?.precautions &&
+      /food|meal|stomach/i.test(medicine.precautions)
+    ) {
       lines.push(`**For ${name}:** ${medicine.precautions}`);
     } else {
-      lines.push("If your label doesn't specify, it's usually safe to take with food to prevent stomach upset.");
+      lines.push(
+        "If your label doesn't specify, it's usually safe to take with food to prevent stomach upset.",
+      );
     }
   } else if (isStorage) {
     lines.push("Storage instructions:\n");
@@ -467,15 +493,21 @@ Now, as an experienced pharmacist, provide a helpful, accurate answer that:
     lines.push("✓ Keep in original container with label");
     lines.push("✓ Out of reach of children and pets");
     lines.push("✗ Don't store near heat sources\n");
-    lines.push("*Most medicines stay good for 2-3 years if stored properly. Check expiry dates regularly!*");
+    lines.push(
+      "*Most medicines stay good for 2-3 years if stored properly. Check expiry dates regularly!*",
+    );
   } else if (isPregnancy) {
     lines.push("⚠️ **Important: Pregnancy & Breastfeeding**\n");
-    lines.push("Many medicines can affect pregnancy or pass into breast milk. **Please don't take any medicine without consulting your obstetrician or doctor first.**");
+    lines.push(
+      "Many medicines can affect pregnancy or pass into breast milk. **Please don't take any medicine without consulting your obstetrician or doctor first.**",
+    );
     lines.push("\nThey'll consider:");
     lines.push("• Your trimester (if pregnant)");
     lines.push("• Benefits vs. risks to baby");
     lines.push("• Safer alternatives if needed\n");
-    lines.push("Your baby's safety comes first - always check with your doctor!");
+    lines.push(
+      "Your baby's safety comes first - always check with your doctor!",
+    );
   } else {
     // General information
     lines.push("Here's what you should know:\n");
@@ -487,7 +519,7 @@ Now, as an experienced pharmacist, provide a helpful, accurate answer that:
     lines.push("• Read the package insert");
     lines.push("• Take at regular times");
     lines.push("• Complete the full course (don't stop early)\n");
-    
+
     if (medicine?.precautions) {
       lines.push(`**Precautions:** ${medicine.precautions}\n`);
     }
@@ -499,20 +531,28 @@ Now, as an experienced pharmacist, provide a helpful, accurate answer that:
     lines.push(`You mentioned taking: ${otherMeds.join(", ")}`);
     lines.push("\n⚠️ Some medicines don't work well together. I recommend:");
     lines.push("• Ask your pharmacist to check for interactions");
-    lines.push("• Take different medicines spaced apart (unless advised otherwise)");
+    lines.push(
+      "• Take different medicines spaced apart (unless advised otherwise)",
+    );
     lines.push("• Keep an updated list of all your medicines");
   }
 
   // Age-specific final note
   if (ageGroup === "child") {
-    lines.push("\n👶 **For children:** Always use the exact dose prescribed by the pediatrician. Never estimate!");
+    lines.push(
+      "\n👶 **For children:** Always use the exact dose prescribed by the pediatrician. Never estimate!",
+    );
   } else if (ageGroup === "elderly") {
-    lines.push("\n👴 **For elderly patients:** Watch for dizziness, confusion, or falls. Report any new symptoms to your doctor.");
+    lines.push(
+      "\n👴 **For elderly patients:** Watch for dizziness, confusion, or falls. Report any new symptoms to your doctor.",
+    );
   }
 
   // Prescription warning
   if (medicine?.prescriptionRequired || medicine?.isRx) {
-    lines.push("\n🔒 **Note:** This is a prescription medicine - use only under medical supervision.");
+    lines.push(
+      "\n🔒 **Note:** This is a prescription medicine - use only under medical supervision.",
+    );
   }
 
   const confidenceLevel = getConfidence(medicine, context);
@@ -522,14 +562,19 @@ Now, as an experienced pharmacist, provide a helpful, accurate answer that:
   lines.push(`\n*${DISCLAIMER}*`);
 
   if (language === "hinglish") {
-    lines.push(`\nKoi bhi confusion ho to pharmacist ya doctor se zaroor puchein. 🙏`);
+    lines.push(
+      `\nKoi bhi confusion ho to pharmacist ya doctor se zaroor puchein. 🙏`,
+    );
   } else {
     lines.push(`\nIf you have any other questions, I'm here to help! 😊`);
   }
 
   const medicineCard = {
     medicine_name: name,
-    timing: isDosage || isTiming ? "As prescribed - same time daily" : "As prescribed",
+    timing:
+      isDosage || isTiming
+        ? "As prescribed - same time daily"
+        : "As prescribed",
     food_rule: isFood ? "Check label - with/without food" : "As on label",
     duration: "Complete the full course as prescribed",
     age_suitability:
