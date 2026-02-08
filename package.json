@@ -1,6 +1,7 @@
 {
   "name": "swiftpharma",
   "private": true,
+  "type": "module",
   "workspaces": [
     "client",
     "server"
