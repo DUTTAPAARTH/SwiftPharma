@@ -16,27 +16,11 @@ import assistantRoutes from "./routes/assistantRoutes.js";
 import healthRoute from "./routes/healthRoute.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { checkAuth } from "./middleware/authMiddleware.js";
-import connectDB from "./config/db.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-
-// Initialize DB connection on first request
-let dbConnected = false;
-app.use(async (req, res, next) => {
-  if (!dbConnected) {
-    try {
-      await connectDB();
-      dbConnected = true;
-    } catch (error) {
-      console.error("DB connection failed:", error);
-      return res.status(500).json({ error: "Database unavailable" });
-    }
-  }
-  next();
-});
 
 // CORS configuration for credentials
 const allowedOrigins = (
