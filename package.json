@@ -6,6 +6,9 @@
     "server"
   ],
   "version": "0.1.0",
+  "engines": {
+    "node": ">=18 <21"
+  },
   "scripts": {
     "testsprite": "powershell -ExecutionPolicy Bypass -File ./start-testsprite.ps1"
   }
