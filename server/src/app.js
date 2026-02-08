@@ -59,6 +59,7 @@ app.use(morgan("dev"));
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -72,6 +73,17 @@ app.use("/api", healthRoute);
 
 // Auth check endpoint for frontend
 app.get("/api/auth/check", checkAuth);
+
+// Serve static frontend files in production
+if (process.env.NODE_ENV === "production") {
+  const clientDistPath = path.join(__dirname, "..", "..", "client", "dist");
+  app.use(express.static(clientDistPath));
+
+  // SPA fallback - serve index.html for all non-API routes
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(clientDistPath, "index.html"));
+  });
+}
 
 app.use(errorHandler);
 
