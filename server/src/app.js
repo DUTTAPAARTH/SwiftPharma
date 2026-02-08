@@ -68,7 +68,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/ai", aiScanRoutes);
 app.use("/api/assistant", assistantRoutes);
-app.use("/health", healthRoute);
+app.use("/api", healthRoute);
 
 // Auth check endpoint for frontend
 app.get("/api/auth/check", checkAuth);

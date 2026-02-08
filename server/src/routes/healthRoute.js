@@ -1,8 +1,8 @@
-import { Router } from "express";
+import express from "express";
 
-const router = Router();
+const router = express.Router();
 
-router.get("/", (_req, res) => {
+router.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
