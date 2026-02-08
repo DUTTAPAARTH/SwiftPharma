@@ -1,33 +1,15 @@
-let appPromise;
-let dbPromise;
-let isConnected = false;
+import app from "../server/src/app.js";
+import connectDB from "../server/src/config/db.js";
 
-const getApp = () => {
-  if (!appPromise) {
-    appPromise = import("../server/src/app.js").then(
-      (module) => module.default,
-    );
+export default async function handler(req, res) {
+  try {
+    await connectDB();
+    return app(req, res);
+  } catch (error) {
+    console.error("🔥 Serverless crash:", error);
+    res.status(500).json({
+      error: "Internal Server Error",
+      message: error.message,
+    });
   }
-  return appPromise;
-};
-
-const ensureDb = () => {
-  if (!dbPromise) {
-    dbPromise = import("../server/src/config/db.js").then(
-      async (module) => {
-        if (!isConnected) {
-          await module.default();
-          isConnected = true;
-          console.log("✅ MongoDB connected (serverless)");
-        }
-      },
-    );
-  }
-  return dbPromise;
-};
-
-module.exports = async (req, res) => {
-  await ensureDb();
-  const app = await getApp();
-  return app(req, res);
-};
+}
