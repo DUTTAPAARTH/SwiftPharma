@@ -4,6 +4,7 @@ import { useCart } from "../hooks/useCart";
 import { useWishlist } from "../hooks/useWishlist";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
+import ProductCard from "../components/cards/ProductCard";
 import {
   fetchProductsByCategory,
   fetchCategories,
@@ -11,135 +12,14 @@ import {
 import SubstituteModal from "../components/modals/SubstituteModal";
 import { ensureAuthenticated } from "../utils/auth";
 
-const ProductCard = ({
-  product,
-  onAdd,
-  onView,
-  onSubstitute,
-  onToggleSave,
-  isSaved,
-  isAdding,
-}) => {
-  const discount =
-    product.mrp && product.mrp > product.price
-      ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
-      : null;
-
-  const imageUrl =
-    product.images?.[0] ||
-    `https://via.placeholder.com/400x400/f7f6f4/666666?text=${encodeURIComponent(
-      product.name.substring(0, 20),
-    )}`;
-
-  return (
-    <div className="group h-full rounded-2xl border border-border bg-white shadow-soft hover:shadow-card transition-all duration-300 flex flex-col">
-      <div className="relative aspect-square overflow-hidden rounded-t-2xl bg-[#f7f6f4]">
-        <img
-          src={imageUrl}
-          alt={product.name}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(e) => {
-            e.target.src = `https://via.placeholder.com/400x400/f7f6f4/666666?text=${encodeURIComponent(
-              product.name.substring(0, 20),
-            )}`;
-          }}
-        />
-        {product.requiresRx && (
-          <span className="absolute left-2 top-2 rounded-full bg-[#0f172a] text-white text-xs px-3 py-1">
-            Rx Required
-          </span>
-        )}
-      </div>
-
-      <div className="flex-1 p-4 flex flex-col gap-2">
-        <div className="min-h-[48px]">
-          <p className="text-sm text-secondary-text uppercase tracking-wide">
-            {product.manufacturer || "Unknown"}
-          </p>
-          <h3 className="text-lg font-nexus-bold text-primary-text leading-snug line-clamp-2">
-            {product.name}
-          </h3>
-        </div>
-        <p className="text-sm text-secondary-text">
-          {product.composition || "See details"}
-        </p>
-
-        <div className="flex items-center gap-3 pt-1">
-          <span className="text-xl font-nexus-bold text-primary-text">
-            ₹{product.price?.toFixed(2) || "0"}
-          </span>
-          {product.mrp && product.mrp > product.price && (
-            <span className="text-sm text-secondary-text line-through">
-              ₹{product.mrp?.toFixed(2)}
-            </span>
-          )}
-          {discount ? (
-            <span className="text-xs bg-[#ecfdf3] text-[#15803d] px-2 py-1 rounded-full border border-[#bbf7d0]">
-              {discount}% off
-            </span>
-          ) : null}
-        </div>
-
-        <div className="mt-auto flex items-center justify-between gap-2 pt-2">
-          <div className="flex items-center gap-2 text-xs text-secondary-text">
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#f0f9f4] border border-[#c0ecd0]">
-              {product.stock > 0 ? "In Stock" : "Out of Stock"}
-            </span>
-          </div>
-          <button
-            className="px-3 py-2 rounded-full bg-brand-coral text-white text-sm font-semibold shadow-soft hover:shadow-card transition"
-            onClick={() => onAdd(product)}
-            disabled={isAdding}
-          >
-            {isAdding ? "Added" : "Add to cart"}
-          </button>
-        </div>
-
-        <div className="hidden md:flex items-center justify-between text-xs text-secondary-text pt-2 border-t border-border">
-          <button
-            className="hover:text-brand-coral flex items-center gap-1"
-            onClick={() => onView(product)}
-          >
-            🔍 View details
-          </button>
-          <button
-            className="hover:text-brand-coral flex items-center gap-1"
-            onClick={() => onSubstitute(product)}
-          >
-            🔁 Substitute
-          </button>
-          <button
-            className="hover:text-brand-coral flex items-center gap-1"
-            onClick={() => onToggleSave(product)}
-          >
-            {isSaved ? "💖 Saved" : "❤️ Save"}
-          </button>
-        </div>
-        <div className="md:hidden flex items-center justify-between text-xs text-secondary-text pt-2 border-t border-border">
-          <button className="flex-1 py-2" onClick={() => onView(product)}>
-            View
-          </button>
-          <button className="flex-1 py-2" onClick={() => onSubstitute(product)}>
-            Substitute
-          </button>
-          <button className="flex-1 py-2" onClick={() => onToggleSave(product)}>
-            {isSaved ? "Saved" : "Save"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const SkeletonCard = () => (
-  <div className="h-full rounded-2xl border border-border bg-white shadow-soft animate-pulse flex flex-col">
-    <div className="aspect-square bg-[#f0f0f0] rounded-t-2xl" />
-    <div className="p-4 space-y-3">
-      <div className="h-3 bg-[#f0f0f0] rounded w-2/3" />
-      <div className="h-4 bg-[#f0f0f0] rounded w-full" />
-      <div className="h-3 bg-[#f0f0f0] rounded w-1/2" />
-      <div className="h-8 bg-[#f0f0f0] rounded w-full" />
+  <div className="bg-white dark:bg-slate-800 rounded-[32px] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col h-[400px] animate-pulse">
+    <div className="aspect-[4/3] bg-slate-50 dark:bg-slate-900" />
+    <div className="p-6 space-y-4">
+      <div className="h-4 bg-slate-100 dark:bg-slate-700 rounded w-1/3" />
+      <div className="h-6 bg-slate-100 dark:bg-slate-700 rounded w-full" />
+      <div className="h-4 bg-slate-100 dark:bg-slate-700 rounded w-2/3" />
+      <div className="mt-auto h-10 bg-slate-100 dark:bg-slate-700 rounded-full w-full" />
     </div>
   </div>
 );
@@ -160,14 +40,13 @@ const CategoryDetail = () => {
   const [category, setCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(true);
-  const [addingId, setAddingId] = useState(null);
   const [substituteModal, setSubstituteModal] = useState({
     open: false,
     base: null,
     options: [],
   });
-  const [substituteLoading, setSubstituteLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [openFaq, setOpenFaq] = useState("");
 
   // Fetch category data and products
   useEffect(() => {
@@ -225,7 +104,6 @@ const CategoryDetail = () => {
     otcOnly: false,
     price: 2000,
     brandType: "All",
-    showMobileFilters: false,
   });
 
   useEffect(() => {
@@ -243,7 +121,7 @@ const CategoryDetail = () => {
   };
 
   const filteredProducts = useMemo(() => {
-    const result = products.filter((p) => {
+    return products.filter((p) => {
       // Price filter
       if (p.price > filters.price) {
         return false;
@@ -266,10 +144,7 @@ const CategoryDetail = () => {
 
       return true;
     });
-    return result;
   }, [products, filters]);
-
-  const [openFaq, setOpenFaq] = useState("paracetamol");
 
   const normalizeCartProduct = (product) => ({
     id: product?._id || product?.id,
@@ -285,29 +160,12 @@ const CategoryDetail = () => {
     manufacturer: product?.manufacturer || "",
   });
 
-  const handleAdd = (product) => {
-    const productId = product?._id || product?.id;
-    if (!productId) return;
-    if (!ensureAuthenticated(navigate)) return;
-    setAddingId(productId);
-    addItem(normalizeCartProduct(product), 1);
-    setTimeout(() => setAddingId(null), 800);
-  };
-
-  const handleView = (product) => {
-    const id = product?._id || product?.id;
-    if (!id) return;
-    navigate(`/product/${id}`);
-  };
-
   const handleSubstitute = (product) => {
     if (!product) return;
     const saltKey = (product.composition || "")
       .split(/,|\+/)[0]
       ?.trim()
       .toLowerCase();
-
-    setSubstituteLoading(true);
 
     const sameSalt = (products || []).filter((p) => {
       if (!p) return false;
@@ -334,51 +192,19 @@ const CategoryDetail = () => {
       base: product,
       options,
     });
-
-    setSubstituteLoading(false);
-  };
-
-  const handleToggleSave = (product) => {
-    if (!product) return;
-    if (!ensureAuthenticated(navigate)) return;
-    toggle({
-      id: product._id || product.id,
-      name: product.name,
-      price: product.price,
-      image: product.images?.[0],
-      composition: product.composition,
-      manufacturer: product.manufacturer,
-    });
-  };
-
-  const handleAddSubstituteToCart = (option) => {
-    if (!ensureAuthenticated(navigate)) return;
-    addItem(normalizeCartProduct(option), 1);
-    setSubstituteModal({ open: false, base: null, options: [] });
-  };
-
-  const handleReplaceWithSubstitute = (option) => {
-    if (!ensureAuthenticated(navigate)) return;
-    const baseId = substituteModal.base?._id || substituteModal.base?.id;
-    const existing = items.find(
-      (p) => p.productId === baseId || p.id === baseId,
-    );
-    const qty = existing?.quantity || 1;
-
-    replaceItem(baseId, normalizeCartProduct(option), qty);
-    setSubstituteModal({ open: false, base: null, options: [] });
   };
 
   if (categoryLoading) {
     return (
-      <div className="min-h-screen bg-background text-primary-text flex flex-col">
+      <div className="min-h-screen bg-background-light dark:bg-background-dark font-nexus-bold">
         <Navbar />
-        <main className="flex-1 max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-10">
-          <div className="animate-pulse space-y-6">
-            <div className="h-12 bg-gray-300 rounded w-1/3"></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, idx) => (
-                <div key={idx} className="h-64 bg-gray-200 rounded-lg"></div>
+        <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-24 space-y-12">
+          <div className="h-64 bg-white dark:bg-slate-800 rounded-[56px] animate-pulse mb-12"></div>
+          <div className="grid lg:grid-cols-4 gap-8">
+            <div className="lg:col-span-1 h-[600px] bg-white dark:bg-slate-800 rounded-[40px] animate-pulse"></div>
+            <div className="lg:col-span-3 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[...Array(6)].map((_, i) => (
+                <SkeletonCard key={i} />
               ))}
             </div>
           </div>
@@ -388,252 +214,159 @@ const CategoryDetail = () => {
     );
   }
 
-  if (!category) {
+  if (!category || error) {
     return (
-      <div className="min-h-screen bg-background text-primary-text flex flex-col">
-        <Navbar />
-        <main className="flex-1 max-w-3xl mx-auto px-4 py-16 text-center space-y-6">
-          <h1 className="text-3xl font-nexus-bold">Category not found</h1>
-          <p className="text-secondary-text">
-            Please go back and choose another category.
-          </p>
-          <div className="flex justify-center gap-4">
-            <button
-              className="px-5 py-2 rounded-full bg-brand-coral text-white font-semibold shadow-soft hover:shadow-lg transition"
-              onClick={() => navigate(-1)}
-            >
-              Go back
-            </button>
-            <Link
-              to="/categories"
-              className="px-5 py-2 rounded-full border border-border text-primary-text font-semibold bg-white hover:-translate-y-0.5 hover:shadow-card transition"
-            >
-              All categories
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background text-primary-text flex flex-col">
-        <Navbar />
-        <main className="flex-1 max-w-3xl mx-auto px-4 py-16 text-center space-y-6">
-          <h1 className="text-3xl font-nexus-bold">Error Loading Medicines</h1>
-          <p className="text-secondary-text">{error}</p>
-          <div className="flex justify-center gap-4">
-            <button
-              className="px-5 py-2 rounded-full bg-brand-coral text-white font-semibold shadow-soft hover:shadow-lg transition"
-              onClick={() => window.location.reload()}
-            >
-              Refresh
-            </button>
-            <Link
-              to="/categories"
-              className="px-5 py-2 rounded-full border border-border text-primary-text font-semibold bg-white hover:-translate-y-0.5 hover:shadow-card transition"
-            >
-              Back to categories
-            </Link>
-          </div>
-        </main>
-        <Footer />
+      <div className="min-h-screen bg-background-light dark:bg-background-dark font-nexus-bold flex items-center justify-center">
+        <div className="text-center space-y-6">
+          <h1 className="text-4xl font-black">Category not found</h1>
+          <Link
+            to="/categories"
+            className="inline-block h-14 px-8 rounded-full bg-primary text-white font-black text-[10px] uppercase tracking-widest flex items-center justify-center"
+          >
+            Back to categories
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-primary-text flex flex-col">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark font-nexus-bold">
       <Navbar />
-      <main className="flex-1 max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-10 space-y-10">
-        <section className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-[#f7fbff] via-[#fff7f3] to-[#f2f6ff] p-8 md:p-12 shadow-[0_14px_48px_rgba(0,0,0,0.06)]">
-          <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#ffe8e2] blur-3xl opacity-60" />
-          <div className="absolute -left-16 bottom-0 h-32 w-32 rounded-full bg-[#e8f1ff] blur-3xl opacity-60" />
-          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div className="space-y-4 max-w-2xl">
-              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-border text-primary-text font-semibold shadow-soft text-sm">
-                {category.icon || "💊"} {category.name}
-              </span>
-              <h1 className="text-3xl md:text-4xl font-nexus-bold text-primary-text leading-tight">
-                {category.name}
-              </h1>
-              <p className="text-base md:text-lg text-secondary-text">
-                {category.description ||
-                  "Curated medicines with live availability and pricing."}
-              </p>
-              <div className="flex flex-wrap gap-3 text-sm text-secondary-text">
-                <span className="px-3 py-1 rounded-full bg-white border border-border">
-                  {category.productCount}+ items
+
+      <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-24 space-y-12">
+        {/* Header Hero Section */}
+        <section className="relative overflow-hidden rounded-[56px] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 md:p-16 shadow-soft group">
+          <div className="absolute top-0 right-0 p-16 opacity-5 group-hover:opacity-10 transition-opacity">
+            <span className="material-symbols-outlined text-[240px] font-black">
+              {category.icon || "medical_services"}
+            </span>
+          </div>
+          <div className="relative z-10 space-y-8 max-w-3xl font-nexus-bold">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/20">
+              Curated category
+            </div>
+            <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
+              {category.name}
+            </h1>
+            <p className="text-xl text-slate-500 font-medium">
+              {category.description ||
+                "Trusted products with live stock and transparent pricing."}
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                <span className="material-symbols-outlined text-primary text-xl">
+                  inventory_2
                 </span>
-                <span className="px-3 py-1 rounded-full bg-white border border-border">
-                  {category.deliveryEta || "Fast delivery"}
-                </span>
-                <span className="px-3 py-1 rounded-full bg-white border border-border">
-                  OTC-first
+                <span className="text-sm font-bold">
+                  {filteredProducts.length} products
                 </span>
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm text-primary-text">
-              {[
-                "🌡️ Thermometer",
-                "💊 Pain relief",
-                "💧 Hydration",
-                "🛌 Rest & care",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="px-4 py-3 rounded-2xl bg-white border border-border shadow-soft text-center"
-                >
-                  {item}
-                </div>
-              ))}
+              <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                <span className="material-symbols-outlined text-green-500 text-xl">
+                  verified
+                </span>
+                <span className="text-sm font-bold">Quality checked</span>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-white shadow-soft p-4 md:p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="flex items-center gap-3 text-primary-text">
-            <span className="text-2xl">🤖</span>
+        {/* AI Action Strip */}
+        <section className="bg-primary/5 rounded-[40px] p-8 border border-primary/10 flex flex-col lg:flex-row items-center justify-between gap-8 group hover:bg-primary/10 transition-all">
+          <div className="flex items-center gap-6">
+            <div className="size-16 rounded-[24px] bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20">
+              <span className="material-symbols-outlined text-3xl animate-pulse">
+                clinical_notes
+              </span>
+            </div>
             <div>
-              <p className="font-nexus-bold">Not sure what to take?</p>
-              <p className="text-secondary-text text-sm">
-                Upload your prescription or symptoms — AI will suggest
-                medicines.
+              <h4 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                Need help choosing?
+              </h4>
+              <p className="text-slate-500 text-sm">
+                Ask the AI assistant for product guidance or upload a
+                prescription for review.
               </p>
             </div>
           </div>
-          <div className="flex gap-3">
-            <Link
-              to="/ai-assistant"
-              className="px-4 py-2 rounded-full bg-brand-coral text-white font-semibold shadow-soft hover:shadow-card transition"
-            >
-              Use AI Health Assistant
+          <div className="flex items-center gap-4">
+            <Link to="/ai-assistant">
+              <button className="h-14 px-10 rounded-full bg-white dark:bg-slate-800 border border-primary/20 text-primary font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-sm">
+                Ask AI assistant
+              </button>
             </Link>
-            <Link
-              to="/prescriptions"
-              className="px-4 py-2 rounded-full border border-border bg-white text-primary-text font-semibold hover:-translate-y-0.5 hover:shadow-card transition"
-            >
-              Upload prescription
+            <Link to="/prescriptions">
+              <button className="h-14 px-10 rounded-full bg-slate-900 dark:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
+                Upload prescription
+              </button>
             </Link>
           </div>
         </section>
 
-        <section className="grid md:grid-cols-[280px_1fr] gap-6 items-start">
-          <div className="hidden md:block sticky top-4">
-            <div className="rounded-2xl border border-border bg-white shadow-soft p-4 space-y-4">
+        <section className="grid lg:grid-cols-[320px_1fr] gap-12 items-start">
+          {/* Sidebar Filters */}
+          <aside className="hidden lg:block sticky top-32 space-y-10">
+            <div className="bg-white dark:bg-slate-800 rounded-[40px] p-10 border border-slate-100 dark:border-slate-700 shadow-soft space-y-10">
               <div className="flex items-center justify-between">
-                <p className="font-nexus-bold">Smart filters</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                  Filter products
+                </p>
                 <button
-                  className="text-xs text-brand-coral"
                   onClick={() =>
                     setFilters({
                       ...filters,
                       types: [],
                       salts: [],
                       age: [],
-                      otcOnly: false,
                       price: maxPrice,
-                      brandType: "All",
                     })
                   }
+                  className="text-[10px] font-black uppercase text-slate-400 hover:text-primary transition-all"
                 >
                   Reset
                 </button>
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Medicine Type</p>
-                {filtersConfig.types.map((t) => (
-                  <label
-                    key={t}
-                    className="flex items-center gap-2 text-sm text-secondary-text"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.types.includes(t)}
-                      onChange={() => toggleArrayFilter("types", t)}
-                    />
-                    {t}
-                  </label>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Salt / Composition</p>
-                {filtersConfig.salts.map((s) => (
-                  <label
-                    key={s}
-                    className="flex items-center gap-2 text-sm text-secondary-text"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.salts.includes(s)}
-                      onChange={() => toggleArrayFilter("salts", s)}
-                    />
-                    {s}
-                  </label>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Age Group</p>
-                {filtersConfig.age.map((a) => (
-                  <label
-                    key={a}
-                    className="flex items-center gap-2 text-sm text-secondary-text"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={filters.age.includes(a)}
-                      onChange={() => toggleArrayFilter("age", a)}
-                    />
-                    {a}
-                  </label>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Prescription required</p>
-                <label className="flex items-center gap-2 text-sm text-secondary-text">
-                  <input
-                    type="checkbox"
-                    checked={filters.otcOnly}
-                    onChange={() =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        otcOnly: !prev.otcOnly,
-                      }))
-                    }
-                  />
-                  OTC only (default)
-                </label>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Brand / Generic</p>
-                <div className="flex gap-2 text-sm">
-                  {["Branded", "Generic", "All"].map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() =>
-                        setFilters((prev) => ({ ...prev, brandType: opt }))
-                      }
-                      className={`flex-1 px-3 py-2 rounded-full border text-center ${
-                        filters.brandType === opt
-                          ? "bg-brand-coral text-white border-brand-coral"
-                          : "bg-white text-primary-text border-border"
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
+              {[
+                {
+                  title: "Product type",
+                  key: "types",
+                  options: filtersConfig.types,
+                },
+                {
+                  title: "Composition",
+                  key: "salts",
+                  options: filtersConfig.salts,
+                },
+                { title: "Target Age", key: "age", options: filtersConfig.age },
+              ].map((group) => (
+                <div key={group.key} className="space-y-4">
+                  <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    {group.title}
+                  </h5>
+                  <div className="flex flex-wrap gap-2">
+                    {group.options.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => toggleArrayFilter(group.key, opt)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
+                          filters[group.key].includes(opt)
+                            ? "bg-primary text-white shadow-lg shadow-primary/20"
+                            : "bg-slate-50 dark:bg-slate-900 text-slate-500 border border-slate-100 dark:border-slate-800 hover:border-primary/50"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ))}
 
-              <div className="space-y-2">
-                <p className="text-sm font-semibold">Price range (₹)</p>
+              <div className="space-y-6">
+                <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Budget Limit (₹)
+                </h5>
                 <input
                   type="range"
                   min={0}
@@ -645,206 +378,124 @@ const CategoryDetail = () => {
                       price: Number(e.target.value),
                     }))
                   }
-                  className="w-full"
+                  className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-primary"
                 />
-                <div className="text-xs text-secondary-text">
-                  Up to ₹{filters.price}
+                <div className="flex items-center justify-between text-[10px] font-black uppercase text-slate-500">
+                  <span>₹0</span>
+                  <span className="text-primary">Up to ₹{filters.price}</span>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div className="space-y-4">
-            <div className="md:hidden flex items-center justify-between bg-white border border-border rounded-2xl p-4 shadow-soft">
-              <div>
-                <p className="font-nexus-bold">Smart filters</p>
-                <p className="text-xs text-secondary-text">OTC on by default</p>
-              </div>
-              <button
-                className="px-4 py-2 rounded-full bg-brand-coral text-white text-sm font-semibold"
-                onClick={() =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    showMobileFilters: !prev.showMobileFilters,
-                  }))
-                }
-              >
-                {filters.showMobileFilters ? "Close" : "Filters"}
-              </button>
-            </div>
-
-            {filters.showMobileFilters && (
-              <div className="md:hidden rounded-2xl border border-border bg-white shadow-soft p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="font-nexus-bold">Smart filters</p>
-                  <button
-                    className="text-xs text-brand-coral"
-                    onClick={() =>
-                      setFilters({
-                        ...filters,
-                        types: [],
-                        salts: [],
-                        age: [],
-                        otcOnly: false,
-                        price: maxPrice,
-                        brandType: "All",
-                        showMobileFilters: false,
-                      })
-                    }
-                  >
-                    Reset
-                  </button>
-                </div>
-                {/* Reuse same controls */}
-                {[
-                  filtersConfig.types,
-                  filtersConfig.salts,
-                  filtersConfig.age,
-                ].map((group, idx) => (
-                  <div
-                    key={idx}
-                    className="flex flex-wrap gap-2 text-sm text-secondary-text"
-                  >
-                    {group.map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() =>
-                          toggleArrayFilter(
-                            idx === 0 ? "types" : idx === 1 ? "salts" : "age",
-                            opt,
-                          )
-                        }
-                        className={`px-3 py-2 rounded-full border ${
-                          (idx === 0 && filters.types.includes(opt)) ||
-                          (idx === 1 && filters.salts.includes(opt)) ||
-                          (idx === 2 && filters.age.includes(opt))
-                            ? "bg-brand-coral text-white border-brand-coral"
-                            : "bg-white text-primary-text border-border"
-                        }`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
+              <div className="pt-8 border-t border-slate-50 dark:border-slate-700">
+                <label className="flex items-center gap-4 cursor-pointer group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={filters.otcOnly}
+                      onChange={() =>
+                        setFilters((p) => ({ ...p, otcOnly: !p.otcOnly }))
+                      }
+                      className="peer sr-only"
+                    />
+                    <div className="w-12 h-6 bg-slate-100 dark:bg-slate-700 rounded-full peer-checked:bg-primary transition-all"></div>
+                    <div className="absolute top-1 left-1 size-4 bg-white rounded-full transition-transform peer-checked:translate-x-6"></div>
                   </div>
-                ))}
-
-                <label className="flex items-center gap-2 text-sm text-secondary-text">
-                  <input
-                    type="checkbox"
-                    checked={filters.otcOnly}
-                    onChange={() =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        otcOnly: !prev.otcOnly,
-                      }))
-                    }
-                  />
-                  OTC only (default)
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 group-hover:text-primary transition-all">
+                    OTC only
+                  </span>
                 </label>
+              </div>
+            </div>
+          </aside>
 
-                <div className="flex gap-2 text-sm">
-                  {["Branded", "Generic", "All"].map((opt) => (
+          {/* Product Grid */}
+          <div className="space-y-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Available products
+                </h2>
+                <p className="text-slate-500 text-sm font-medium">
+                  Showing {filteredProducts.length} products in this category.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                  {["All", "Branded", "Generic"].map((opt) => (
                     <button
                       key={opt}
-                      onClick={() =>
-                        setFilters((prev) => ({ ...prev, brandType: opt }))
-                      }
-                      className={`flex-1 px-3 py-2 rounded-full border ${
+                      onClick={() => setFilters({ ...filters, brandType: opt })}
+                      className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                         filters.brandType === opt
-                          ? "bg-brand-coral text-white border-brand-coral"
-                          : "bg-white text-primary-text border-border"
+                          ? "bg-white dark:bg-slate-700 text-primary shadow-sm"
+                          : "text-slate-400"
                       }`}
                     >
                       {opt}
                     </button>
                   ))}
                 </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold">Price range (₹)</p>
-                  <input
-                    type="range"
-                    min={0}
-                    max={maxPrice}
-                    value={filters.price}
-                    onChange={(e) =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        price: Number(e.target.value),
-                      }))
-                    }
-                    className="w-full"
-                  />
-                  <div className="text-xs text-secondary-text">
-                    Up to ₹{filters.price}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-nexus-bold">Products</h2>
-                <p className="text-sm text-secondary-text">
-                  High-contrast cards with consistent height.
-                </p>
-              </div>
-              <div className="hidden md:flex items-center gap-2 text-xs text-secondary-text">
-                <span className="px-3 py-1 rounded-full bg-[#f7f6f4] border border-border">
-                  Skeleton loaders
-                </span>
-                <span className="px-3 py-1 rounded-full bg-[#f7f6f4] border border-border">
-                  Lazy images
-                </span>
               </div>
             </div>
 
-            {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {Array.from({ length: 6 }).map((_, idx) => (
-                  <SkeletonCard key={idx} />
-                ))}
-              </div>
-            ) : filteredProducts.length ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-                {filteredProducts.map((product) => (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {loading ? (
+                [...Array(6)].map((_, i) => <SkeletonCard key={i} />)
+              ) : filteredProducts.length === 0 ? (
+                <div className="col-span-full py-40 text-center space-y-8 bg-white dark:bg-slate-800 rounded-[56px] border border-slate-100 dark:border-slate-700 shadow-soft">
+                  <span className="material-symbols-outlined text-[100px] text-slate-100 dark:text-slate-700">
+                    pill_off
+                  </span>
+                  <p className="text-slate-400 font-bold text-xl">
+                    No products match your filters.
+                  </p>
+                  <button
+                    onClick={() =>
+                      setFilters({
+                        ...filters,
+                        types: [],
+                        salts: [],
+                        age: [],
+                        price: maxPrice,
+                      })
+                    }
+                    className="h-14 px-10 rounded-full bg-primary text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              ) : (
+                filteredProducts.map((p) => (
                   <ProductCard
-                    key={product._id}
-                    product={product}
-                    onAdd={handleAdd}
-                    onView={handleView}
+                    key={p._id}
+                    {...p}
+                    id={p._id}
                     onSubstitute={handleSubstitute}
-                    onToggleSave={handleToggleSave}
-                    isSaved={isSaved(product._id || product.id)}
-                    isAdding={addingId === (product._id || product.id)}
+                    onAdd={(product) => {
+                      if (!ensureAuthenticated(navigate)) return;
+                      addItem(normalizeCartProduct(product), 1);
+                    }}
+                    onView={(product) => {
+                      const id = product?._id || product?.id;
+                      if (!id) return;
+                      navigate(`/product/${id}`);
+                    }}
+                    onToggleSave={(product) => {
+                      if (!ensureAuthenticated(navigate)) return;
+                      toggle({
+                        id: product._id || product.id,
+                        name: product.name,
+                        price: product.price,
+                        image: product.images?.[0],
+                        composition: product.composition,
+                        manufacturer: product.manufacturer,
+                      });
+                    }}
+                    isSaved={isSaved(p._id || p.id)}
                   />
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-border bg-white shadow-soft p-10 text-center space-y-3">
-                <div className="text-4xl">🤕</div>
-                <p className="text-lg font-nexus-bold">No medicines found</p>
-                <p className="text-secondary-text">
-                  Try removing filters or lowering the price range.
-                </p>
-                <button
-                  className="px-4 py-2 rounded-full bg-brand-coral text-white text-sm font-semibold"
-                  onClick={() =>
-                    setFilters({
-                      ...filters,
-                      types: [],
-                      salts: [],
-                      age: [],
-                      otcOnly: false,
-                      price: maxPrice,
-                      brandType: "All",
-                    })
-                  }
-                >
-                  Clear filters
-                </button>
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
         </section>
 
@@ -883,15 +534,15 @@ const CategoryDetail = () => {
                   }
                   className="w-full flex items-center justify-between px-4 py-3 text-left"
                 >
-                  <span className="font-semibold text-primary-text">
+                  <span className="font-semibold text-slate-900 dark:text-white">
                     {item.title}
                   </span>
-                  <span className="text-secondary-text">
+                  <span className="text-slate-500 dark:text-slate-400">
                     {openFaq === item.key ? "−" : "+"}
                   </span>
                 </button>
                 {openFaq === item.key && (
-                  <div className="px-4 pb-4 text-sm text-secondary-text">
+                  <div className="px-4 pb-4 text-sm text-slate-600 dark:text-slate-400">
                     {item.body}
                   </div>
                 )}
@@ -904,7 +555,7 @@ const CategoryDetail = () => {
       <div className="md:hidden fixed inset-x-4 bottom-4 z-40">
         <Link
           to="/cart"
-          className="w-full inline-flex justify-center items-center gap-2 py-3 rounded-full bg-brand-coral text-white font-semibold shadow-[0_10px_30px_rgba(227,93,57,0.35)]"
+          className="w-full inline-flex justify-center items-center gap-2 py-3 rounded-full bg-primary text-white font-semibold shadow-glow"
         >
           🛒 View cart
         </Link>

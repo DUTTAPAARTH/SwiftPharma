@@ -1,23 +1,26 @@
 @echo off
-echo Killing all node processes...
-taskkill /F /IM node.exe >nul 2>&1
-timeout /t 2 >nul
+setlocal
+
+cd /d "%~dp0"
+title SwiftPharma Dev Runner
+
+echo ================================================================
+echo SwiftPharma Dev Runner
+echo SERVER: http://localhost:5000
+echo CLIENT: http://localhost:5173
+echo Logs stay in this window. If either process fails, you will see it here.
+echo Press Ctrl+C to stop both services.
+echo ================================================================
+echo.
+
+call npm run dev
+set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.
-echo Starting Backend Server...
-cd /d "c:\Users\PAARTH DUTTA\Downloads\SWIFTPHARMA\server"
-start "SwiftPharma Backend" cmd /k "npx nodemon index.js"
+if not "%EXIT_CODE%"=="0" (
+	echo SwiftPharma dev runner exited with code %EXIT_CODE%.
+) else (
+	echo SwiftPharma dev runner stopped.
+)
 
-timeout /t 5 >nul
-
-echo.
-echo Starting Frontend...
-cd /d "c:\Users\PAARTH DUTTA\Downloads\SWIFTPHARMA\client"
-start "SwiftPharma Frontend" cmd /k "npm run dev"
-
-echo.
-echo ✅ Both servers started!
-echo Backend: http://localhost:5000
-echo Frontend: http://localhost:5173
-echo.
-pause
+endlocal & exit /b %EXIT_CODE%

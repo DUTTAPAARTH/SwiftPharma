@@ -3,15 +3,9 @@ import apiClient from "./apiClient";
 // Login user
 export const login = async (credentials) => {
   try {
-    console.log("🔑 Attempting login with:", credentials.email);
     const response = await apiClient.post("/auth/login", credentials);
-    console.log("📨 Raw API Response:", response);
-    console.log("📨 Response data:", response.data);
-    console.log("📨 Success?:", response.data.success);
-    console.log("📨 Token?:", response.data.token);
 
     if (response.data.success && response.data.token) {
-      console.log("✅ Saving token to authToken");
       localStorage.setItem("authToken", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
       // Save email and rememberMe preference from server response
@@ -20,13 +14,10 @@ export const login = async (credentials) => {
         localStorage.setItem("rememberMeEnabled", "true");
         localStorage.setItem("lastLoginEmail", response.data.lastLoginEmail);
       }
-      console.log("✅ Token saved successfully");
     }
-    console.log("✅ Returning response.data:", response.data);
+
     return response.data;
   } catch (error) {
-    console.error("❌ Login error:", error.message);
-    console.error("Error response:", error.response?.data);
     return {
       success: false,
       message:
@@ -95,7 +86,6 @@ export const getRememberedCredentials = () => {
     try {
       return JSON.parse(saved);
     } catch (error) {
-      console.error("Error parsing remembered credentials:", error);
       return null;
     }
   }
@@ -114,7 +104,7 @@ export const getLastEmail = () => {
 
 // Get token from localStorage
 export const getToken = () => {
-  return localStorage.getItem("token");
+  return localStorage.getItem("authToken");
 };
 
 // Check if user is authenticated (client-side check)

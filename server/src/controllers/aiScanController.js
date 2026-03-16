@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
+import fetch from "node-fetch";
+import Groq from "groq-sdk";
 import Prescription from "../models/Prescription.js";
 import {
   runOcr as sharedRunOcr,
@@ -14,6 +16,8 @@ const uploadsDir = path.resolve(process.cwd(), "uploads", "prescriptions");
 const ensureUploadsDir = async () => {
   await fs.promises.mkdir(uploadsDir, { recursive: true });
 };
+
+const GEMINI_MODEL = "gemini-2.0-flash";
 
 // Enhanced preprocessing for better OCR
 const preprocessImage = async (filePath) => {
@@ -38,16 +42,241 @@ const normalizeMedicines = (medicines) => {
   return medicines
     .filter((med) => med && med.name)
     .map((med) => ({
-      id: `med-${Date.now()}-${Math.random()}`,
       name: med.name || "Unknown",
-      strength: med.strength || "",
-      dosage: med.dosage || "Tablet",
-      frequency: med.frequency || "As directed",
-      duration: med.duration || "",
-      quantity: med.quantity || 1,
-      notes: med.notes || "",
-      warnings: med.warnings || [],
+      dosage: med.dosage || med.dosage_pattern || "As directed",
+      quantity: String(med.quantity || med.duration_days || "As directed"),
     }));
+};
+
+const parseGeminiJson = (content) => {
+  const cleaned = (content || "")
+    .replace(/```json\n?/gi, "")
+    .replace(/```\n?/g, "")
+    .trim();
+  return JSON.parse(cleaned);
+};
+
+const parseStructuredValidationJson = (content) => {
+  const cleaned = (content || "")
+    .replace(/```json\n?/gi, "")
+    .replace(/```\n?/g, "")
+    .trim();
+  return JSON.parse(cleaned);
+};
+
+const buildFallbackValidation = (reason, flags = []) => ({
+  isValidPrescription: true,
+  confidenceScore: 55,
+  doctorName: null,
+  doctorRegistrationNumber: null,
+  patientName: null,
+  prescriptionDate: null,
+  medicines: [],
+  rejectionReason: null,
+  flags: ["ai_validator_unavailable", ...flags, reason].filter(Boolean),
+});
+
+const mapValidationResponse = (parsed) => ({
+  isValidPrescription: Boolean(parsed?.isValidPrescription),
+  confidenceScore: Math.max(
+    0,
+    Math.min(100, Number(parsed?.confidenceScore || 0)),
+  ),
+  doctorName: parsed?.doctorName || null,
+  doctorRegistrationNumber: parsed?.doctorRegistrationNumber || null,
+  patientName: parsed?.patientName || null,
+  prescriptionDate: parsed?.prescriptionDate || null,
+  medicines: Array.isArray(parsed?.medicines) ? parsed.medicines : [],
+  rejectionReason: parsed?.rejectionReason || null,
+  flags: Array.isArray(parsed?.flags) ? parsed.flags : [],
+});
+
+const tryGroqValidation = async (prompt, extractedText) => {
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!groqKey) return null;
+
+  try {
+    const client = new Groq({ apiKey: groqKey });
+    const completion = await client.chat.completions.create({
+      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+      messages: [
+        { role: "system", content: prompt },
+        { role: "user", content: `OCR TEXT:\n${extractedText || ""}` },
+      ],
+      temperature: 0.1,
+      max_tokens: 1200,
+      response_format: { type: "json_object" },
+    });
+
+    const answer = completion?.choices?.[0]?.message?.content;
+    if (!answer) return null;
+
+    const parsed = parseStructuredValidationJson(answer);
+    const mapped = mapValidationResponse(parsed);
+    return {
+      ...mapped,
+      flags: [...mapped.flags, "validator_provider_groq"],
+    };
+  } catch (error) {
+    console.warn(
+      "[AI-SCAN] Groq fallback validation failed:",
+      error?.message || error,
+    );
+    return null;
+  }
+};
+
+export const validatePrescriptionWithAI = async (
+  extractedText,
+  imageBase64,
+) => {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+  const prompt = `You are a strict prescription validator for an Indian pharmacy.
+Analyze this prescription and respond ONLY with valid JSON:
+{
+  "isValidPrescription": true/false,
+  "confidenceScore": 0-100,
+  "doctorName": "string or null",
+  "doctorRegistrationNumber": "string or null",
+  "patientName": "string or null",
+  "prescriptionDate": "string or null",
+  "medicines": [{ "name": "string", "dosage": "string", "quantity": "string" }],
+  "rejectionReason": "string or null",
+  "flags": ["list of any concerns found"]
+}
+
+Reject (isValidPrescription: false) if:
+- No doctor name or signature visible
+- No doctor registration number (MCI/State Medical Council)
+- No patient name
+- No date on prescription
+- Prescription appears to be a photo of a screen/digital copy
+- Prescription is older than 6 months
+- Handwriting is completely illegible
+- Image is too blurry to read
+- Appears to be a fake or template prescription
+
+Confidence score guide:
+- 90-100: Clear prescription, all fields present
+- 70-89: Most fields present, minor issues
+- 50-69: Some fields missing, needs pharmacist review
+- Below 50: Likely invalid, reject`;
+
+  if (!GEMINI_API_KEY) {
+    if (GROQ_API_KEY) {
+      const groqValidation = await tryGroqValidation(prompt, extractedText);
+      if (groqValidation) {
+        console.log("[AI-SCAN] Using Groq fallback validator (Gemini key missing)");
+        return groqValidation;
+      }
+    }
+    return buildFallbackValidation("gemini_api_key_missing");
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": GEMINI_API_KEY,
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+              { text: `OCR TEXT:\n${extractedText || ""}` },
+              {
+                inline_data: {
+                  mime_type: "image/png",
+                  data: imageBase64,
+                },
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 2000,
+          responseMimeType: "application/json",
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    const quotaOrRateLimited = response.status === 429;
+    const flags = [
+      quotaOrRateLimited ? "gemini_quota_exceeded" : "gemini_api_error",
+      `gemini_status_${response.status}`,
+    ];
+    console.warn(
+      `[AI-SCAN] Gemini validation unavailable (status ${response.status}). Falling back to pharmacist review.`,
+    );
+    console.warn("[AI-SCAN] Gemini error payload:", err);
+
+    if (GROQ_API_KEY) {
+      const groqValidation = await tryGroqValidation(prompt, extractedText);
+      if (groqValidation) {
+        console.log("[AI-SCAN] Using Groq fallback validator after Gemini failure");
+        return groqValidation;
+      }
+    }
+
+    return buildFallbackValidation(
+      quotaOrRateLimited ? "gemini_rate_limited" : "gemini_unavailable",
+      flags,
+    );
+  }
+
+  const payload = await response.json();
+  const content = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!content) {
+    console.warn(
+      "[AI-SCAN] Gemini validation returned empty content. Falling back to pharmacist review.",
+    );
+    if (GROQ_API_KEY) {
+      const groqValidation = await tryGroqValidation(prompt, extractedText);
+      if (groqValidation) {
+        console.log("[AI-SCAN] Using Groq fallback validator after empty Gemini response");
+        return groqValidation;
+      }
+    }
+    return buildFallbackValidation("gemini_empty_response", [
+      "gemini_api_error",
+    ]);
+  }
+
+  let parsed;
+  try {
+    parsed = parseGeminiJson(content);
+  } catch (parseError) {
+    console.warn(
+      "[AI-SCAN] Gemini validation JSON parse failed. Falling back to pharmacist review.",
+      parseError?.message,
+    );
+    if (GROQ_API_KEY) {
+      const groqValidation = await tryGroqValidation(prompt, extractedText);
+      if (groqValidation) {
+        console.log("[AI-SCAN] Using Groq fallback validator after Gemini parse error");
+        return groqValidation;
+      }
+    }
+    return buildFallbackValidation("gemini_invalid_json", [
+      "gemini_parse_error",
+    ]);
+  }
+
+  const mapped = mapValidationResponse(parsed);
+  return {
+    ...mapped,
+    flags: [...mapped.flags, "validator_provider_gemini"],
+  };
 };
 
 // Look for frequency patterns after medicine name
@@ -115,6 +344,7 @@ export const scanPrescription = async (req, res) => {
     let ocrText = "";
     let safetyFlags = null;
     let extractionMethod = "unknown";
+    let aiValidation = null;
 
     // Step 1: Extract text using Tesseract OCR
     console.log("[SCAN] Running Tesseract OCR...");
@@ -133,7 +363,7 @@ export const scanPrescription = async (req, res) => {
     console.log("[SCAN] OCR text length:", ocrText.length);
     console.log("[SCAN] OCR preview:", ocrText.substring(0, 150));
 
-    // Step 2: Try Gemini API (FREE - Fast & Accurate)
+    // Step 2: Parse medicines from OCR.
     console.log("[SCAN] Attempting Gemini Flash parsing...");
     const geminiResult = await parseWithGemini(ocrText);
 
@@ -148,22 +378,7 @@ export const scanPrescription = async (req, res) => {
         JSON.stringify(parsedData.medicines || [], null, 2),
       );
 
-      // Convert Gemini output to medicines array
-      // IMPORTANT: Keep medicines even with null names (low confidence fallback)
-      medicines = (parsedData.medicines || [])
-        .filter((m) => m)
-        .map((med) => ({
-          id: `med-${Date.now()}-${Math.random()}`,
-          name: med.name || "Unknown",
-          strength: med.strength || "",
-          dosage: "Tablet",
-          frequency: med.dosage_pattern || "As directed",
-          duration: med.duration_days ? `${med.duration_days} days` : "",
-          quantity: 1,
-          notes: med.confidence < 0.8 ? "Low confidence - please verify" : "",
-          warnings: [],
-          confidence: med.confidence || 0.8,
-        }));
+      medicines = normalizeMedicines(parsedData.medicines || []);
 
       doctor = {
         name: parsedData.doctor?.name,
@@ -187,24 +402,7 @@ export const scanPrescription = async (req, res) => {
         JSON.stringify(parsedData.medicines || [], null, 2),
       );
 
-      // IMPORTANT: Keep medicines even with null names (low confidence fallback)
-      medicines = (parsedData.medicines || [])
-        .filter((m) => m)
-        .map((med) => ({
-          id: `med-${Date.now()}-${Math.random()}`,
-          name: med.name || "Unknown",
-          strength: med.strength || "",
-          dosage: "Tablet",
-          frequency: med.dosage_pattern || "As directed",
-          duration: med.duration_days ? `${med.duration_days} days` : "",
-          quantity: 1,
-          notes:
-            med.confidence < 0.8
-              ? "Low confidence - extracted locally, please verify"
-              : "",
-          warnings: [],
-          confidence: med.confidence || 0.7,
-        }));
+      medicines = normalizeMedicines(parsedData.medicines || []);
 
       doctor = {
         name: parsedData.doctor?.name,
@@ -216,6 +414,11 @@ export const scanPrescription = async (req, res) => {
       }
 
       safetyFlags = parsedData.safety_flags;
+    }
+
+    // Fallback for medicine extraction if both parsers fail.
+    if (!medicines.length) {
+      medicines = normalizeMedicines(sharedParseMedicines(ocrText) || []);
     }
 
     // Check if medicines were found
@@ -235,6 +438,38 @@ export const scanPrescription = async (req, res) => {
         safetyFlags,
       });
     }
+
+    // Step 3: Strict AI prescription validity check (hard gate).
+    const imageBase64 = processed.buffer.toString("base64");
+    aiValidation = await validatePrescriptionWithAI(ocrText, imageBase64);
+
+    const validationDate = aiValidation.prescriptionDate
+      ? new Date(aiValidation.prescriptionDate)
+      : issuedDate;
+    if (!Number.isNaN(validationDate.getTime())) {
+      issuedDate = validationDate;
+    }
+
+    const confidenceScore = Number(aiValidation.confidenceScore || 0);
+    const lowConfidence = confidenceScore >= 50 && confidenceScore < 80;
+    const hardRejected =
+      !aiValidation.isValidPrescription || confidenceScore < 50;
+
+    const derivedStatus = hardRejected ? "ai_rejected" : "awaiting_pharmacist";
+
+    const rejectionReason = hardRejected
+      ? aiValidation.rejectionReason ||
+        "Prescription did not pass strict AI validation"
+      : null;
+
+    const combinedFlags = Array.isArray(aiValidation.flags)
+      ? [...aiValidation.flags]
+      : [];
+    if (lowConfidence && !combinedFlags.includes("low_confidence")) {
+      combinedFlags.push("low_confidence");
+    }
+
+    const aiMeds = normalizeMedicines(aiValidation.medicines || medicines);
 
     const expiryDate = new Date(issuedDate);
     expiryDate.setMonth(expiryDate.getMonth() + 6);
@@ -256,7 +491,16 @@ export const scanPrescription = async (req, res) => {
       doctorName: doctor.name,
       issueDate: issuedDate,
       expiryDate,
-      status: "pending",
+      doctorRegistration:
+        aiValidation.doctorRegistrationNumber || doctor.reg_no,
+      status: derivedStatus,
+      aiValidated: !hardRejected,
+      aiConfidenceScore: confidenceScore,
+      aiExtractedMedicines: aiMeds,
+      aiRejectionReason: rejectionReason,
+      aiFlags: combinedFlags,
+      verificationAttempts: 1,
+      lastVerificationAt: new Date(),
       notes: req.body.notes || "",
     });
 
@@ -278,12 +522,19 @@ export const scanPrescription = async (req, res) => {
       success: true,
       prescriptionId: prescription._id,
       imageUrl: imageUrl,
-      medicines: medicines,
+      medicines: aiMeds,
       doctor: doctor,
       issueDate: issuedDate,
       expiryDate: expiryDate,
       extractionMethod: extractionMethod,
       safetyFlags: safetyFlags,
+      status: prescription.status,
+      aiValidation: {
+        isValidPrescription: aiValidation.isValidPrescription,
+        confidenceScore,
+        rejectionReason,
+        flags: combinedFlags,
+      },
       message: `Found ${medicines.length} medicine${
         medicines.length !== 1 ? "s" : ""
       } (${extractionMethod === "gemini-flash" ? "🤖 Gemini Flash" : "⚙️ Local Parser"})`,
@@ -308,7 +559,7 @@ export const retryExtraction = async (req, res) => {
       });
     }
 
-    const medicines = extractMedicines(ocrText);
+    const medicines = normalizeMedicines(sharedParseMedicines(ocrText));
     const doctor = extractDoctor(ocrText);
     const issuedDate = extractDate(ocrText);
 

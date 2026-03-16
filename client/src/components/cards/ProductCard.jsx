@@ -1,21 +1,45 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "../../hooks/useCart";
 import { useWishlist } from "../../hooks/useWishlist";
 import { ensureAuthenticated } from "../../utils/auth";
-const ProductCard = ({
-  id,
-  name,
-  price,
-  requiresRx = false,
-  composition,
-  manufacturer,
-  packSize,
-  rating = 4.5,
-  popular = false,
-  fastDelivery = true,
-  onSubstitute,
-}) => {
+
+const normalizeImageSrc = (value) => {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
+  return value.startsWith("/") ? value : `/${value}`;
+};
+
+const ProductCard = (props) => {
+  const {
+    product,
+    onSubstitute,
+    onAdd,
+    onView,
+    onToggleSave,
+    rating = 4.5,
+    popular = false,
+    fastDelivery = true,
+  } = props;
+
+  const resolvedProduct = product || props;
+  const id = resolvedProduct?._id || resolvedProduct?.id;
+  const name = resolvedProduct?.name || "Medicine";
+  const price = resolvedProduct?.price || 0;
+  const requiresRx = Boolean(
+    resolvedProduct?.requiresRx ??
+    resolvedProduct?.prescriptionRequired ??
+    resolvedProduct?.isRx,
+  );
+  const composition = resolvedProduct?.composition;
+  const manufacturer = resolvedProduct?.manufacturer || resolvedProduct?.brand;
+  const packSize = resolvedProduct?.packSize;
+  const imageSrc = normalizeImageSrc(
+    resolvedProduct?.image || resolvedProduct?.images?.[0],
+  );
+
   const { addItem } = useCart();
   const { toggle, isSaved } = useWishlist();
   const navigate = useNavigate();
@@ -33,140 +57,243 @@ const ProductCard = ({
     packSize,
   };
 
-  const handleAdd = () => {
+  const handleAdd = (event) => {
+    event.stopPropagation();
     if (!ensureAuthenticated(navigate)) return;
     setAdding(true);
-    addItem({
-      ...productPayload,
-      isRx: requiresRx,
-      requiresRx,
-    });
+    if (onAdd) {
+      onAdd({
+        ...resolvedProduct,
+        ...productPayload,
+        isRx: requiresRx,
+        requiresRx,
+      });
+    } else {
+      addItem({
+        ...productPayload,
+        image: imageSrc,
+        isRx: requiresRx,
+        requiresRx,
+      });
+    }
     setTimeout(() => setAdding(false), 800);
   };
 
-  const handleSave = () => {
+  const handleSave = (event) => {
+    event.stopPropagation();
     if (!ensureAuthenticated(navigate)) return;
     setSaving(true);
-    toggle(productPayload);
+    if (onToggleSave) {
+      onToggleSave({ ...resolvedProduct, ...productPayload, image: imageSrc });
+    } else {
+      toggle({ ...productPayload, image: imageSrc });
+    }
     setTimeout(() => setSaving(false), 500);
   };
 
   const handleView = () => {
+    if (onView) {
+      onView({ ...resolvedProduct, ...productPayload, image: imageSrc });
+      return;
+    }
     navigate(`/product/${id}`);
   };
 
-  const handleSubstitute = () => {
+  const handleSubstitute = (event) => {
+    event.stopPropagation();
     if (onSubstitute) {
-      onSubstitute(productPayload);
+      onSubstitute({ ...resolvedProduct, ...productPayload, image: imageSrc });
     }
   };
 
   return (
-    <div className="group overflow-hidden relative bg-card-surface border border-border rounded-2xl shadow-soft hover:shadow-lifted hover:translate-y-[-4px] transition-all duration-300 h-full min-h-[280px] flex flex-col">
-      {/* Hover glow effect */}
-      <div className="absolute inset-0 bg-gradient-cta opacity-0 group-hover:opacity-5 transition-all duration-300 rounded-2xl pointer-events-none"></div>
-
-      <div className="p-6 space-y-4 relative z-10 flex flex-col flex-grow">
-        {/* Gradient Chips */}
-        <div className="flex items-start justify-between gap-2 flex-wrap">
-          <div className="flex gap-2 flex-wrap">
-            {popular && (
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-[#FF6B4A] to-[#FF906A] text-white shadow-sm">
-                🔥 Trending
-              </span>
-            )}
-            {fastDelivery && (
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-[#10B981] to-[#34D399] text-white shadow-sm">
-                ⚡ Fast
-              </span>
-            )}
-          </div>
+    <div
+      onClick={handleView}
+      className="group bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden flex flex-col hover:shadow-xl hover:shadow-slate-200/60 dark:hover:shadow-slate-900/60 hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+    >
+      {/* Image Area */}
+      <div className="aspect-[4/3] bg-slate-50 dark:bg-slate-800 relative overflow-hidden">
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-20">
           {requiresRx && (
-            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#E8F1FF] text-[#3A78F2] border border-[#B8D4FF]">
+            <span className="inline-flex items-center gap-1 bg-amber-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm">
+              <span className="material-symbols-outlined text-[11px]">
+                prescription
+              </span>
               Rx
+            </span>
+          )}
+          {popular && (
+            <span className="inline-flex items-center gap-1 bg-rose-500/90 backdrop-blur-sm text-white text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm">
+              <span className="material-symbols-outlined text-[11px]">
+                trending_up
+              </span>
+              Trending
             </span>
           )}
         </div>
 
-        {/* Product Info with Icon */}
-        <div className="flex items-start gap-4">
-          {/* Small icon bubble */}
-          <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-[#FFF4F2] to-[#FFE8E2] border border-border shadow-sm flex items-center justify-center">
-            <span className="text-2xl">💊</span>
-          </div>
+        {/* Wishlist button (always visible on hover) */}
+        <button
+          onClick={handleSave}
+          className="absolute top-3 right-3 z-20 size-9 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-white dark:hover:bg-slate-800 transition-all shadow-sm opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 duration-300"
+        >
+          <span className="material-symbols-outlined text-base">
+            {isSaved(id) ? "favorite" : "favorite_border"}
+          </span>
+        </button>
 
-          <div className="flex-1 min-w-0">
-            <h4 className="text-base font-semibold leading-tight text-text-strong group-hover:text-brand-coral transition-colors duration-300">
-              {name}
-            </h4>
-            <p className="text-xs text-text-muted mt-1 line-clamp-2">
-              {composition || manufacturer || "Pharmaceutical Product"}
-            </p>
-            {manufacturer ? (
-              <p className="text-[11px] text-text-muted mt-0.5 line-clamp-1">
-                {manufacturer}
-              </p>
-            ) : null}
-            {packSize ? (
-              <p className="text-[11px] text-text-muted line-clamp-1">
-                Pack: {packSize}
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Rating & Reviews */}
-        <div className="flex items-center gap-2 text-sm">
-          <div className="flex items-center gap-1">
-            <span className="text-[#FFB800]">★</span>
-            <span className="font-semibold text-text-strong">
-              {rating.toFixed(1)}
-            </span>
-          </div>
-          <span className="text-text-muted text-xs">(248)</span>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-border"></div>
-
-        {/* Price & Actions */}
-        <div className="flex items-center justify-between mt-auto pt-2">
-          <div>
-            <p className="text-xs text-text-muted mb-0.5">Price</p>
-            <div className="text-2xl font-bold text-brand-coral">
-              ₹{Number(price || 0).toFixed(2)}
+        <div className="absolute inset-0">
+          <img
+            src={imageSrc || ""}
+            alt={name}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            style={{ display: imageSrc ? "block" : "none" }}
+            onError={(e) => {
+              e.target.style.display = "none";
+              if (e.target.nextSibling) {
+                e.target.nextSibling.style.display = "flex";
+              }
+            }}
+          />
+          <div
+            className="absolute inset-0 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700"
+            style={{ display: imageSrc ? "none" : "flex" }}
+          >
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/70 dark:bg-slate-900/70 shadow-inner backdrop-blur-sm border border-white/50 dark:border-slate-600/50">
+              <svg
+                viewBox="0 0 64 64"
+                className="h-12 w-12"
+                aria-hidden="true"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  x="12"
+                  y="20"
+                  width="40"
+                  height="24"
+                  rx="12"
+                  fill="#13b6ec"
+                  fillOpacity="0.15"
+                  stroke="#13b6ec"
+                  strokeWidth="2.5"
+                />
+                <path
+                  d="M24 40L40 24"
+                  stroke="#13b6ec"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M20 28H28"
+                  stroke="#13b6ec"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M36 36H44"
+                  stroke="#13b6ec"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleView}
-              className="px-3 py-2 text-sm font-medium text-text-strong border border-border rounded-lg hover:border-brand-coral hover:bg-[#FFF4F2] transition-all duration-200"
-            >
-              View
-            </button>
-            {onSubstitute ? (
-              <button
-                onClick={handleSubstitute}
-                className="px-3 py-2 text-sm font-medium text-text-strong border border-border rounded-lg hover:border-brand-coral hover:bg-[#FFF4F2] transition-all duration-200"
+        </div>
+
+        {/* Gradient overlay at bottom of image */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/20 to-transparent z-10 pointer-events-none" />
+      </div>
+
+      {/* Card Body */}
+      <div className="p-5 flex flex-col flex-grow">
+        {/* Rating row */}
+        <div className="flex items-center gap-1.5 mb-3">
+          <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <span
+                key={star}
+                className={`material-symbols-outlined text-xs ${star <= Math.round(rating) ? "text-amber-400" : "text-slate-200 dark:text-slate-700"}`}
+                style={{ fontVariationSettings: "'FILL' 1" }}
               >
-                Substitute
-              </button>
-            ) : null}
-            <button
-              onClick={handleSave}
-              className={`px-3 py-2 text-sm font-medium border rounded-lg transition-all duration-200 ${
-                isSaved(id)
-                  ? "border-brand-coral text-brand-coral bg-[#FFF4F2]"
-                  : "border-border text-text-strong hover:border-brand-coral hover:bg-[#FFF4F2]"
-              }`}
+                star
+              </span>
+            ))}
+          </div>
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            {rating}
+          </span>
+          <span className="text-[10px] text-slate-400 dark:text-slate-500">
+            · 2.4k
+          </span>
+        </div>
+
+        {/* Name */}
+        <h3 className="font-bold text-slate-900 dark:text-white text-base leading-snug mb-1 group-hover:text-primary transition-colors line-clamp-2">
+          {name}
+        </h3>
+
+        {/* Composition */}
+        <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 line-clamp-1">
+          {composition || "Premium Healthcare Product"}
+        </p>
+
+        {/* Delivery badge */}
+        {fastDelivery && (
+          <div className="inline-flex items-center gap-1.5 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400 text-[10px] font-bold px-2.5 py-1 rounded-full w-fit mb-4">
+            <span
+              className="material-symbols-outlined text-xs"
+              style={{ fontVariationSettings: "'FILL' 1" }}
             >
-              {isSaved(id) ? "Saved" : saving ? "Saving" : "Save"}
-            </button>
+              bolt
+            </span>
+            2-hour delivery
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className="border-t border-slate-100 dark:border-slate-800 mt-auto pt-4 flex items-center justify-between">
+          {/* Price */}
+          <div>
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+              Price
+            </span>
+            <span className="text-xl font-black text-slate-900 dark:text-white">
+              ₹{price}
+            </span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            {onSubstitute && (
+              <button
+                type="button"
+                onClick={handleSubstitute}
+                className="size-9 rounded-xl flex items-center justify-center border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all"
+                title="Find alternatives"
+              >
+                <span className="material-symbols-outlined text-base">
+                  compare_arrows
+                </span>
+              </button>
+            )}
             <button
               onClick={handleAdd}
-              className="px-4 py-2 text-sm font-semibold bg-gradient-cta text-white rounded-lg hover:shadow-glow hover:scale-105 transition-all duration-200 disabled:opacity-80"
-              disabled={adding}
+              className={`h-9 px-4 rounded-xl text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm ${
+                adding
+                  ? "bg-emerald-500 shadow-emerald-200 dark:shadow-emerald-900"
+                  : "bg-primary hover:bg-primary-hover shadow-primary/20"
+              } active:scale-95`}
             >
+              <span
+                className="material-symbols-outlined text-sm"
+                style={{
+                  fontVariationSettings: adding ? "'FILL' 1" : "'FILL' 0",
+                }}
+              >
+                {adding ? "check_circle" : "add_shopping_cart"}
+              </span>
               {adding ? "Added" : "Add"}
             </button>
           </div>

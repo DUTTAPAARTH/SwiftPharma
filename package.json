@@ -13,8 +13,12 @@
   "scripts": {
     "build": "npm install && npm run build --workspace=client",
     "start": "npm start --workspace=server",
+    "dev": "concurrently --kill-others-on-fail --names SERVER,CLIENT --prefix \"[{name}]\" --prefix-colors blue,green \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "npm run dev --workspace=client",
     "dev:server": "npm run dev --workspace=server",
     "testsprite": "powershell -ExecutionPolicy Bypass -File ./start-testsprite.ps1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

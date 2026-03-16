@@ -10,4 +10,5 @@ export const ORDER_STATUS = [
   "Packed",
   "Out for Delivery",
   "Delivered",
+  "Cancelled",
 ];

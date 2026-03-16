@@ -1,9 +1,9 @@
 import React from "react";
 import AuthForm from "../components/forms/AuthForm";
 
-const Auth = () => (
+const Auth = ({ mode = "login" }) => (
   <div className="min-h-screen">
-    <AuthForm mode="login" />
+    <AuthForm mode={mode} />
   </div>
 );
 

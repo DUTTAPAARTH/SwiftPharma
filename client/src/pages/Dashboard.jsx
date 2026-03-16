@@ -1,7 +1,8 @@
-import React, { useContext } from "react";
+import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/AuthContext";
 import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";
+import { AuthContext } from "../context/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -9,101 +10,165 @@ const Dashboard = () => {
 
   const quickActions = [
     {
-      title: "Browse Products",
-      description: "Explore our medicine catalog",
-      icon: "🏥",
+      title: "Browse medicines",
+      description: "Explore categories and products",
+      icon: "storefront",
       action: () => navigate("/categories"),
-      color: "from-blue-500 to-blue-600",
+      theme: "bg-blue-500",
     },
     {
-      title: "Upload Prescription",
-      description: "AI-powered prescription scanning",
-      icon: "📋",
+      title: "Upload prescription",
+      description: "Scan and verify your prescription",
+      icon: "upload_file",
       action: () => navigate("/prescriptions"),
-      color: "from-emerald-500 to-emerald-600",
+      theme: "bg-emerald-500",
     },
     {
-      title: "My Orders",
-      description: "Track your orders",
-      icon: "📦",
+      title: "Track orders",
+      description: "See order and delivery updates",
+      icon: "package_2",
       action: () => navigate("/orders"),
-      color: "from-purple-500 to-purple-600",
+      theme: "bg-purple-500",
     },
     {
-      title: "Shopping Cart",
-      description: "View cart and checkout",
-      icon: "🛒",
+      title: "Your cart",
+      description: "Review items before checkout",
+      icon: "shopping_cart",
       action: () => navigate("/cart"),
-      color: "from-orange-500 to-orange-600",
+      theme: "bg-orange-500",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark font-nexus-bold">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <main className="max-w-7xl mx-auto px-4 pt-32 pb-24 space-y-16">
         {/* Welcome Section */}
-        <div className="mb-12 animate-fadeIn">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            Welcome back, {user?.name || "User"}! 👋
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Your one-stop solution for all pharmaceutical needs
-          </p>
+        <div className="relative overflow-hidden rounded-[60px] bg-slate-900 p-12 md:p-16 group">
+          <div className="absolute top-0 right-0 p-16 opacity-5 group-hover:opacity-10 transition-all duration-700 -rotate-12 group-hover:rotate-0">
+            <span className="material-symbols-outlined text-[200px] font-black">
+              dashboard
+            </span>
+          </div>
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest border border-primary/30">
+                <span className="size-2 rounded-full bg-primary animate-pulse"></span>{" "}
+                Active Session
+              </div>
+              <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter leading-none">
+                Welcome, {user?.name || "Practitioner"}
+              </h1>
+              <p className="text-xl text-slate-400 font-medium leading-relaxed max-w-xl">
+                Manage prescriptions, orders, and everyday medicine shopping in
+                one place.
+              </p>
+            </div>
+
+            <div className="h-24 w-px bg-slate-800 hidden lg:block"></div>
+
+            <div className="flex items-center gap-6">
+              <div className="text-right space-y-1 hidden md:block">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  Member ID
+                </p>
+                <p className="text-white font-black">
+                  SP-{user?._id?.slice(-8).toUpperCase() || "ADMIN"}
+                </p>
+              </div>
+              <div className="size-20 rounded-full bg-primary/20 border-4 border-primary/30 flex items-center justify-center text-primary text-3xl font-black">
+                {user?.name?.[0] || "U"}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {quickActions.map((action, index) => (
             <button
               key={index}
               onClick={action.action}
-              className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${action.color} p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95`}
+              className="group relative overflow-hidden rounded-[48px] bg-white dark:bg-slate-900 p-10 border border-slate-100 dark:border-slate-800 shadow-soft hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 text-left flex flex-col gap-10 h-full w-full"
             >
-              <div className="relative z-10">
-                <div className="text-5xl mb-3">{action.icon}</div>
-                <h3 className="text-xl font-bold mb-2">{action.title}</h3>
-                <p className="text-white/90 text-sm">{action.description}</p>
+              <div
+                className={`size-20 rounded-[28px] ${action.theme} flex items-center justify-center text-white shadow-xl transition-all group-hover:scale-110 group-hover:rotate-6`}
+              >
+                <span className="material-symbols-outlined text-4xl font-black">
+                  {action.icon}
+                </span>
               </div>
-              <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              <div className="space-y-3">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                  {action.title}
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed">
+                  {action.description}
+                </p>
+              </div>
+              <div className="mt-auto pt-6 flex items-center justify-between text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Open section
+                </span>
+                <span className="material-symbols-outlined text-sm">
+                  arrow_forward
+                </span>
+              </div>
             </button>
           ))}
         </div>
 
-        {/* Features Section */}
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-            <div className="text-3xl mb-3">⚡</div>
-            <h3 className="text-lg font-bold text-gray-800 mb-2">
-              Fast Delivery
-            </h3>
-            <p className="text-gray-600 text-sm">
-              Get medicines delivered to your doorstep within hours
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-            <div className="text-3xl mb-3">🤖</div>
-            <h3 className="text-lg font-bold text-gray-800 mb-2">
-              AI Prescription Scanner
-            </h3>
-            <p className="text-gray-600 text-sm">
-              Upload prescriptions and we'll identify medicines automatically
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
-            <div className="text-3xl mb-3">💊</div>
-            <h3 className="text-lg font-bold text-gray-800 mb-2">
-              Verified Medicines
-            </h3>
-            <p className="text-gray-600 text-sm">
-              100% authentic medicines from licensed pharmacies
-            </p>
-          </div>
+        {/* Service Highlights */}
+        <div className="grid md:grid-cols-3 gap-10">
+          {[
+            {
+              icon: "bolt",
+              label: "FAST DELIVERY",
+              title: "Delivered quickly",
+              desc: "Get medicines delivered to your doorstep in as little as 120 minutes.",
+            },
+            {
+              icon: "psychology_alt",
+              label: "SMART SCAN",
+              title: "Prescription AI assist",
+              desc: "Upload a prescription and let AI extract medicine details before pharmacist review.",
+            },
+            {
+              icon: "verified",
+              label: "TRUSTED CARE",
+              title: "Verified medicines",
+              desc: "Orders are checked by licensed pharmacists and sourced from trusted partners.",
+            },
+          ].map((feat, i) => (
+            <div
+              key={i}
+              className="bg-slate-50 dark:bg-slate-800/50 p-12 rounded-[56px] border border-slate-100 dark:border-slate-700 flex flex-col gap-6 group hover:bg-white dark:hover:bg-slate-900 transition-all duration-500"
+            >
+              <div className="size-16 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-primary shadow-soft group-hover:scale-110 transition-transform">
+                <span className="material-symbols-outlined text-3xl font-black">
+                  {feat.icon}
+                </span>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    {feat.label}
+                  </p>
+                  <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
+                    {feat.title}
+                  </h3>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                  {feat.desc}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 };

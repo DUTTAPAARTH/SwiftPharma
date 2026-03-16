@@ -1,609 +1,448 @@
-import Product from "../models/Product.js";
+import {
+  checkInteractions,
+  searchDrug,
+  searchGuidelines,
+  searchLiterature,
+} from "../utils/medicalMCP.js";
+import { callAI } from "../services/aiService.js";
+import ChatHistory from "../models/ChatHistory.js";
 
-// System prompt - The foundation of pharmacist personality
-const SYSTEM_PROMPT = `You are an AI Pharmacist assistant with years of experience helping patients safely use medicines.
+const MCP_TIMEOUT_MS = 5000;
+const RESPONSE_CACHE_TTL_MS = 10 * 60 * 1000;
+const USER_COOLDOWN_MS = 3000;
 
-Your role:
-- Act like a calm, experienced pharmacist in a neighborhood pharmacy
-- Answer in a friendly, reassuring tone with empathy
-- Give general, safe guidance based on standard medical knowledge
-- Never give exact dosage unless medicine information is provided
-- For symptoms, give non-drug advice first, then suggest consulting a doctor
-- Ask follow-up questions naturally like a real pharmacist would
+const responseCache = new Map();
+const userLastCallAt = new Map();
+const userLastResponse = new Map();
+const userPendingResponse = new Map();
 
-Rules:
-- You are NOT a doctor and cannot diagnose conditions
-- Always include safety disclaimers subtly in your conversation
-- If unsure about something, say so clearly and recommend professional consultation
-- For emergencies (chest pain, difficulty breathing, severe allergic reactions), immediately advise seeing a doctor
-- Acknowledge when patients share concerns and validate their feelings
-- Use simple, everyday language - avoid complex medical jargon
+const debugEnabled =
+  String(process.env.ASSISTANT_DEBUG || "").toLowerCase() === "true" ||
+  process.env.NODE_ENV !== "production";
 
-Style:
-- Conversational and warm, like talking to a trusted neighbor
-- Use bullet points when listing steps or options
-- Keep sentences short and clear
-- Add appropriate emojis sparingly for warmth (💊, 🌡️, 💧, ⚠️)
-- Show you care about the patient's wellbeing`;
-
-const DISCLAIMER =
-  "This information is for guidance only and does not replace professional medical advice.";
-
-const EMERGENCY_MESSAGE =
-  "This may require urgent medical attention. Please seek emergency care or consult a doctor immediately.";
-
-const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const normalizeLanguage = (value) =>
-  String(value || "")
-    .toLowerCase()
-    .trim();
-
-// RAG: Retrieve and format medicine knowledge for context injection
-const buildMedicineContext = (medicine) => {
-  if (!medicine) return null;
-
-  const context = {
-    name: medicine.name || "Unknown",
-    composition: medicine.composition || "Not specified",
-    manufacturer: medicine.manufacturer || "Not specified",
-    strength: medicine.strength || "As per label",
-    type: medicine.type || "General medicine",
-    prescriptionRequired:
-      medicine.prescriptionRequired || medicine.isRx || false,
-    uses: medicine.uses || "General health condition",
-    sideEffects: medicine.sideEffects || "May vary - check package insert",
-    precautions: medicine.precautions || "Follow doctor's advice",
-    storage: medicine.storage || "Store in cool, dry place away from sunlight",
-  };
-
-  // Format context for injection into prompt
-  return `
-MEDICINE KNOWLEDGE (Retrieved from Database):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Medicine: ${context.name}
-Composition: ${context.composition}
-Manufacturer: ${context.manufacturer}
-Strength: ${context.strength}
-Type: ${context.type}
-Prescription Required: ${context.prescriptionRequired ? "YES ⚠️" : "No"}
-
-Common Uses: ${context.uses}
-
-Typical Side Effects: ${context.sideEffects}
-
-Precautions: ${context.precautions}
-
-Storage Instructions: ${context.storage}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Use this information to answer the patient's question accurately and safely.
-`;
+const debugLog = (...args) => {
+  if (!debugEnabled) return;
+  console.log("[assistant-controller]", ...args);
 };
 
-// Generate conversational general answer when medicine name is not provided
-const generateGeneralAnswer = (question, context = {}, res) => {
-  const qLower = (question || "").toLowerCase();
-  const language = detectLanguage(question) || "english";
-  const lines = [];
+const BASIC_SYSTEM_PROMPT = `You are a helpful medical assistant for SwiftPharma, an Indian pharmacy app.
+Answer only medicine-related questions clearly and safely.
+Always recommend consulting a licensed pharmacist or doctor for serious concerns.
+Never suggest illegal or dangerous advice.
+Keep answers concise, friendly, and in simple English unless another language is specified in the user context.`;
 
-  // Detect symptom/complaint
-  const isHeadache = /headache|head pain|sir me dard|sar dard/i.test(qLower);
-  const isFever = /fever|temperature|garam|thapad|bukhar/i.test(qLower);
-  const isBodyAche = /body ache|muscle pain|joint pain|jod me dard/i.test(
-    qLower,
-  );
-  const isCough = /cough|coughing|khansi|ho ho/i.test(qLower);
-  const isNausea =
-    /nausea|nauseated|vomit|queasy|ji ghbrana|ulti|ghabrahat/i.test(qLower);
-  const isAllergy = /allergy|allergic|itching|rash|khujli|dhadhed|eczema/i.test(
-    qLower,
+const MEDICAL_SYSTEM_PROMPT_TEMPLATE = `You are a helpful medical assistant for SwiftPharma, an Indian pharmacy app.
+Answer only medicine-related questions clearly and safely.
+Always recommend consulting a licensed pharmacist or doctor for serious concerns.
+
+Use the following verified medical context to answer:
+
+DRUG INFORMATION (FDA/RxNorm):
+{{DRUG_INFO}}
+
+MEDICAL LITERATURE (PubMed):
+{{LITERATURE}}
+
+CLINICAL GUIDELINES:
+{{GUIDELINES}}
+
+DRUG INTERACTIONS:
+{{INTERACTIONS}}
+
+If the medical context above does not contain relevant information, answer from your general medical knowledge but clearly state it is general information.
+
+Keep answers concise, friendly, and in simple English unless another language is specified in the user context.
+Never suggest illegal or dangerous advice.`;
+
+const hasGuidelineIntent = (question) =>
+  /\b(guideline|recommend|protocol|treatment|manage)\b/i.test(
+    String(question || ""),
   );
 
-  // Detect question type
-  const isMissedDose = /miss(ed)? dose|forget|skip(ped)?|bhul gaya/i.test(
-    qLower,
-  );
-  const isSideEffect = /side effect|adverse|reaction|problem|nuksan/i.test(
-    qLower,
-  );
-  const isDosage =
-    /dosage|dose|kitna|how much|how many|when to take|kab lena/i.test(qLower);
-  const isFood = /food|khana|before|after|empty stomach|khali pet/i.test(
-    qLower,
-  );
-  const isTiming =
-    /timing|time|kab|when|subah|shaam|raat|morning|evening|night/i.test(qLower);
-  const isInteraction =
-    /interact|other medicine|dawa ke sath|combine|together/i.test(qLower);
-  const isStorage = /store|storage|rakhna|keep|temperature/i.test(qLower);
+const MEDICAL_KEYWORDS_REGEX =
+  /\b(medicine|medication|drug|tablet|capsule|dose|dosage|prescription|side effect|interaction|symptom|health|disease|treatment|pain|fever|infection|diabetes|bp|blood pressure|pregnan|breastfeed|antibiotic|paracetamol|ibuprofen|aspirin|metformin|azithromycin|amoxicillin|atorvastatin|amlodipine|losartan|levothyroxine|omeprazole)\b/i;
 
-  // Handle symptoms first
-  if (isHeadache) {
-    lines.push("**I see you have a headache.** 💊");
-    lines.push("");
-    lines.push("In general, here are safe steps:");
-    lines.push("- Rest in a quiet, dark room");
-    lines.push("- Stay hydrated - drink water");
-    lines.push("- Apply a cold or warm compress to your head");
-    lines.push(
-      "- If pain is severe or lasts more than 2-3 hours, see a doctor",
-    );
-    lines.push("");
-    lines.push(
-      "If you have a headache medicine at home, tell me the name and I can check if it's suitable for you.",
-    );
-  } else if (isFever) {
-    lines.push("**You have a fever.** 🌡️");
-    lines.push("");
-    lines.push("Important steps:");
-    lines.push(
-      "- Rest and stay hydrated - drink water, coconut water, or warm soup",
-    );
-    lines.push("- Avoid heavy, oily food");
-    lines.push(
-      "- If fever is above 103°F (39.4°C) or lasts more than 3 days, consult a doctor",
-    );
-    lines.push("- Monitor your symptoms");
-    lines.push("");
-    lines.push(
-      "If you want to take a fever medicine, share the name and I can guide you on dosage and safety.",
-    );
-  } else if (isBodyAche) {
-    lines.push("**Body or muscle pain can be uncomfortable.** ");
-    lines.push("");
-    lines.push("General relief tips:");
-    lines.push("- Rest the affected area");
-    lines.push("- Apply a warm compress (10-15 minutes)");
-    lines.push("- Gentle stretching may help");
-    lines.push("- Stay hydrated");
-    lines.push(
-      "- If pain is severe or doesn't improve in 2-3 days, see a doctor",
-    );
-    lines.push("");
-    lines.push(
-      "If you have a pain relief medicine, tell me the name and I'll guide you on how to use it safely.",
-    );
-  } else if (isCough) {
-    lines.push("**A persistent cough needs attention.** 🤧");
-    lines.push("");
-    lines.push("Try these first:");
-    lines.push("- Stay hydrated - warm water with honey and lemon");
-    lines.push("- Avoid irritants like smoke or pollution");
-    lines.push("- Get adequate rest");
-    lines.push(
-      "- If cough lasts more than 2 weeks or worsens, consult a doctor",
-    );
-    lines.push("");
-    lines.push(
-      "If you want to use a cough medicine, share the name and I can advise you.",
-    );
-  } else if (isNausea) {
-    lines.push("**Nausea can be managed.** ");
-    lines.push("");
-    lines.push("Quick relief tips:");
-    lines.push("- Sit or lie down comfortably");
-    lines.push("- Sip ginger tea or lemon water slowly");
-    lines.push("- Avoid strong smells and heavy food");
-    lines.push("- Eat bland food (crackers, rice, toast)");
-    lines.push("- If nausea persists or is severe, see a doctor");
-    lines.push("");
-    lines.push(
-      "If you take a medicine for nausea, share the name and I'll help with usage.",
-    );
-  } else if (isAllergy) {
-    lines.push("**Allergies can be itchy and uncomfortable.** ");
-    lines.push("");
-    lines.push("General steps:");
-    lines.push("- Avoid the allergen if you know what it is");
-    lines.push("- Wash affected area with cool water");
-    lines.push("- Keep skin moisturized (but use non-irritating products)");
-    lines.push("- Don't scratch - it makes it worse");
-    lines.push(
-      "- If rash spreads or causes swelling, see a doctor immediately",
-    );
-    lines.push("");
-    lines.push(
-      "If you want to use an allergy medicine, tell me the name and I'll guide you safely.",
-    );
-  } else if (isMissedDose) {
-    lines.push("**About missed doses:**");
-    lines.push("In general, if you miss a dose:");
-    lines.push("- Take it as soon as you remember");
-    lines.push(
-      "- If it's almost time for your next dose (within 2-3 hours), skip the missed one",
-    );
-    lines.push("- Never take a double dose to make up for it");
-    lines.push("");
-    lines.push(
-      "Once you tell me which medicine you're taking, I can give you more specific guidance.",
-    );
-  } else if (isSideEffect) {
-    lines.push("**About side effects:**");
-    lines.push(
-      "Most medicines can cause side effects, and they vary by medicine. In general:",
-    );
-    lines.push(
-      "- Common ones like mild nausea, headache, or dizziness often improve within 2-3 days",
-    );
-    lines.push(
-      "- Serious side effects (severe rash, breathing trouble, chest pain) need immediate medical attention",
-    );
-    lines.push("- Always report unusual symptoms to your doctor or pharmacist");
-    lines.push("");
-    lines.push(
-      "If you share the medicine name, I can tell you what side effects are most common for it.",
-    );
-  } else if (isDosage) {
-    lines.push("**About dosage:**");
-    lines.push("Dosage depends on many factors:");
-    lines.push("- The specific medicine");
-    lines.push("- Your age and weight");
-    lines.push("- Your health condition");
-    lines.push("- Other medicines you take");
-    lines.push("");
-    lines.push(
-      "Always follow your prescription exactly. Never guess or adjust doses on your own.",
-    );
-    lines.push(
-      "If you tell me the medicine name, I can give you general dosage guidance.",
-    );
-  } else if (isFood) {
-    lines.push("**About food and medicines:**");
-    lines.push(
-      "Some medicines work better on an empty stomach, while others need food to prevent stomach upset.",
-    );
-    lines.push("In general:");
-    lines.push("- Check your medicine label for instructions");
-    lines.push("- If it causes nausea, taking with food may help");
-    lines.push("- Ask your pharmacist if you're unsure");
-    lines.push("");
-    lines.push(
-      "Share the medicine name, and I'll tell you exactly how to take it with food.",
-    );
-  } else if (isTiming) {
-    lines.push("**About timing:**");
-    lines.push("Taking medicine at the right time helps it work better:");
-    lines.push(
-      "- Most medicines work best when taken at the same time(s) each day",
-    );
-    lines.push(
-      "- Space out doses evenly (e.g., every 8-12 hours for twice daily)",
-    );
-    lines.push("- Morning vs. evening timing depends on the medicine");
-    lines.push("");
-    lines.push(
-      "Tell me the medicine name, and I'll help you figure out the best timing.",
-    );
-  } else if (isInteraction) {
-    lines.push("**About medicine interactions:**");
-    lines.push(
-      "Some medicines don't work well together and can be risky. Always:",
-    );
-    lines.push(
-      "- Tell your doctor and pharmacist about ALL medicines you take",
-    );
-    lines.push("- Include supplements, vitamins, and herbal products");
-    lines.push("- Ask before adding any new medicine");
-    lines.push("");
-    lines.push(
-      "If you share the medicines you're taking, I can check for potential interactions.",
-    );
-  } else if (isStorage) {
-    lines.push("**About storing medicines:**");
-    lines.push("Most medicines should be:");
-    lines.push("- Kept in a cool, dry place at room temperature");
-    lines.push("- Away from direct sunlight");
-    lines.push("- Out of reach of children and pets");
-    lines.push("- Some medicines need refrigeration (check the label)");
-    lines.push("");
-    lines.push(
-      "If you tell me the specific medicine, I can confirm storage instructions.",
-    );
-  } else {
-    // Generic response for other questions
-    lines.push("I'm here to help with medicine questions!");
-    lines.push("");
-    lines.push("I can give you general guidance right now, and if you share:");
-    lines.push("- **The medicine name** → I'll give specific, tailored advice");
-    lines.push("- **Your age group** → Better dosage and safety info");
-    lines.push("- **Other medicines you take** → Check for interactions");
-    lines.push("");
-    lines.push(
-      "What specifically would you like to know? (dosage, side effects, food interactions, timing, missed doses, or something else?)",
-    );
+const BLOCKED_PATTERNS = [
+  {
+    regex: /\b(suicide|kill myself|overdose|end my life|self harm)\b/i,
+    reason: "self-harm-risk",
+  },
+  {
+    regex: /\b(heroin|cocaine|meth|fentanyl|how to make drugs)\b/i,
+    reason: "illegal-drugs",
+  },
+  {
+    regex: /\b(maximum lethal|fatal dose|how much to die)\b/i,
+    reason: "dangerous-dosage-seeking",
+  },
+];
+
+const isSafeQuestion = (question) => {
+  const text = String(question || "");
+  for (const rule of BLOCKED_PATTERNS) {
+    if (rule.regex.test(text)) {
+      return { safe: false, reason: rule.reason };
+    }
+  }
+  return { safe: true };
+};
+
+const hasMedicalKeywords = (question) =>
+  MEDICAL_KEYWORDS_REGEX.test(String(question || ""));
+
+const getFollowUpMedicineName = (medicineName, question) => {
+  const normalized = String(medicineName || "").trim();
+  if (normalized) return normalized;
+
+  const fallbackFromQuestion =
+    String(question || "")
+      .match(/\b([A-Za-z][A-Za-z0-9\-]{2,})\b/g)
+      ?.find((token) => MEDICAL_KEYWORDS_REGEX.test(token)) || "your medicine";
+
+  return fallbackFromQuestion;
+};
+
+const generateFollowUps = (medicineName, question) => {
+  const name = getFollowUpMedicineName(medicineName, question);
+  const text = String(question || "").toLowerCase();
+
+  if (/side\s*effect|adverse|reaction/.test(text)) {
+    return [
+      "What should I do if I experience side effects?",
+      `Are there safer alternatives to ${name}?`,
+      `Can I take ${name} with food?`,
+    ];
   }
 
-  lines.push("");
-  lines.push(`${DISCLAIMER}`);
+  if (/dosage|dose|how much|how often|mg\b|tablet\b|capsule\b/.test(text)) {
+    return [
+      `What happens if I miss a dose of ${name}?`,
+      "Can I take a double dose to make up for missed one?",
+      `How long should I take ${name}?`,
+    ];
+  }
 
-  return res.json({
-    success: true,
-    found: false,
-    answer: lines.join("\n"),
-    confidenceLevel: "medium",
-    confidenceIcon: "ℹ️ General guidance provided",
-    message:
-      "I can give general guidance, and if you share the medicine name, I'll tailor it exactly for you.",
+  if (/interaction|interact|together|combine|with\s+other/.test(text)) {
+    return [
+      "What medicines are safe to take together?",
+      "Should I tell my doctor about this interaction?",
+      "Are there alternative medicines with fewer interactions?",
+    ];
+  }
+
+  if (/pregnan|trimester|breastfeed|lactation/.test(text)) {
+    return [
+      `Is ${name} safe while breastfeeding?`,
+      "What trimester is safest to take this medicine?",
+      "What are pregnancy-safe alternatives?",
+    ];
+  }
+
+  return [
+    `What are the side effects of ${name}?`,
+    `How should I store ${name}?`,
+    `Can I take ${name} long term?`,
+  ];
+};
+
+const wordCount = (text) =>
+  String(text || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+
+const toList = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+
+const formatList = (input, fallback = "Not available") => {
+  const list = Array.isArray(input)
+    ? input
+    : String(input || "")
+        .split(/[.;\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+  return list.length ? list : [fallback];
+};
+
+const makeCacheKey = ({ question, medicineName }) =>
+  `${String(question || "")
+    .trim()
+    .toLowerCase()}::${String(medicineName || "")
+    .trim()
+    .toLowerCase()}`;
+
+const getCachedResponse = (key) => {
+  const hit = responseCache.get(key);
+  if (!hit) return null;
+  if (hit.expiresAt < Date.now()) {
+    responseCache.delete(key);
+    return null;
+  }
+  return hit.payload;
+};
+
+const setCachedResponse = (key, payload) => {
+  responseCache.set(key, {
+    payload,
+    expiresAt: Date.now() + RESPONSE_CACHE_TTL_MS,
   });
 };
 
-const detectLanguage = (question = "") => {
-  if (/[\u0900-\u097F]/.test(question)) return "hinglish";
-  if (/(kya|kaise|dawa|dawai|subah|shaam|raat|khana)/i.test(question))
-    return "hinglish";
-  return "english";
+const withTimeout = async (fn, timeoutMs, label) =>
+  Promise.race([
+    fn(),
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+    }),
+  ]);
+
+const detectMedicineName = (providedMedicineName, question) => {
+  const direct = String(providedMedicineName || "").trim();
+  if (direct) {
+    return { medicineName: direct, confident: true };
+  }
+
+  const knownRegex =
+    /\b(paracetamol|acetaminophen|ibuprofen|aspirin|diclofenac|metformin|azithromycin|amoxicillin|atorvastatin|amlodipine|losartan|levothyroxine|omeprazole)\b/i;
+  const match = String(question || "").match(knownRegex);
+
+  if (match?.[1]) {
+    return { medicineName: match[1], confident: true };
+  }
+
+  return { medicineName: "", confident: false };
 };
 
-const isEmergency = (question = "") =>
-  /(severe pain|chest pain|breathing difficulty|difficulty breathing|unconscious|overdose|allergic reaction|anaphylaxis)/i.test(
-    question,
-  );
+const formatDrugContext = (drugData) => {
+  if (!drugData?.primary && !drugData?.results?.length) {
+    return "No validated FDA/RxNorm data found.";
+  }
 
-const getConfidence = (medicine, context = {}) => {
-  if (medicine?.prescriptionRequired || medicine?.isRx) return "medium";
-  if (context?.ageGroup && context.ageGroup !== "adult") return "medium";
-  return "high";
+  const primary = drugData.primary || drugData.results?.[0] || {};
+  const brandNames =
+    toList(primary.brandNames).slice(0, 5).join(", ") || "Not available";
+
+  return [
+    `Generic Name: ${primary.genericName || "Not available"}`,
+    `Brand Names: ${brandNames}`,
+    `Manufacturer: ${primary.manufacturer || "Not available"}`,
+    `Indications: ${formatList(primary.indications).slice(0, 3).join("; ")}`,
+    `Side Effects: ${formatList(primary.sideEffects).slice(0, 3).join("; ")}`,
+    `Contraindications: ${formatList(primary.contraindications).slice(0, 3).join("; ")}`,
+    `Warnings: ${formatList(primary.warnings).slice(0, 2).join("; ")}`,
+  ].join("\n");
 };
 
-const confidenceToIcon = (level) => {
-  if (level === "high") return "✅ Safe to follow";
-  if (level === "medium") return "⚠️ Use with caution";
-  return "❗ Consult a doctor";
+const formatLiteratureContext = (literature) => {
+  const entries = toList(literature).slice(0, 3);
+  if (!entries.length) return "No PubMed literature retrieved.";
+
+  return entries
+    .map((article, index) => {
+      const title = article.title || "Untitled Article";
+      const summary = article.abstract || "No abstract available.";
+      const pmid = article.pmid ? `PMID ${article.pmid}` : "PMID unavailable";
+      return `${index + 1}. ${title} (${pmid})\n   ${summary}`;
+    })
+    .join("\n");
 };
 
-const buildAnswer = (medicine, question, context = {}) => {
-  const lines = [];
-  const name = medicine?.name || "this medicine";
-  const ageGroup = context?.ageGroup || "adult";
-  const otherMeds = context?.otherMedicines || [];
-  const languageInput = normalizeLanguage(context?.language || "");
-  const language = languageInput || detectLanguage(question || "") || "english";
+const formatGuidelinesContext = (guidelines) => {
+  const entries = toList(guidelines).slice(0, 2);
+  if (!entries.length) return "No clinical guidelines retrieved.";
 
-  // Get medicine context for RAG
-  const medicineContext = buildMedicineContext(medicine);
+  return entries
+    .map((item, index) => {
+      const title = item.title || "Clinical Guideline";
+      const org = item.organization ? ` - ${item.organization}` : "";
+      const summary = item.summary || "No summary available.";
+      return `${index + 1}. ${title}${org}\n   ${summary}`;
+    })
+    .join("\n");
+};
 
-  // Build conversational prompt using system prompt + RAG context
-  const conversationalPrompt = `
-${SYSTEM_PROMPT}
+const formatInteractionsContext = (warnings) => {
+  const entries = toList(warnings);
+  if (!entries.length) {
+    return "No interaction warnings found for provided medicines.";
+  }
 
-${medicineContext || "No specific medicine information available."}
+  return entries
+    .map((warning, index) => {
+      const meds = toList(warning.medicines).join(" + ") || "Unknown medicines";
+      const severity = String(warning.severity || "mild").toUpperCase();
+      return `${index + 1}. ${meds} [${severity}]\n   ${warning.description || "Potential interaction."}\n   Recommendation: ${warning.recommendation || "Consult your pharmacist before combining."}`;
+    })
+    .join("\n");
+};
 
-PATIENT CONTEXT:
-- Age Group: ${ageGroup}
-- Other Medicines: ${otherMeds.length ? otherMeds.join(", ") : "None mentioned"}
-- Preferred Language: ${language}
-
-PATIENT QUESTION:
-"${question}"
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Now, as an experienced pharmacist, provide a helpful, accurate answer that:
-1. Directly addresses the patient's question
-2. Uses the medicine knowledge provided above
-3. Includes relevant safety information naturally in conversation
-4. Adjusts advice for age group (${ageGroup})
-5. Keeps the tone warm and professional
-6. Uses simple language anyone can understand
-`;
-
-  // Analyze the question type for structured response
-  const qLower = (question || "").toLowerCase();
-  const isMissedDose = /miss(ed)? dose|forget|skip(ped)?|bhul gaya/i.test(
-    qLower,
+const hasAnyEvidence = ({ drugData, literature, guidelines, interactions }) => {
+  const hasDrug = Boolean(
+    drugData?.primary || toList(drugData?.results).length,
   );
-  const isSideEffect =
-    /side effect|adverse|reaction|problem|allergy|nuksan/i.test(qLower);
-  const isDosage =
-    /dosage|dose|kitna|how much|how many|when to take|kab lena/i.test(qLower);
-  const isFood = /food|khana|before|after|empty stomach|khali pet/i.test(
-    qLower,
-  );
-  const isTiming =
-    /timing|time|kab|when|subah|shaam|raat|morning|evening|night/i.test(qLower);
-  const isStorage = /store|storage|rakhna|keep|temperature/i.test(qLower);
-  const isPregnancy =
-    /pregnan(t|cy)|breastfeed|nursing|garbh|feeding baby/i.test(qLower);
+  const hasLiterature = toList(literature).length > 0;
+  const hasGuidelines = toList(guidelines).length > 0;
+  const hasInteractions = toList(interactions).length > 0;
+  return hasDrug || hasLiterature || hasGuidelines || hasInteractions;
+};
 
-  // Build pharmacist-style conversational response
-  lines.push(`**About ${name}** 💊\n`);
+const buildPrompt = ({ question, medicineName, context, evidenceText }) => {
+  const parts = [evidenceText || BASIC_SYSTEM_PROMPT, ""];
 
-  if (medicine?.composition) {
-    lines.push(`*Active ingredient: ${medicine.composition}*\n`);
+  if (medicineName) {
+    parts.push(`Medicine being asked about: ${medicineName}`);
   }
 
-  // Answer based on question type - pharmacist style
-  if (isMissedDose) {
-    lines.push("I understand you missed a dose. Here's what I recommend:\n");
-    lines.push(
-      "✓ **If it's close to your next dose:** Skip the missed one and continue your regular schedule",
-    );
-    lines.push(
-      "✓ **If you remember within a few hours:** Take it as soon as you remember",
-    );
-    lines.push(
-      "✗ **Don't double up:** Never take two doses together to make up for a missed one\n",
-    );
-    lines.push(
-      "It's generally safe to miss one dose occasionally, but try to take your medicines at the same time daily. Setting a phone reminder can help!",
-    );
-  } else if (isSideEffect) {
-    lines.push("Let me help you understand the side effects:\n");
-    if (medicine?.sideEffects) {
-      lines.push(`**Common side effects:** ${medicine.sideEffects}\n`);
-    }
-    lines.push("Most side effects are mild and go away on their own. However:");
-    lines.push(
-      "⚠️ **Stop and see a doctor if you experience:** Severe rash, difficulty breathing, chest pain, or severe stomach pain",
-    );
-    lines.push(
-      "💡 **Mild side effects:** Usually improve as your body adjusts (2-3 days)\n",
-    );
-    lines.push(
-      "Keep taking the medicine unless side effects are severe. If you're concerned, call your doctor before stopping.",
-    );
-  } else if (isDosage || isTiming) {
-    lines.push("About taking this medicine:\n");
-    if (medicine?.strength) {
-      lines.push(`**Typical strength:** ${medicine.strength}`);
-    }
-    lines.push(`**General guidance for ${ageGroup}s:**`);
-    if (ageGroup === "child") {
-      lines.push("- Pediatric dosing MUST be prescribed by a doctor");
-      lines.push("- Never use adult doses for children");
-      lines.push("- Weight-based dosing is common");
-    } else if (ageGroup === "elderly") {
-      lines.push("- Elderly patients often need lower doses");
-      lines.push("- Take with water to help swallowing");
-      lines.push("- Report any new symptoms promptly");
-    } else {
-      lines.push("- Follow the label or doctor's prescription exactly");
-      lines.push("- Take at the same time(s) each day");
-      lines.push("- Don't skip doses or stop early");
-    }
-    lines.push(
-      "\n**Best practice:** Take it consistently - your body responds better with regular timing.",
-    );
-  } else if (isFood) {
-    lines.push("About taking this with food:\n");
-    lines.push("**General rule:** Check your medicine label - it will say:");
-    lines.push("• 'Before food' = 30-60 minutes before eating");
-    lines.push("• 'After food' = Right after your meal");
-    lines.push("• 'With food' = Take while eating");
-    lines.push("• 'Empty stomach' = 2 hours after eating\n");
-    if (
-      medicine?.precautions &&
-      /food|meal|stomach/i.test(medicine.precautions)
-    ) {
-      lines.push(`**For ${name}:** ${medicine.precautions}`);
-    } else {
-      lines.push(
-        "If your label doesn't specify, it's usually safe to take with food to prevent stomach upset.",
-      );
-    }
-  } else if (isStorage) {
-    lines.push("Storage instructions:\n");
-    if (medicine?.storage) {
-      lines.push(`**For ${name}:** ${medicine.storage}\n`);
-    }
-    lines.push("**General storage tips:**");
-    lines.push("✓ Cool, dry place (not bathroom - too humid!)");
-    lines.push("✓ Away from direct sunlight");
-    lines.push("✓ Keep in original container with label");
-    lines.push("✓ Out of reach of children and pets");
-    lines.push("✗ Don't store near heat sources\n");
-    lines.push(
-      "*Most medicines stay good for 2-3 years if stored properly. Check expiry dates regularly!*",
-    );
-  } else if (isPregnancy) {
-    lines.push("⚠️ **Important: Pregnancy & Breastfeeding**\n");
-    lines.push(
-      "Many medicines can affect pregnancy or pass into breast milk. **Please don't take any medicine without consulting your obstetrician or doctor first.**",
-    );
-    lines.push("\nThey'll consider:");
-    lines.push("• Your trimester (if pregnant)");
-    lines.push("• Benefits vs. risks to baby");
-    lines.push("• Safer alternatives if needed\n");
-    lines.push(
-      "Your baby's safety comes first - always check with your doctor!",
-    );
-  } else {
-    // General information
-    lines.push("Here's what you should know:\n");
-    if (medicine?.uses) {
-      lines.push(`**Used for:** ${medicine.uses}\n`);
-    }
-    lines.push("**How to use safely:**");
-    lines.push("• Follow your doctor's or pharmacist's instructions");
-    lines.push("• Read the package insert");
-    lines.push("• Take at regular times");
-    lines.push("• Complete the full course (don't stop early)\n");
-
-    if (medicine?.precautions) {
-      lines.push(`**Precautions:** ${medicine.precautions}\n`);
-    }
-  }
-
-  // Handle drug interactions if other medicines mentioned
-  if (otherMeds.length > 0) {
-    lines.push("\n**About interactions:**");
-    lines.push(`You mentioned taking: ${otherMeds.join(", ")}`);
-    lines.push("\n⚠️ Some medicines don't work well together. I recommend:");
-    lines.push("• Ask your pharmacist to check for interactions");
-    lines.push(
-      "• Take different medicines spaced apart (unless advised otherwise)",
-    );
-    lines.push("• Keep an updated list of all your medicines");
-  }
-
-  // Age-specific final note
-  if (ageGroup === "child") {
-    lines.push(
-      "\n👶 **For children:** Always use the exact dose prescribed by the pediatrician. Never estimate!",
-    );
-  } else if (ageGroup === "elderly") {
-    lines.push(
-      "\n👴 **For elderly patients:** Watch for dizziness, confusion, or falls. Report any new symptoms to your doctor.",
+  if (Array.isArray(context.otherMedicines) && context.otherMedicines.length) {
+    parts.push(
+      `Other medicines the patient is taking: ${context.otherMedicines.join(", ")}`,
     );
   }
 
-  // Prescription warning
-  if (medicine?.prescriptionRequired || medicine?.isRx) {
-    lines.push(
-      "\n🔒 **Note:** This is a prescription medicine - use only under medical supervision.",
-    );
+  if (context.ageGroup && context.ageGroup !== "adult") {
+    parts.push(`Patient age group: ${context.ageGroup}`);
   }
 
-  const confidenceLevel = getConfidence(medicine, context);
-  const confidenceIcon = confidenceToIcon(confidenceLevel);
-
-  lines.push(`\n${confidenceIcon}`);
-  lines.push(`\n*${DISCLAIMER}*`);
-
-  if (language === "hinglish") {
-    lines.push(
-      `\nKoi bhi confusion ho to pharmacist ya doctor se zaroor puchein. 🙏`,
-    );
-  } else {
-    lines.push(`\nIf you have any other questions, I'm here to help! 😊`);
+  if (
+    context.language &&
+    String(context.language).toLowerCase() !== "english"
+  ) {
+    parts.push(`Respond in: ${context.language}`);
   }
 
-  const medicineCard = {
-    medicine_name: name,
-    timing:
-      isDosage || isTiming
-        ? "As prescribed - same time daily"
-        : "As prescribed",
-    food_rule: isFood ? "Check label - with/without food" : "As on label",
-    duration: "Complete the full course as prescribed",
-    age_suitability:
-      ageGroup === "child"
-        ? "Children (pediatrician approval required)"
-        : ageGroup === "elderly"
-          ? "Elderly (may need dose adjustment)"
-          : "Adults",
-    key_warning:
-      medicine?.prescriptionRequired || medicine?.isRx
-        ? "⚠️ Prescription medicine - use under medical supervision"
-        : "Do not exceed recommended dose",
-    confidence_level: confidenceLevel,
-  };
+  parts.push("", `Patient question: ${question}`);
+  return parts.join("\n");
+};
 
-  return {
-    answer: lines.join("\n"),
-    confidenceLevel,
-    confidenceIcon,
-    medicineCard,
-    interactionWarning: Boolean(otherMeds.length),
-  };
+const buildSources = ({ drugData, literature, guidelines }) => {
+  const sources = [];
+
+  if (drugData?.primary || toList(drugData?.results).length) {
+    sources.push({ label: "FDA", type: "fda", url: null });
+  }
+
+  toList(literature)
+    .slice(0, 3)
+    .forEach((article) => {
+      const title = article.title || "Article";
+      const url =
+        article.url ||
+        (article.pmid
+          ? `https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`
+          : null);
+      sources.push({ label: `PubMed: ${title}`, type: "pubmed", url });
+    });
+
+  toList(guidelines)
+    .slice(0, 2)
+    .forEach((item) => {
+      sources.push({
+        label: item.organization
+          ? `${item.organization} Guidelines`
+          : item.title || "Clinical Guidelines",
+        type: "guideline",
+        url: item.url || null,
+      });
+    });
+
+  return sources;
+};
+
+const buildMcpOnlySummary = ({ drugData, guidelines }) => {
+  const parts = [];
+  const drug = formatDrugContext(drugData);
+  const guide = formatGuidelinesContext(guidelines);
+
+  if (drug && !drug.includes("No validated FDA/RxNorm data found")) {
+    parts.push(drug);
+  }
+
+  if (guide && !guide.includes("No clinical guidelines retrieved")) {
+    parts.push(guide);
+  }
+
+  return parts.join("\n\n").trim() || null;
+};
+
+const pickMcpTasks = ({
+  medicineName,
+  medicineConfident,
+  question,
+  otherMedicines,
+}) => {
+  const tasks = [];
+
+  if (medicineName && medicineConfident) {
+    tasks.push({
+      key: "drugData",
+      run: () =>
+        withTimeout(
+          () => searchDrug(medicineName, 3),
+          MCP_TIMEOUT_MS,
+          "searchDrug",
+        ),
+    });
+  }
+
+  if (wordCount(question) > 10) {
+    tasks.push({
+      key: "literature",
+      run: () =>
+        withTimeout(
+          () => searchLiterature(question, 3),
+          MCP_TIMEOUT_MS,
+          "searchLiterature",
+        ),
+    });
+  }
+
+  if (hasGuidelineIntent(question)) {
+    tasks.push({
+      key: "guidelines",
+      run: () =>
+        withTimeout(
+          () => searchGuidelines(question, undefined, 2),
+          MCP_TIMEOUT_MS,
+          "searchGuidelines",
+        ),
+    });
+  }
+
+  if (otherMedicines.length >= 2) {
+    tasks.push({
+      key: "interactions",
+      run: () =>
+        withTimeout(
+          () => checkInteractions(otherMedicines),
+          MCP_TIMEOUT_MS,
+          "checkInteractions",
+        ),
+    });
+  }
+
+  return tasks;
 };
 
 export const answerMedicineQuestion = async (req, res, next) => {
   try {
-    const { medicineName, question, context } = req.body || {};
+    const groqReady = !!process.env.GROQ_API_KEY;
+    const geminiReady = !!process.env.GEMINI_API_KEY;
 
-    // Allow questions even without medicine name - give general guidance first
+    if (!groqReady && !geminiReady) {
+      return res.status(500).json({
+        success: false,
+        message:
+          "No AI provider configured. Add GROQ_API_KEY or GEMINI_API_KEY to .env",
+      });
+    }
+
+    const question = String(req.body?.question || "").trim();
+    const providedMedicineName = String(req.body?.medicineName || "").trim();
+    const context =
+      req.body?.context && typeof req.body.context === "object"
+        ? req.body.context
+        : {};
+
     if (!question) {
       return res.status(400).json({
         success: false,
@@ -611,70 +450,308 @@ export const answerMedicineQuestion = async (req, res, next) => {
       });
     }
 
-    const trimmed = String(medicineName || "").trim();
-
-    const exactRegex = new RegExp(`^${escapeRegex(trimmed)}$`, "i");
-    const partialRegex = new RegExp(escapeRegex(trimmed), "i");
-
-    if (isEmergency(question)) {
+    const safeResult = isSafeQuestion(question);
+    if (!safeResult.safe) {
       return res.json({
         success: true,
-        found: false,
+        answer:
+          "I'm not able to help with that query. If you are experiencing a medical emergency or mental health crisis, please call NIMHANS helpline: 080-46110007 or iCall: 9152987821 immediately.",
+        confidenceLevel: "Safety Block",
         emergency: true,
-        answer: `${EMERGENCY_MESSAGE}\n\nPlease seek immediate help. Don't wait. Call an ambulance or go to the nearest emergency room.`,
-        confidenceLevel: "low",
-        confidenceIcon: "❗ Seek emergency care",
+        sources: [],
+        provider: "safety-filter",
+        followUps: [],
       });
     }
 
-    // If no medicine name provided, give general guidance
-    if (!trimmed) {
-      return generateGeneralAnswer(question, context, res);
-    }
-
-    const exactMatch = await Product.findOne({ name: exactRegex }).lean();
-    const medicine =
-      exactMatch || (await Product.findOne({ name: partialRegex }).lean());
-
-    if (!medicine) {
-      return res.status(404).json({
-        success: false,
-        found: false,
-        message: `I couldn't find specific information for "${trimmed}" in our database, but I can still help with general guidance.`,
-        answer: `I don't have detailed information about **${trimmed}** in my database, but I can give you general guidance.\n\nFor specific details about this medicine, please:\n- Check the package insert\n- Ask your pharmacist or doctor\n- Share the medicine name, and I'll provide tailored advice if it's in our database\n\n${DISCLAIMER}`,
-        confidenceLevel: "low",
-        confidenceIcon: "⚠️ Consult your pharmacist",
+    if (wordCount(question) < 3 && !hasMedicalKeywords(question)) {
+      return res.json({
+        success: true,
+        answer:
+          "I can only help with medicine and health related questions. Please ask me about a specific medicine, symptom, or health concern.",
+        confidenceLevel: "Out of Scope",
+        emergency: false,
+        sources: [],
+        provider: "scope-filter",
+        followUps: [],
       });
     }
 
-    const {
-      answer,
-      confidenceLevel,
-      confidenceIcon,
-      medicineCard,
-      interactionWarning,
-    } = buildAnswer(medicine, question, context);
+    const { medicineName, confident: medicineConfident } = detectMedicineName(
+      providedMedicineName,
+      question,
+    );
 
-    return res.json({
-      success: true,
-      found: true,
-      medicine: {
-        id: medicine._id,
-        name: medicine.name,
-        composition: medicine.composition,
-        strength: medicine.strength,
-        manufacturer: medicine.manufacturer,
-        prescriptionRequired: medicine.prescriptionRequired,
-        isRx: medicine.isRx,
-      },
-      answer,
-      confidenceLevel,
-      confidenceIcon,
-      medicineCard,
-      interactionWarning,
-      showPharmacistCTA: confidenceLevel !== "high",
+    const cacheKey = makeCacheKey({ question, medicineName });
+    const cached = getCachedResponse(cacheKey);
+    if (cached) {
+      debugLog("cache-hit", {
+        key: cacheKey,
+        question: question.slice(0, 80),
+        medicineName,
+      });
+      return res.json(cached);
+    }
+
+    const userId = String(req.user?.id || req.user?._id || "anonymous");
+    const now = Date.now();
+    const lastCallAt = userLastCallAt.get(userId) || 0;
+
+    if (now - lastCallAt < USER_COOLDOWN_MS) {
+      const pending = userPendingResponse.get(userId);
+      if (pending) {
+        debugLog("cooldown-pending-reuse", { userId });
+        const pendingPayload = await pending;
+        return res.json(pendingPayload);
+      }
+
+      const recent = userLastResponse.get(userId);
+      if (recent) {
+        debugLog("cooldown-last-response-reuse", { userId });
+        return res.json(recent);
+      }
+    }
+
+    const otherMedicines = Array.isArray(context.otherMedicines)
+      ? context.otherMedicines
+          .map((name) => String(name || "").trim())
+          .filter(Boolean)
+      : [];
+
+    const mcpTasks = pickMcpTasks({
+      medicineName,
+      medicineConfident,
+      question,
+      otherMedicines,
     });
+
+    debugLog("mcp-tasks-selected", {
+      userId,
+      medicineName,
+      medicineConfident,
+      wordCount: wordCount(question),
+      guidelineIntent: hasGuidelineIntent(question),
+      otherMedicinesCount: otherMedicines.length,
+      tasks: mcpTasks.map((task) => task.key),
+    });
+
+    const mcpResults = {
+      drugData: null,
+      literature: [],
+      guidelines: [],
+      interactions: [],
+    };
+
+    if (mcpTasks.length > 0) {
+      const settled = await Promise.allSettled(
+        mcpTasks.map((task) => task.run()),
+      );
+      settled.forEach((result, index) => {
+        const key = mcpTasks[index].key;
+        if (result.status === "fulfilled") {
+          mcpResults[key] = result.value;
+        }
+      });
+
+      debugLog("mcp-tasks-finished", {
+        userId,
+        results: settled.map((result, index) => ({
+          task: mcpTasks[index].key,
+          status: result.status,
+        })),
+      });
+    }
+
+    const evidenceAvailable = hasAnyEvidence(mcpResults);
+
+    const enrichedSystemPrompt = evidenceAvailable
+      ? MEDICAL_SYSTEM_PROMPT_TEMPLATE.replace(
+          "{{DRUG_INFO}}",
+          formatDrugContext(mcpResults.drugData),
+        )
+          .replace(
+            "{{LITERATURE}}",
+            formatLiteratureContext(mcpResults.literature),
+          )
+          .replace(
+            "{{GUIDELINES}}",
+            formatGuidelinesContext(mcpResults.guidelines),
+          )
+          .replace(
+            "{{INTERACTIONS}}",
+            formatInteractionsContext(mcpResults.interactions),
+          )
+      : BASIC_SYSTEM_PROMPT;
+
+    const systemPrompt = buildPrompt({
+      question,
+      medicineName,
+      context,
+      evidenceText: enrichedSystemPrompt,
+    });
+
+    debugLog("ai-request", {
+      userId,
+      evidenceAvailable,
+      sourcesCountEstimate: buildSources({
+        drugData: mcpResults.drugData,
+        literature: mcpResults.literature,
+        guidelines: mcpResults.guidelines,
+      }).length,
+    });
+
+    userLastCallAt.set(userId, Date.now());
+
+    const pendingResponse = (async () => {
+      const aiResult = await callAI(systemPrompt, question);
+      const followUps = generateFollowUps(medicineName, question);
+
+      if (aiResult.failed || !aiResult.answer) {
+        const mcpSummary = evidenceAvailable
+          ? buildMcpOnlySummary({
+              drugData: mcpResults.drugData,
+              guidelines: mcpResults.guidelines,
+            })
+          : null;
+
+        const payload = {
+          success: true,
+          answer: mcpSummary
+            ? `Based on verified medical databases:\n\n${mcpSummary}\n\nFor detailed guidance, please consult a licensed pharmacist.`
+            : "Our AI assistant is temporarily unavailable. Please consult a licensed pharmacist for medical advice.",
+          confidenceLevel: mcpSummary
+            ? "MCP Verified — AI Unavailable"
+            : "Service Temporarily Unavailable",
+          emergency: false,
+          sources: evidenceAvailable
+            ? buildSources({
+                drugData: mcpResults.drugData,
+                literature: mcpResults.literature,
+                guidelines: mcpResults.guidelines,
+              })
+            : [],
+          citations: "Sources: FDA + RxNorm database",
+          provider: "none",
+          followUps,
+        };
+
+        setCachedResponse(cacheKey, payload);
+        userLastResponse.set(userId, payload);
+        return payload;
+      }
+
+      const payload = {
+        success: true,
+        answer: aiResult.answer,
+        confidenceLevel: evidenceAvailable
+          ? `Verified — FDA + PubMed (via ${aiResult.provider})`
+          : `AI Generated — verify with pharmacist (via ${aiResult.provider})`,
+        emergency: false,
+        sources: evidenceAvailable
+          ? buildSources({
+              drugData: mcpResults.drugData,
+              literature: mcpResults.literature,
+              guidelines: mcpResults.guidelines,
+            })
+          : [],
+        citations: evidenceAvailable
+          ? "Sources: FDA drug database, PubMed literature"
+          : "Sources unavailable",
+        provider: aiResult.provider,
+        followUps,
+      };
+
+      setCachedResponse(cacheKey, payload);
+      userLastResponse.set(userId, payload);
+      return payload;
+    })();
+
+    userPendingResponse.set(userId, pendingResponse);
+
+    const payload = await pendingResponse;
+
+    const historyUserId = req.user?._id || req.user?.id;
+    if (historyUserId) {
+      ChatHistory.findOneAndUpdate(
+        { userId: historyUserId },
+        {
+          $push: {
+            messages: {
+              $each: [
+                { role: "user", text: question },
+                {
+                  role: "bot",
+                  text: payload.answer,
+                  confidenceLevel: payload.confidenceLevel,
+                  sources: payload.sources,
+                  provider: payload.provider,
+                },
+              ],
+              $slice: -100,
+            },
+          },
+          $set: { updatedAt: new Date() },
+        },
+        { upsert: true, new: true },
+      ).catch((err) => console.error("[chat-history] save failed", err));
+    }
+
+    return res.json(payload);
+  } catch (error) {
+    return next(error);
+  } finally {
+    const userId = String(req.user?.id || req.user?._id || "anonymous");
+    userPendingResponse.delete(userId);
+  }
+};
+
+export const getChatHistory = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const history = await ChatHistory.findOne({ userId }).lean();
+    if (!history?.messages?.length) {
+      return res.json({ success: true, messages: [] });
+    }
+
+    const messages = history.messages
+      .slice(-50)
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+    return res.json({ success: true, messages });
   } catch (error) {
     return next(error);
   }
+};
+
+export const clearChatHistory = async (req, res, next) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    await ChatHistory.deleteOne({ userId });
+    return res.json({ success: true, message: "History cleared" });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getAssistantProviderStatus = (req, res) => {
+  return res.json({
+    groq: {
+      configured: !!process.env.GROQ_API_KEY,
+      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    },
+    gemini: {
+      configured: !!process.env.GEMINI_API_KEY,
+      model: "gemini-2.0-flash",
+    },
+    primary: String(process.env.AI_PRIMARY || "groq").toLowerCase(),
+    fallback: String(process.env.AI_FALLBACK || "gemini").toLowerCase(),
+  });
 };

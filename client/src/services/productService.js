@@ -9,10 +9,8 @@ export const fetchProducts = async (filters = {}) => {
 
   const queryString = params.toString();
   const url = `/products${queryString ? `?${queryString}` : ""}`;
-  console.log(`[fetchProducts] Requesting: ${url}`);
   const response = await apiClient.get(url);
   const result = response.data;
-  console.log(`[fetchProducts] Got result:`, result);
   // Ensure we return an array
   return Array.isArray(result) ? result : [result];
 };
@@ -25,7 +23,6 @@ export const fetchProductById = async (id) => {
 export const fetchCategories = async () => {
   const response = await apiClient.get("/categories");
   const result = response.data;
-  console.log(`[fetchCategories] Got result:`, result);
   return Array.isArray(result) ? result : [result];
 };
 
@@ -34,5 +31,14 @@ export const searchMedicines = (query) =>
 
 export const fetchProductsByCategory = async (categorySlug) => {
   const response = await apiClient.get(`/products/category/${categorySlug}`);
+  return response.data;
+};
+
+export const createProduct = async (payload) => {
+  const response = await apiClient.post("/products", payload, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 };

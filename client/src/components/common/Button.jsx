@@ -11,12 +11,13 @@ const Button = ({
 
   const variants = {
     primary:
-      "bg-brand text-brown hover:bg-gradient-coral-sunset hover:shadow-glow hover:scale-103",
-    cta: "bg-brand text-brown hover:bg-gradient-coral-sunset hover:shadow-glow hover:scale-103",
+      "bg-primary text-white shadow-glow hover:bg-primary-hover hover:shadow-lifted hover:scale-103",
+    cta: "bg-gradient-brand bg-[length:300%_300%] animate-gradientSlow text-white shadow-glow hover:shadow-lifted hover:scale-103",
     secondary:
-      "bg-page text-ink border-2 border-border-subtle hover:bg-ink hover:text-brown hover:border-ink",
-    outline: "border-2 border-brand text-brand hover:bg-brand hover:text-brown",
-    ghost: "text-brand hover:bg-brand/10",
+      "bg-page text-ink border-2 border-border-subtle hover:bg-ink hover:text-white hover:border-ink",
+    outline:
+      "border-2 border-primary text-primary hover:bg-primary hover:text-white",
+    ghost: "text-primary hover:bg-primary/10",
   };
 
   const chosen = variants[variant] || variants.primary;

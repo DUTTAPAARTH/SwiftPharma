@@ -22,16 +22,7 @@ apiClient.interceptors.request.use(
 
 // Add response interceptor for error handling
 apiClient.interceptors.response.use(
-  (response) => {
-    // Log successful product/category responses for debugging
-    if (
-      response.config.url.includes("/products") ||
-      response.config.url.includes("/categories")
-    ) {
-      console.log(`[API Response] ${response.config.url}:`, response.data);
-    }
-    return response;
-  },
+  (response) => response,
   (error) => {
     // Handle authentication errors with user-friendly messages
     if (error.response?.status === 401) {

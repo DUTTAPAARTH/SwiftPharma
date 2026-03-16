@@ -1,16 +1,72 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { useCart } from "../hooks/useCart";
 import { fetchProductById, fetchProducts } from "../services/productService";
+import { fetchDrugInfo } from "../services/drugInfoService";
 import { useWishlist } from "../hooks/useWishlist";
 import SubstituteModal from "../components/modals/SubstituteModal";
 import { ensureAuthenticated } from "../utils/auth";
+import ProductCard from "../components/cards/ProductCard";
+
+const FALLBACK_IMAGE =
+  "https://via.placeholder.com/200x200/0a0f1e/00bcd4?text=%F0%9F%92%8A";
+
+const normalizeImage = (value) => {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  return value.startsWith("/") ? value : `/${value}`;
+};
+
+const MedicineFallback = ({ className = "h-full w-full" }) => (
+  <div className={`flex items-center justify-center bg-[#1a1f2e] ${className}`}>
+    <div className="flex h-24 w-24 items-center justify-center rounded-3xl border border-cyan-400/20 bg-[#121827] shadow-[0_20px_60px_rgba(0,188,212,0.18)]">
+      <svg
+        viewBox="0 0 64 64"
+        className="h-14 w-14"
+        aria-hidden="true"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect
+          x="12"
+          y="20"
+          width="40"
+          height="24"
+          rx="12"
+          fill="#00BCD4"
+          fillOpacity="0.18"
+          stroke="#00BCD4"
+          strokeWidth="3"
+        />
+        <path
+          d="M24 40L40 24"
+          stroke="#00BCD4"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M20 28H28"
+          stroke="#00BCD4"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M36 36H44"
+          stroke="#00BCD4"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  </div>
+);
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addItem, items, replaceItem } = useCart();
   const { toggle, isSaved } = useWishlist();
 
@@ -21,22 +77,24 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("overview");
   const [adding, setAdding] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [substituteOpen, setSubstituteOpen] = useState(false);
   const [substituteOptions, setSubstituteOptions] = useState([]);
   const [substituteLoading, setSubstituteLoading] = useState(false);
+  const [mainImageFailed, setMainImageFailed] = useState(false);
+  const [fdaData, setFdaData] = useState(null);
+  const [fdaLoading, setFdaLoading] = useState(false);
+  const [fdaOpen, setFdaOpen] = useState(false);
+  const [fdaFetched, setFdaFetched] = useState(false);
 
   const cartItem = useMemo(
-    () =>
-      items.find(
-        (i) =>
-          i.productId === id ||
-          i.id === id ||
-          i.productId === product?._id ||
-          i.id === product?._id,
-      ),
-    [items, id, product],
+    () => items.find((i) => i.id === id || i.productId === id),
+    [items, id],
   );
+  const productImage = normalizeImage(product?.image || product?.images?.[0]);
+  const categoryLabel =
+    typeof product?.category === "object"
+      ? product?.category?.name
+      : product?.category;
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -44,629 +102,596 @@ const ProductDetail = () => {
         setLoading(true);
         const data = await fetchProductById(id);
         setProduct(data);
-
-        if (data?.category) {
+        const relatedCategory = data?.category?._id || data?.category;
+        if (relatedCategory) {
           const related = await fetchProducts({
-            category: data.category,
+            category: relatedCategory,
             limit: 6,
           });
-          setRelatedProducts((related || []).filter((p) => p._id !== data._id));
-        } else {
-          setRelatedProducts([]);
+          setRelatedProducts(
+            (related || []).filter((p) => p._id !== data?._id),
+          );
         }
-
-        setError(null);
       } catch (err) {
-        console.error("Error loading product", err);
-        setError("Failed to load product details. Please try again.");
-        setProduct(null);
-        setRelatedProducts([]);
+        setError("Unable to load product details.");
       } finally {
         setLoading(false);
       }
     };
-
     loadProduct();
   }, [id]);
 
   useEffect(() => {
     const loadSubstitutes = async () => {
-      if (!product?.composition) {
-        setSubstituteOptions([]);
-        return;
-      }
-
-      const saltKey = product.composition.split(/,|\+/)[0]?.trim();
-      if (!saltKey) return;
-
+      if (!product?.composition) return;
+      const salt = product.composition.split(/,|\+/)[0]?.trim();
+      if (!salt) return;
       try {
         setSubstituteLoading(true);
-        const results = await fetchProducts({ search: saltKey, limit: 20 });
-        const options = (results || [])
-          .filter((p) => {
-            if (!p) return false;
-            const pid = p._id || p.id;
-            if (pid === (product._id || product.id)) return false;
-            const matchesSalt = (p.composition || "")
-              .toLowerCase()
-              .includes(saltKey.toLowerCase());
-            const matchesStrength =
-              product.strength && p.strength
-                ? p.strength.toLowerCase() === product.strength.toLowerCase()
-                : true;
-            return matchesSalt && matchesStrength;
-          })
-          .sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
-
-        const cheaper = options.filter(
-          (p) =>
-            Number(p.price || Infinity) < Number(product.price || Infinity),
+        const results = await fetchProducts({ search: salt, limit: 10 });
+        setSubstituteOptions(
+          (results || []).filter((p) => p._id !== product._id),
         );
-
-        setSubstituteOptions(cheaper.length ? cheaper : options);
       } catch (err) {
-        console.error("Error loading substitutes", err);
-        setSubstituteOptions([]);
+        console.error(err);
       } finally {
         setSubstituteLoading(false);
       }
     };
-
     loadSubstitutes();
-  }, [product?._id, product?.composition]);
+  }, [product]);
 
-  const normalizeCartProduct = (p) => ({
+  useEffect(() => {
+    setFdaData(null);
+    setFdaLoading(false);
+    setFdaOpen(false);
+    setFdaFetched(false);
+  }, [product?._id]);
+
+  const handleFdaToggle = async () => {
+    const nextOpen = !fdaOpen;
+    setFdaOpen(nextOpen);
+
+    if (!nextOpen || fdaFetched || fdaLoading) {
+      return;
+    }
+
+    const medicineName = String(
+      product?.genericName || product?.name || "",
+    ).trim();
+
+    if (!medicineName) {
+      setFdaFetched(true);
+      setFdaData({ notFound: true });
+      return;
+    }
+
+    try {
+      setFdaLoading(true);
+      const data = await fetchDrugInfo(medicineName);
+      if (data?.success) {
+        setFdaData(data);
+      } else {
+        setFdaData({ notFound: true });
+      }
+    } catch (error) {
+      setFdaData({ notFound: true });
+    } finally {
+      setFdaLoading(false);
+      setFdaFetched(true);
+    }
+  };
+
+  const normalize = (p) => ({
     id: p?._id || p?.id,
     productId: p?._id || p?.id,
     name: p?.name,
     price: p?.price || 0,
-    mrp: p?.mrp || p?.price || 0,
+    mrp: p?.mrp || p?.price * 1.2,
     isRx: p?.requiresRx,
-    requiresRx: p?.requiresRx,
     image: p?.images?.[0],
     composition: p?.composition || "",
     strength: p?.strength || "",
     manufacturer: p?.manufacturer || "",
   });
 
-  const primaryImage =
-    product?.images?.[0] ||
-    `https://via.placeholder.com/600x600/f7f6f4/666666?text=${encodeURIComponent(
-      product?.name?.substring(0, 20) || "Medicine",
-    )}`;
-
-  const discount =
-    product?.mrp && product?.mrp > product?.price
-      ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
-      : null;
-
   const handleAddToCart = () => {
-    if (!product) return;
-    if (!ensureAuthenticated(navigate)) return;
+    if (!product || !ensureAuthenticated(navigate)) return;
     setAdding(true);
-    addItem(normalizeCartProduct(product), quantity);
-    setTimeout(() => setAdding(false), 800);
+    addItem(normalize(product), quantity);
+    setTimeout(() => setAdding(false), 1000);
   };
 
-  const handleToggleSave = () => {
-    if (!product) return;
-    if (!ensureAuthenticated(navigate)) return;
-    setSaving(true);
-    toggle(normalizeCartProduct(product));
-    setTimeout(() => setSaving(false), 500);
-  };
-
-  const handleOpenSubstitutes = () => {
-    setSubstituteOpen(true);
-  };
-
-  const handleAddSubstituteToCart = (option) => {
-    if (!ensureAuthenticated(navigate)) return;
-    addItem(normalizeCartProduct(option), 1);
-    setSubstituteOpen(false);
-  };
-
-  const handleReplaceWithSubstitute = (option) => {
-    if (!ensureAuthenticated(navigate)) return;
-    const baseId = product?._id || product?.id;
-    const qty = cartItem?.quantity || quantity || 1;
-    replaceItem(baseId, normalizeCartProduct(option), qty);
-    setSubstituteOpen(false);
-  };
-
-  const categorySlug = product.category
-    ? product.category.toLowerCase().replace(/\s+/g, "-")
-    : "categories";
-
-  if (loading) {
+  if (loading)
     return (
-      <div className="min-h-screen bg-background text-primary-text flex flex-col">
+      <div className="min-h-screen bg-background-light dark:bg-background-dark">
         <Navbar />
-        <main className="flex-1 max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-10 space-y-6">
-          <div className="animate-pulse grid md:grid-cols-2 gap-10">
-            <div className="aspect-square rounded-3xl bg-gray-200" />
-            <div className="space-y-4">
-              <div className="h-6 bg-gray-200 rounded w-1/2" />
-              <div className="h-10 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded w-full" />
-              <div className="h-4 bg-gray-200 rounded w-5/6" />
-              <div className="h-12 bg-gray-200 rounded w-1/3" />
+        <div className="max-w-[1280px] mx-auto px-6 pt-40 pb-20">
+          <div className="grid lg:grid-cols-2 gap-16 animate-pulse">
+            <div className="aspect-square rounded-[48px] bg-slate-200 dark:bg-slate-800" />
+            <div className="space-y-8">
+              <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded-full w-1/4" />
+              <div className="h-12 bg-slate-200 dark:bg-slate-800 rounded-[20px] w-3/4" />
+              <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-[32px] w-full" />
             </div>
           </div>
-        </main>
-        <Footer />
+        </div>
       </div>
     );
-  }
-
-  if (error || !product) {
-    return (
-      <div className="min-h-screen bg-background text-primary-text flex flex-col">
-        <Navbar />
-        <main className="flex-1 max-w-3xl mx-auto px-4 py-16 text-center space-y-6">
-          <h1 className="text-3xl font-nexus-bold">
-            {error ? "Error loading product" : "Product not found"}
-          </h1>
-          <p className="text-secondary-text">
-            {error || "Please go back and browse our catalog."}
-          </p>
-          <div className="flex justify-center gap-4">
-            <button
-              className="px-5 py-2 rounded-full bg-brand-coral text-white font-semibold shadow-soft hover:shadow-lg transition"
-              onClick={() => navigate(-1)}
-            >
-              Go back
-            </button>
-            <Link
-              to="/categories"
-              className="px-5 py-2 rounded-full border border-border text-primary-text font-semibold bg-white hover:-translate-y-0.5 hover:shadow-card transition"
-            >
-              Browse categories
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-background text-primary-text flex flex-col">
+    <div className="min-h-screen bg-background-light dark:bg-background-dark font-nexus-bold">
       <Navbar />
-      <main className="flex-1 max-w-6xl mx-auto px-4 md:px-6 lg:px-8 py-10 space-y-10">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-secondary-text">
-          <Link to="/" className="hover:text-brand-coral">
+
+      <main className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-24">
+        {/* Breadcrumbs */}
+        <nav className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-12 overflow-x-auto whitespace-nowrap scrollbar-hide">
+          <Link to="/" className="hover:text-primary transition-colors">
             Home
           </Link>
-          <span>/</span>
-          <Link to="/categories" className="hover:text-brand-coral">
+          <span className="material-symbols-outlined text-[12px]">
+            chevron_right
+          </span>
+          <Link
+            to="/categories"
+            className="hover:text-primary transition-colors"
+          >
             Categories
           </Link>
-          <span>/</span>
-          <Link
-            to={`/categories/${categorySlug}`}
-            className="hover:text-brand-coral"
-          >
-            {product.category || "Medicines"}
-          </Link>
-          <span>/</span>
-          <span className="text-primary-text">{product.name}</span>
+          <span className="material-symbols-outlined text-[12px]">
+            chevron_right
+          </span>
+          <span className="text-slate-900 dark:text-white">
+            {product?.name}
+          </span>
         </nav>
 
-        {/* Product Main Section */}
-        <section className="grid md:grid-cols-2 gap-10">
-          {/* Image Gallery */}
-          <div className="space-y-4">
-            <div className="relative aspect-square rounded-3xl border border-border bg-white shadow-card overflow-hidden">
-              <img
-                src={primaryImage}
-                alt={product.name}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = `https://via.placeholder.com/600x600/f7f6f4/666666?text=${encodeURIComponent(
-                    product.name.substring(0, 20),
-                  )}`;
-                }}
-              />
-              {product.requiresRx && (
-                <span className="absolute left-4 top-4 rounded-full bg-[#0f172a] text-white text-sm px-4 py-2 shadow-lg">
-                  Prescription Required
-                </span>
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20">
+          {/* Visual Showcase */}
+          <div className="space-y-8">
+            <div className="relative aspect-square rounded-[56px] bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden group">
+              {productImage && !mainImageFailed ? (
+                <img
+                  src={productImage}
+                  alt={product?.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                  onError={() => setMainImageFailed(true)}
+                />
+              ) : (
+                <MedicineFallback className="h-full w-full" />
               )}
-              {discount && (
-                <span className="absolute right-4 top-4 rounded-full bg-[#ecfdf3] text-[#15803d] text-sm px-4 py-2 border border-[#bbf7d0] shadow-lg">
-                  {discount}% off
-                </span>
+
+              {product?.requiresRx && (
+                <div className="absolute top-8 left-8 p-3 px-6 bg-slate-900/80 backdrop-blur-xl rounded-2xl flex items-center gap-2 text-white shadow-2xl">
+                  <span className="material-symbols-outlined text-sm font-bold">
+                    clinical_notes
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    Prescription required
+                  </span>
+                </div>
               )}
+
+              <button
+                onClick={() => toggle(normalize(product))}
+                className={`absolute top-8 right-8 size-14 rounded-2xl flex items-center justify-center transition-all ${
+                  isSaved(product?._id)
+                    ? "bg-red-500 text-white shadow-xl shadow-red-500/20"
+                    : "bg-white/80 dark:bg-slate-800/80 backdrop-blur-md text-slate-400 hover:text-red-500 shadow-lg"
+                }`}
+              >
+                <span className="material-symbols-outlined font-bold">
+                  {isSaved(product?._id) ? "favorite" : "favorite"}
+                </span>
+              </button>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {(product.images && product.images.length
-                ? product.images
-                : [primaryImage]
-              )
-                .slice(0, 3)
-                .map((img, idx) => (
+
+            <div className="grid grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => {
+                const thumbSrc = productImage || FALLBACK_IMAGE;
+                return (
                   <div
-                    key={idx}
-                    className="aspect-square rounded-2xl border border-border bg-[#f7f6f4] overflow-hidden"
+                    key={i}
+                    className="aspect-square rounded-3xl bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 flex items-center justify-center p-2 group cursor-pointer hover:border-primary/50 transition-all overflow-hidden"
                   >
                     <img
-                      src={img}
-                      alt={`${product.name} ${idx + 1}`}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
+                      src={thumbSrc}
+                      className="w-full h-full object-cover rounded-2xl opacity-50 group-hover:opacity-100 transition-opacity"
+                      alt=""
+                      onError={(event) => {
+                        event.currentTarget.style.display = "none";
+                        if (event.currentTarget.nextSibling) {
+                          event.currentTarget.nextSibling.style.display =
+                            "flex";
+                        }
+                      }}
                     />
+                    <MedicineFallback className="hidden h-full w-full rounded-2xl" />
                   </div>
-                ))}
+                );
+              })}
             </div>
           </div>
 
-          {/* Product Details */}
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                {product.category && (
-                  <span className="px-3 py-1 rounded-full bg-[#f7f6f4] text-secondary-text text-xs border border-border">
-                    {product.category}
+          {/* Product Intel */}
+          <div className="space-y-10">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <span className="px-5 py-2 rounded-2xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.2em] border border-primary/20">
+                  {categoryLabel || "Verified Medicine"}
+                </span>
+                {product?.stock > 0 ? (
+                  <span className="flex items-center gap-1.5 text-green-500 text-[10px] font-black uppercase">
+                    <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span>{" "}
+                    In stock
+                  </span>
+                ) : (
+                  <span className="text-red-500 text-[10px] font-black uppercase tracking-widest">
+                    Out of Stock
                   </span>
                 )}
-                <span
-                  className={`px-3 py-1 rounded-full text-xs border ${
-                    product.requiresRx
-                      ? "bg-[#0f172a] text-white border-[#0f172a]"
-                      : "bg-[#ecfdf3] text-[#15803d] border-[#bbf7d0]"
-                  }`}
-                >
-                  {product.requiresRx ? "Rx Required" : "OTC"}
-                </span>
-                <span className="px-3 py-1 rounded-full bg-[#f0f9f4] text-[#15803d] text-xs border border-[#c0ecd0]">
-                  {product.stock > 0 ? "In Stock" : "Out of Stock"}
-                </span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-nexus-bold leading-tight">
-                {product.name}
-              </h1>
-              <p className="text-lg text-secondary-text">
-                {product.manufacturer || "Verified manufacturer"}
-              </p>
-              <p className="text-sm text-secondary-text">
-                {product.composition || "Detailed composition available"}
-                {product.packSize ? ` • Pack: ${product.packSize}` : ""}
-              </p>
+
+              <div className="space-y-4">
+                <h1 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-[1.1]">
+                  {product?.name}
+                </h1>
+                <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400 font-medium text-lg italic">
+                  <span>{product?.manufacturer || "Trusted manufacturer"}</span>
+                  <div className="size-1.5 rounded-full bg-slate-300 dark:bg-slate-700"></div>
+                  <span>{product?.packSize || "10 Units / Pack"}</span>
+                </div>
+              </div>
+
+              <div className="flex items-baseline gap-6 py-4">
+                <p className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
+                  ₹{product?.price?.toLocaleString()}
+                </p>
+                {product?.mrp > product?.price && (
+                  <div className="flex flex-col">
+                    <span className="text-slate-400 line-through text-lg">
+                      ₹{product?.mrp?.toLocaleString()}
+                    </span>
+                    <span className="text-green-500 text-xs font-black uppercase tracking-[0.1em]">
+                      {Math.round(
+                        ((product.mrp - product.price) / product.mrp) * 100,
+                      )}
+                      % off MRP
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-baseline gap-4">
-              <span className="text-4xl font-nexus-bold text-primary-text">
-                ₹{product.price}
-              </span>
-              {product.mrp && product.mrp > product.price && (
-                <>
-                  <span className="text-xl text-secondary-text line-through">
-                    ₹{product.mrp}
-                  </span>
-                  <span className="text-lg text-[#15803d] font-semibold">
-                    {discount}% off
-                  </span>
-                </>
+            {/* Product Summary */}
+            <div className="p-8 rounded-[40px] bg-slate-100 dark:bg-slate-900 shadow-inner border border-slate-200 dark:border-slate-800/50 space-y-6">
+              <div className="flex items-center gap-4 text-slate-900 dark:text-white">
+                <span className="material-symbols-outlined font-black text-primary">
+                  biotech
+                </span>
+                <h3 className="text-xs font-black uppercase tracking-widest">
+                  Composition
+                </h3>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                {product?.composition ||
+                  "Ingredient details will appear here when available."}
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-3xl bg-white dark:bg-slate-800">
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    Strength
+                  </p>
+                  <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                    {product?.strength || "N/A"}
+                  </p>
+                </div>
+                <div className="p-4 rounded-3xl bg-white dark:bg-slate-800">
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                    Pharmacology
+                  </p>
+                  <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                    {product?.requiresRx ? "Schedule H" : "OTC Verified"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[32px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 overflow-hidden">
+              <button
+                type="button"
+                onClick={handleFdaToggle}
+                className="w-full px-6 py-5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+              >
+                <div className="text-left">
+                  <p className="text-lg font-black text-slate-900 dark:text-white">
+                    FDA Drug Information
+                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-cyan-500 mt-1">
+                    Powered by FDA Database
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-slate-400">
+                  {fdaOpen ? "expand_less" : "expand_more"}
+                </span>
+              </button>
+
+              {fdaOpen && (
+                <div className="px-6 pb-6 border-t border-slate-100 dark:border-slate-800">
+                  {fdaLoading ? (
+                    <div className="space-y-3 pt-5 animate-pulse">
+                      <div className="h-4 rounded bg-slate-200 dark:bg-slate-700 w-1/3" />
+                      <div className="h-4 rounded bg-slate-200 dark:bg-slate-700 w-full" />
+                      <div className="h-4 rounded bg-slate-200 dark:bg-slate-700 w-5/6" />
+                    </div>
+                  ) : fdaData && !fdaData.notFound ? (
+                    <div className="pt-5 space-y-4 text-sm">
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-slate-400 uppercase tracking-widest text-[10px] font-black">
+                            Generic Name
+                          </p>
+                          <p className="text-slate-900 dark:text-white font-semibold">
+                            {fdaData.genericName || "Not available"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-slate-400 uppercase tracking-widest text-[10px] font-black">
+                            Manufacturer
+                          </p>
+                          <p className="text-slate-900 dark:text-white font-semibold">
+                            {fdaData.manufacturer || "Not available"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-widest text-[10px] font-black mb-1">
+                          Indications
+                        </p>
+                        <ul className="list-disc list-inside text-slate-600 dark:text-slate-300 space-y-1">
+                          {(fdaData.indications || ["Not available"])
+                            .slice(0, 3)
+                            .map((item, index) => (
+                              <li key={`ind-${index}`}>{item}</li>
+                            ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-widest text-[10px] font-black mb-1">
+                          Side Effects
+                        </p>
+                        <ul className="list-disc list-inside text-slate-600 dark:text-slate-300 space-y-1">
+                          {(fdaData.sideEffects || ["Not available"])
+                            .slice(0, 3)
+                            .map((item, index) => (
+                              <li key={`side-${index}`}>{item}</li>
+                            ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-widest text-[10px] font-black mb-1">
+                          Contraindications
+                        </p>
+                        <ul className="list-disc list-inside text-slate-600 dark:text-slate-300 space-y-1">
+                          {(fdaData.contraindications || ["Not available"])
+                            .slice(0, 3)
+                            .map((item, index) => (
+                              <li key={`contra-${index}`}>{item}</li>
+                            ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="text-slate-400 uppercase tracking-widest text-[10px] font-black mb-1">
+                          Warnings
+                        </p>
+                        <ul className="list-disc list-inside text-slate-600 dark:text-slate-300 space-y-1">
+                          {(fdaData.warnings || ["Not available"])
+                            .slice(0, 2)
+                            .map((item, index) => (
+                              <li key={`warn-${index}`}>{item}</li>
+                            ))}
+                        </ul>
+                      </div>
+
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                        Source: FDA + RxNorm database
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="pt-5">
+                      <p className="text-slate-500 dark:text-slate-400 text-sm">
+                        FDA data not available for this medicine
+                      </p>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mt-3">
+                        Source: FDA + RxNorm database
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
-            <div className="p-4 rounded-2xl border border-border bg-[#f7f6f4] space-y-2">
-              <p className="text-sm font-semibold text-primary-text">
-                Key Information
-              </p>
-              <ul className="text-sm text-secondary-text space-y-1">
-                <li>
-                  • Composition:{" "}
-                  <span className="font-semibold">
-                    {product.composition || "See description"}
-                  </span>
-                </li>
-                <li>
-                  • Pack size:{" "}
-                  <span className="font-semibold">
-                    {product.packSize || "Standard pack"}
-                  </span>
-                </li>
-                <li>
-                  • Manufacturer:{" "}
-                  <span className="font-semibold">
-                    {product.manufacturer || "Verified partner"}
-                  </span>
-                </li>
-                <li>
-                  • Category:{" "}
-                  <span className="font-semibold">
-                    {product.category || "Medicines"}
-                  </span>
-                </li>
-                <li>
-                  • Prescription:{" "}
-                  <span className="font-semibold">
-                    {product.requiresRx ? "Required" : "Not Required"}
-                  </span>
-                </li>
-                <li>
-                  • Availability:{" "}
-                  <span className="font-semibold">
-                    {product.stock > 0
-                      ? `${product.stock} in stock`
-                      : "Out of stock"}
-                  </span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
+            {/* User Interaction Area */}
+            <div className="flex flex-col sm:flex-row items-stretch gap-4 pt-4">
+              <div className="flex items-center bg-slate-100 dark:bg-slate-900 p-2 rounded-3xl border border-slate-200 dark:border-slate-800 sm:w-48">
                 <button
-                  className="w-10 h-10 rounded-full border border-border bg-white text-primary-text font-semibold hover:bg-[#f7f6f4] transition"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  className="size-12 rounded-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm hover:scale-105 transition-transform"
                 >
                   −
                 </button>
-                <span className="text-lg font-semibold w-8 text-center">
+                <span className="flex-1 text-center text-xl font-black text-slate-900 dark:text-white">
                   {quantity}
                 </span>
                 <button
-                  className="w-10 h-10 rounded-full border border-border bg-white text-primary-text font-semibold hover:bg-[#f7f6f4] transition"
                   onClick={() => setQuantity((q) => q + 1)}
+                  className="size-12 rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
                 >
                   +
                 </button>
               </div>
+
               <button
-                className="flex-1 px-6 py-3 rounded-full bg-brand-coral text-white font-semibold shadow-soft hover:shadow-card transition"
                 onClick={handleAddToCart}
                 disabled={adding}
+                className="flex-1 h-16 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-[32px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-primary dark:hover:bg-primary dark:hover:text-white transition-all active:scale-[0.98] relative overflow-hidden group"
               >
-                {adding
-                  ? "Added"
-                  : cartItem
-                    ? `In cart (${cartItem.quantity})`
-                    : "Add to cart"}
+                <span className="relative z-10">
+                  {adding
+                    ? "Adding..."
+                    : cartItem
+                      ? `Update bag (${cartItem.quantity})`
+                      : "Add to cart"}
+                </span>
+                <div className="absolute inset-0 bg-primary translate-y-16 group-hover:translate-y-0 transition-transform duration-500"></div>
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                className={`px-4 py-2 rounded-full border bg-white text-primary-text font-semibold hover:-translate-y-0.5 hover:shadow-card transition ${
-                  isSaved(product._id || product.id)
-                    ? "border-brand-coral text-brand-coral"
-                    : "border-border"
-                }`}
-                onClick={handleToggleSave}
-              >
-                {isSaved(product._id || product.id)
-                  ? "💖 Saved"
-                  : saving
-                    ? "Saving..."
-                    : "❤️ Save for later"}
-              </button>
-              <button
-                onClick={handleOpenSubstitutes}
-                className="px-4 py-2 rounded-full border border-border bg-white text-primary-text font-semibold hover:-translate-y-0.5 hover:shadow-card transition text-center"
-              >
-                🔁 Find substitutes
-              </button>
-            </div>
+            <button
+              onClick={() => setSubstituteOpen(true)}
+              className="w-full h-14 rounded-3xl border-2 border-slate-200 dark:border-slate-800 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-3"
+            >
+              <span className="material-symbols-outlined text-lg">cyclone</span>
+              Find substitutes
+            </button>
           </div>
-        </section>
+        </div>
 
-        {/* Tabs Section */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-4 border-b border-border">
+        {/* Product Tabs */}
+        <section className="mt-32 space-y-12 animate-in slide-in-from-bottom duration-1000">
+          <div className="flex items-center gap-8 border-b border-slate-100 dark:border-slate-800 overflow-x-auto whitespace-nowrap scrollbar-hide">
             {["overview", "usage", "side-effects", "faqs"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-3 font-semibold capitalize transition-colors ${
+                className={`pb-6 text-xs font-black uppercase tracking-[0.2em] transition-all relative ${
                   activeTab === tab
-                    ? "text-brand-coral border-b-2 border-brand-coral"
-                    : "text-secondary-text hover:text-primary-text"
+                    ? "text-primary"
+                    : "text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 {tab.replace("-", " ")}
+                {activeTab === tab && (
+                  <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-full shadow-lg shadow-primary/50"></div>
+                )}
               </button>
             ))}
           </div>
 
-          <div className="p-6 rounded-2xl border border-border bg-white shadow-soft space-y-4">
-            {activeTab === "overview" && (
-              <div className="space-y-3">
-                <h3 className="text-xl font-nexus-bold">Product Overview</h3>
-                <p className="text-secondary-text leading-relaxed">
-                  {product.name} is a medicine from{" "}
-                  {product.manufacturer || "trusted manufacturers"}, containing{" "}
-                  {product.composition || "the listed ingredients"}. It is
-                  commonly used under the {product.category || "general"}{" "}
-                  category and
-                  {product.requiresRx
-                    ? " requires a valid prescription"
-                    : " is available over the counter"}
-                  .
-                </p>
-                <div className="p-4 rounded-xl bg-[#f7f6f4] border border-border">
-                  <p className="text-sm font-semibold mb-2">
-                    Storage Instructions
-                  </p>
-                  <p className="text-sm text-secondary-text">
-                    Store in a cool, dry place away from sunlight. Keep out of
-                    reach of children.
-                  </p>
-                </div>
-              </div>
-            )}
+          <div className="bg-white dark:bg-slate-900/50 rounded-[48px] p-10 lg:p-16 border border-slate-100 dark:border-slate-800 shadow-xl relative overflow-hidden group">
+            <div className="absolute -bottom-20 -right-20 size-80 bg-primary/5 blur-[100px] rounded-full group-hover:bg-primary/10 transition-colors duration-1000"></div>
 
-            {activeTab === "usage" && (
-              <div className="space-y-3">
-                <h3 className="text-xl font-nexus-bold">How to Use</h3>
-                <ul className="space-y-2 text-secondary-text">
-                  <li>
-                    • Take as directed by your physician or as per package
-                    instructions
-                  </li>
-                  <li>
-                    • Follow the dosing schedule provided with your pack size
-                  </li>
-                  <li>• Do not exceed the recommended daily dose</li>
-                  <li>
-                    • Can be taken with or after food to minimize stomach upset
-                  </li>
-                  <li>• Drink plenty of water with the medication</li>
-                </ul>
-                <div className="p-4 rounded-xl bg-[#fff4f2] border border-[#ffd4cc]">
-                  <p className="text-sm font-semibold mb-1 text-[#e35d39]">
-                    ⚠️ Important
+            <div className="relative z-10 max-w-4xl space-y-8 line-height-relaxed">
+              {activeTab === "overview" && (
+                <div className="space-y-6">
+                  <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter capitalize underline decoration-primary/30 underline-offset-8 decoration-4">
+                    About {product?.name}
+                  </h3>
+                  <p className="text-xl text-slate-500 dark:text-slate-400 font-medium">
+                    Usage, storage, and safety details for this medicine.
                   </p>
-                  <p className="text-sm text-secondary-text">
-                    Consult a doctor if symptoms persist beyond 3 days or
-                    worsen.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "side-effects" && (
-              <div className="space-y-3">
-                <h3 className="text-xl font-nexus-bold">
-                  Possible Side Effects
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <p className="font-semibold text-sm mb-2">Common (mild):</p>
-                    <ul className="space-y-1 text-sm text-secondary-text">
-                      <li>• Nausea or upset stomach</li>
-                      <li>• Mild dizziness</li>
-                      <li>• Drowsiness</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm mb-2">
-                      Rare (serious):
-                    </p>
-                    <ul className="space-y-1 text-sm text-secondary-text">
-                      <li>• Allergic reactions (rash, itching, swelling)</li>
-                      <li>• Severe stomach pain</li>
-                      <li>• Liver problems (with prolonged use)</li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl bg-[#fff4f2] border border-[#ffd4cc]">
-                  <p className="text-sm text-secondary-text">
-                    Stop use and seek medical help immediately if you experience
-                    severe side effects.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "faqs" && (
-              <div className="space-y-3">
-                <h3 className="text-xl font-nexus-bold">
-                  Frequently Asked Questions
-                </h3>
-                <div className="space-y-3">
-                  {[
-                    {
-                      q: "Can I take this with other medicines?",
-                      a: "Consult your doctor before combining with other medications, especially other pain relievers.",
-                    },
-                    {
-                      q: "Is it safe during pregnancy?",
-                      a: "Consult your healthcare provider before use during pregnancy or breastfeeding.",
-                    },
-                    {
-                      q: "Can children take this?",
-                      a: "Use pediatric formulations for children and consult a doctor for dosing guidance.",
-                    },
-                    {
-                      q: "What if I miss a dose?",
-                      a: "Take it as soon as you remember, but skip if it's almost time for the next dose. Do not double dose.",
-                    },
-                  ].map((faq, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-xl border border-border bg-[#f7f6f4]"
-                    >
-                      <p className="font-semibold text-sm mb-2">{faq.q}</p>
-                      <p className="text-sm text-secondary-text">{faq.a}</p>
+                  <div className="grid md:grid-cols-2 gap-8 pt-6">
+                    <div className="p-8 rounded-[40px] bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50">
+                      <span className="material-symbols-outlined text-primary mb-6 text-4xl">
+                        thermostat
+                      </span>
+                      <h4 className="text-xs font-black uppercase tracking-widest mb-3">
+                        Storage Guidelines
+                      </h4>
+                      <p className="text-sm font-medium text-slate-500">
+                        Maintain cool, dry environment (below 25°C). Avoid light
+                        exposure and moisture penetration.
+                      </p>
                     </div>
-                  ))}
+                    <div className="p-8 rounded-[40px] bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50">
+                      <span className="material-symbols-outlined text-primary mb-6 text-4xl">
+                        inventory_2
+                      </span>
+                      <h4 className="text-xs font-black uppercase tracking-widest mb-3">
+                        Authenticity Check
+                      </h4>
+                      <p className="text-sm font-medium text-slate-500">
+                        Scan QR on pack for blockchain verification. Distributed
+                        by SwiftPharma Licensed Partner.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+              {/* Other tabs follow similar premium patterns... */}
+              {activeTab !== "overview" && (
+                <div className="space-y-6">
+                  <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter capitalize underline decoration-primary/30 underline-offset-8 decoration-4">
+                    {activeTab.replace("-", " ")}
+                  </h3>
+                  <p className="text-xl text-slate-500 dark:text-slate-400 font-medium">
+                    Helpful information for safe and informed use.
+                  </p>
+                  <div className="p-12 rounded-[48px] bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/50">
+                    <p className="text-amber-800 dark:text-amber-400 font-bold">
+                      Please consult your doctor or pharmacist for advice
+                      specific to your condition before using this medicine.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-2xl font-nexus-bold">Related Products</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {relatedProducts.map((p) => {
-                const pDiscount =
-                  p.mrp && p.mrp > p.price
-                    ? Math.round(((p.mrp - p.price) / p.mrp) * 100)
-                    : null;
-                return (
-                  <Link
-                    key={p._id}
-                    to={`/product/${p._id}`}
-                    className="group rounded-2xl border border-border bg-white shadow-soft hover:shadow-card transition-all duration-300 flex flex-col"
-                  >
-                    <div className="relative aspect-square overflow-hidden rounded-t-2xl bg-[#f7f6f4]">
-                      <img
-                        src={
-                          p.images?.[0] ||
-                          `https://via.placeholder.com/400x400/f7f6f4/666666?text=${encodeURIComponent(p.name.substring(0, 20))}`
-                        }
-                        alt={p.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      {pDiscount && (
-                        <span className="absolute right-2 top-2 rounded-full bg-[#ecfdf3] text-[#15803d] text-xs px-3 py-1 border border-[#bbf7d0]">
-                          {pDiscount}% off
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 p-4 flex flex-col gap-2">
-                      <h3 className="text-sm font-nexus-bold text-primary-text leading-snug line-clamp-2">
-                        {p.name}
-                      </h3>
-                      <p className="text-xs text-secondary-text line-clamp-2">
-                        {p.composition || p.category}
-                      </p>
-                      <div className="mt-auto flex items-center gap-2">
-                        <span className="text-lg font-nexus-bold text-primary-text">
-                          ₹{p.price?.toFixed ? p.price.toFixed(2) : p.price}
-                        </span>
-                        {p.mrp && p.mrp > p.price && (
-                          <span className="text-xs text-secondary-text line-through">
-                            ₹{p.mrp?.toFixed ? p.mrp.toFixed(2) : p.mrp}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+          <section className="mt-40 space-y-12">
+            <div className="flex items-end justify-between">
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                  You may also like
+                </p>
+                <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+                  Related products
+                </h2>
+              </div>
+              <Link
+                to="/categories"
+                className="text-xs font-black text-primary hover:gap-4 transition-all flex items-center gap-2"
+              >
+                EXPLORE ALL{" "}
+                <span className="material-symbols-outlined text-sm font-bold">
+                  arrow_forward
+                </span>
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+              {relatedProducts.slice(0, 5).map((p) => (
+                <ProductCard key={p._id} product={p} />
+              ))}
             </div>
           </section>
         )}
       </main>
+
+      <Footer />
+
       {substituteOpen && (
         <SubstituteModal
           baseProduct={product}
           options={substituteOptions}
           loading={substituteLoading}
           onClose={() => setSubstituteOpen(false)}
-          onAddToCart={handleAddSubstituteToCart}
-          onReplaceInCart={handleReplaceWithSubstitute}
+          onAddToCart={(opt) => {
+            addItem(normalize(opt), 1);
+            setSubstituteOpen(false);
+          }}
+          onReplaceInCart={(opt) => {
+            replaceItem(product._id, normalize(opt), cartItem?.quantity || 1);
+            setSubstituteOpen(false);
+          }}
         />
       )}
-      <Footer />
     </div>
   );
 };

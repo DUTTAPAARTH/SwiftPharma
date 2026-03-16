@@ -11,93 +11,115 @@ import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
 import AIPrescriptionScanner from "./pages/AIPrescriptionScanner";
+import PrescriptionStatus from "./pages/PrescriptionStatus";
 import AIHealthAssistant from "./pages/AIHealthAssistant";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminProducts from "./pages/AdminProducts";
-import AdminOrders from "./pages/AdminOrders";
-import AdminAnalytics from "./pages/AdminAnalytics";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
 import Auth from "./pages/Auth";
+import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminPrescriptions from "./pages/admin/AdminPrescriptions";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+
+import Legal from "./pages/Legal";
+
+const withProtectedBoundary = (element) => (
+  <ErrorBoundary>
+    <ProtectedRoute element={element} />
+  </ErrorBoundary>
+);
+
+const withAdminBoundary = (element) => (
+  <ErrorBoundary>
+    <AdminRoute>{element}</AdminRoute>
+  </ErrorBoundary>
+);
 
 const RoutesConfig = () => (
   <BrowserRouter>
     <Routes>
-      {/* 🔐 LOGIN GATE - Root redirects to login */}
+      {/* Public auth routes */}
       <Route path="/login" element={<Auth />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/signup" element={<Auth mode="signup" />} />
 
-      {/* Root route redirects to login - ALWAYS SHOW LOGIN FIRST */}
+      {/* Root route redirects to login */}
       <Route path="/" element={<Navigate to="/login" replace />} />
 
-      {/* Protected Routes - ALL require authentication */}
-      <Route
-        path="/dashboard"
-        element={<ProtectedRoute element={<Dashboard />} />}
-      />
-      <Route path="/home" element={<ProtectedRoute element={<Home />} />} />
+      {/* Legal & Support Routes */}
+      <Route path="/privacy" element={<Legal />} />
+      <Route path="/terms" element={<Legal />} />
+      <Route path="/safety" element={<Legal />} />
+      <Route path="/help" element={<Legal />} />
+
+      {/* Customer protected routes */}
+      <Route path="/dashboard" element={withProtectedBoundary(<Dashboard />)} />
+      <Route path="/home" element={withProtectedBoundary(<Home />)} />
       <Route
         path="/categories"
-        element={<ProtectedRoute element={<Categories />} />}
+        element={withProtectedBoundary(<Categories />)}
       />
       <Route
         path="/categories/:slug"
-        element={<ProtectedRoute element={<CategoryDetail />} />}
+        element={withProtectedBoundary(<CategoryDetail />)}
       />
       <Route
         path="/product/:id"
-        element={<ProtectedRoute element={<ProductDetail />} />}
+        element={withProtectedBoundary(<ProductDetail />)}
       />
-      <Route path="/cart" element={<ProtectedRoute element={<Cart />} />} />
-      <Route
-        path="/checkout"
-        element={<ProtectedRoute element={<Checkout />} />}
-      />
-      <Route path="/orders" element={<ProtectedRoute element={<Orders />} />} />
-      <Route
-        path="/wishlist"
-        element={<ProtectedRoute element={<Wishlist />} />}
-      />
-      <Route
-        path="/profile"
-        element={<ProtectedRoute element={<Profile />} />}
-      />
+      <Route path="/cart" element={withProtectedBoundary(<Cart />)} />
+      <Route path="/checkout" element={withProtectedBoundary(<Checkout />)} />
+      <Route path="/orders" element={withProtectedBoundary(<Orders />)} />
+      <Route path="/wishlist" element={withProtectedBoundary(<Wishlist />)} />
+      <Route path="/profile" element={withProtectedBoundary(<Profile />)} />
       <Route
         path="/prescriptions"
-        element={<ProtectedRoute element={<AIPrescriptionScanner />} />}
+        element={withProtectedBoundary(<AIPrescriptionScanner />)}
       />
       <Route
         path="/prescriptions/scan"
-        element={<ProtectedRoute element={<AIPrescriptionScanner />} />}
+        element={withProtectedBoundary(<AIPrescriptionScanner />)}
       />
       <Route
         path="/ai-prescription"
-        element={<ProtectedRoute element={<AIPrescriptionScanner />} />}
+        element={withProtectedBoundary(<AIPrescriptionScanner />)}
+      />
+      <Route
+        path="/prescription-status"
+        element={withProtectedBoundary(<PrescriptionStatus />)}
       />
       <Route
         path="/ai-assistant"
-        element={<ProtectedRoute element={<AIHealthAssistant />} />}
+        element={withProtectedBoundary(<AIHealthAssistant />)}
       />
+
+      {/* Admin protected routes */}
+      <Route path="/admin" element={withAdminBoundary(<AdminDashboard />)} />
       <Route
-        path="/admin"
-        element={<ProtectedRoute element={<AdminDashboard />} />}
-      />
-      <Route
-        path="/admin/products"
-        element={<ProtectedRoute element={<AdminProducts />} />}
+        path="/admin/prescriptions"
+        element={withAdminBoundary(<AdminPrescriptions />)}
       />
       <Route
         path="/admin/orders"
-        element={<ProtectedRoute element={<AdminOrders />} />}
+        element={withAdminBoundary(<AdminOrders />)}
       />
+      <Route
+        path="/admin/products"
+        element={withAdminBoundary(<AdminProducts />)}
+      />
+      <Route path="/admin/users" element={withAdminBoundary(<AdminUsers />)} />
       <Route
         path="/admin/analytics"
-        element={<ProtectedRoute element={<AdminAnalytics />} />}
+        element={withAdminBoundary(<AdminAnalytics />)}
       />
+
       <Route
         path="/delivery"
-        element={<ProtectedRoute element={<DeliveryDashboard />} />}
+        element={withProtectedBoundary(<DeliveryDashboard />)}
       />
 
       {/* Catch-all - redirect to login for security */}

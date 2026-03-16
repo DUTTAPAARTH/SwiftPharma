@@ -24,9 +24,35 @@ const prescriptionSchema = new mongoose.Schema(
     expiryDate: { type: Date },
     isExpired: { type: Boolean, default: false },
     medicines: [medicineSchema],
+    aiValidated: { type: Boolean, default: false },
+    aiConfidenceScore: { type: Number, min: 0, max: 100 },
+    aiExtractedMedicines: [
+      {
+        _id: false,
+        name: String,
+        dosage: String,
+        quantity: String,
+      },
+    ],
+    aiRejectionReason: { type: String },
+    aiFlags: [{ type: String }],
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    pharmacistNotes: { type: String },
+    verificationAttempts: { type: Number, default: 0 },
+    lastVerificationAt: { type: Date },
+    rejectedAt: { type: Date },
+    approvedAt: { type: Date },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "invalid"],
+      enum: [
+        "pending",
+        "ai_reviewing",
+        "ai_rejected",
+        "awaiting_pharmacist",
+        "approved",
+        "rejected",
+        "expired",
+      ],
       default: "pending",
     },
     adminNotes: String,
@@ -34,15 +60,25 @@ const prescriptionSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Helper to recalculate expiry and flag
+// Helper to recalculate expiry and expiration status
 function computeExpiry(doc) {
-  if (!doc.issueDate) doc.issueDate = new Date();
+  if (!doc.issueDate) {
+    doc.issueDate = doc.createdAt || new Date();
+  }
+
+  // If expiry date is not explicitly set, default to six months from upload.
   if (!doc.expiryDate) {
-    const expiry = new Date(doc.issueDate);
+    const baseDate = doc.createdAt || doc.issueDate || new Date();
+    const expiry = new Date(baseDate);
     expiry.setMonth(expiry.getMonth() + 6);
     doc.expiryDate = expiry;
   }
+
   doc.isExpired = doc.expiryDate < new Date();
+
+  if (doc.isExpired && doc.status !== "approved" && doc.status !== "rejected") {
+    doc.status = "expired";
+  }
 }
 
 prescriptionSchema.pre("save", function (next) {

@@ -17,6 +17,9 @@ export const validatePrescription = (id) =>
 export const fetchUserPrescriptions = () =>
   apiClient.get(`/prescriptions/my-prescriptions`);
 
+export const fetchLatestPrescriptionStatus = () =>
+  apiClient.get(`/prescriptions/my-latest`);
+
 export const downloadPrescription = (id) =>
   apiClient.get(`/prescriptions/${id}/download`, { responseType: "blob" });
 

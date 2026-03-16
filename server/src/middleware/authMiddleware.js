@@ -52,6 +52,18 @@ export const authenticate = (req, res, next) => {
 // Legacy export for backward compatibility
 export const authMiddleware = authenticate;
 
+export const requireAdmin = (req, res, next) => {
+  authenticate(req, res, () => {
+    if (!["admin", "pharmacist"].includes(req.user?.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Admin privileges required.",
+      });
+    }
+    return next();
+  });
+};
+
 // Auth check endpoint handler
 export const checkAuth = (req, res) => {
   try {

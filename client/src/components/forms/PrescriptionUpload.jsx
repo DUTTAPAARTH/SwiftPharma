@@ -45,49 +45,44 @@ const PrescriptionUpload = ({ onSubmit, onSuccess, loading }) => {
     setUiLoading(true);
     try {
       const result = await onSubmit(formData);
-      console.log("[RX] Full upload result:", result);
-
-      // Handle backend response - should have these fields
       const data = result?.data || result || {};
-      console.log("[RX] Extracted data:", data);
 
-      // Map response fields
       if (data?.doctorName) {
-        console.log("[RX] Setting doctor:", data.doctorName);
         setDoctorName(data.doctorName);
       }
+
       if (data?.issueDate) {
         const dateStr = new Date(data.issueDate).toISOString().slice(0, 10);
-        console.log("[RX] Setting date:", dateStr);
         setIssueDate(dateStr);
       }
+
       if (data?.expiryDate) {
-        console.log("[RX] Setting expiry:", data.expiryDate);
         setExpiryDate(data.expiryDate);
       }
+
       if (data?.ocrText) {
-        console.log("[RX] Setting OCR text length:", data.ocrText.length);
         setOcrText(data.ocrText);
       }
 
-      // Parse medicines - most important
-      const meds = Array.isArray(data?.medicines) ? data.medicines : [];
-      console.log("[RX] Medicines from response:", meds);
+      const meds =
+        data?.medicines ||
+        data?.extractedMedicines ||
+        data?.extractedData?.medicines ||
+        [];
+
       if (meds.length > 0) {
         setParsedMedicines(meds);
       } else {
-        console.warn("[RX] No medicines parsed from response");
         setUiError(
-          "⚠️ Prescription uploaded but no medicines detected. Please add manually."
+          "⚠️ Prescription uploaded but no medicines detected. Please add manually.",
         );
       }
 
       onSuccess?.(data);
     } catch (err) {
-      console.error("[RX] Upload failed:", err);
       setUiError(
         err?.response?.data?.message ||
-          "Unable to read prescription. Please try another image."
+          "Unable to read prescription. Please try another image.",
       );
     } finally {
       setUiLoading(false);
@@ -96,7 +91,7 @@ const PrescriptionUpload = ({ onSubmit, onSuccess, loading }) => {
 
   const updateMedicine = (idx, field, value) => {
     setParsedMedicines((prev) =>
-      prev.map((m, i) => (i === idx ? { ...m, [field]: value } : m))
+      prev.map((m, i) => (i === idx ? { ...m, [field]: value } : m)),
     );
   };
 
@@ -123,7 +118,7 @@ const PrescriptionUpload = ({ onSubmit, onSuccess, loading }) => {
       ];
       const first = candidates.find((v) => Number(v) > 0);
       if (Number(first) > 0) return Number(first);
-      
+
       // Random price between ₹50-500 for meds not in database
       return Math.floor(Math.random() * 451) + 50;
     };

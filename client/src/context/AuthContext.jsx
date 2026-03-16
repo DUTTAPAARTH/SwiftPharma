@@ -10,6 +10,8 @@ export const AuthProvider = ({ children }) => {
 
   // Check authentication on app mount
   useEffect(() => {
+    let isMounted = true;
+
     const checkAuth = async () => {
       try {
         // Load token from localStorage
@@ -19,48 +21,53 @@ export const AuthProvider = ({ children }) => {
         if (savedToken && savedUser) {
           try {
             const parsedUser = JSON.parse(savedUser);
+            if (!isMounted) {
+              return;
+            }
+
             setToken(savedToken);
             setUser(parsedUser);
-            console.log("✅ Auth restored from localStorage");
           } catch (error) {
-            console.error("Error parsing saved user:", error);
             // Clear invalid data
             localStorage.removeItem("user");
             localStorage.removeItem("authToken");
           }
-        } else {
-          console.log("⚠️  No auth token found - user not authenticated");
         }
-      } catch (error) {
-        console.error("Auth check error:", error);
       } finally {
-        // Small delay for smooth UX
-        setTimeout(() => {
-          setIsAuthChecked(true);
-          setLoading(false);
-        }, 300);
+        if (!isMounted) {
+          return;
+        }
+
+        setIsAuthChecked(true);
+        setLoading(false);
       }
     };
 
     checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = (payload, authToken) => {
     // Store user and token
     setUser({ ...payload });
     setToken(authToken);
+    setIsAuthChecked(true);
+    setLoading(false);
     localStorage.setItem("user", JSON.stringify({ ...payload }));
     localStorage.setItem("authToken", authToken);
-    console.log("✅ User logged in:", payload.email);
   };
 
   const logout = () => {
     setUser(null);
     setToken(null);
+    setIsAuthChecked(true);
+    setLoading(false);
     localStorage.removeItem("user");
     localStorage.removeItem("authToken");
     localStorage.removeItem("rememberedCredentials");
-    console.log("✅ User logged out");
   };
 
   const isAuthenticated = !!user && !!token;

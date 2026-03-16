@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
-    "seed:medicines": "node scripts/seedMedicines.js"
+    "seed:medicines": "node scripts/seedMedicines.js",
+    "make:admin": "node scripts/makeAdmin.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -17,7 +18,9 @@
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "groq-sdk": "^1.1.1",
     "jsonwebtoken": "^9.0.3",
+    "medical-mcp": "^1.0.8",
     "mongodb": "^7.1.0",
     "mongoose": "^9.0.1",
     "morgan": "^1.10.1",

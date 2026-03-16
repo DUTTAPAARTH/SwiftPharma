@@ -13,40 +13,26 @@ import adminRoutes from "./routes/adminRoutes.js";
 import deliveryRoutes from "./routes/deliveryRoutes.js";
 import aiScanRoutes from "./routes/aiScanRoutes.js";
 import assistantRoutes from "./routes/assistantRoutes.js";
+import interactionRoutes from "./routes/interactionRoutes.js";
+import drugInfoRoutes from "./routes/drugInfoRoutes.js";
 import healthRoute from "./routes/healthRoute.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { checkAuth } from "./middleware/authMiddleware.js";
+import { initializeMedicalMCP } from "./config/mcp.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
+initializeMedicalMCP().catch((error) => {
+  console.error("[medical-mcp] initialization failed", error);
+});
+
 // CORS configuration for credentials
-const allowedOrigins = (
-  process.env.CLIENT_URLS ||
-  process.env.CLIENT_URL ||
-  "http://localhost:5173"
-)
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
-const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS === "true";
-
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-
-      if (allowVercelPreviews && origin.endsWith(".vercel.app")) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   }),
 );
@@ -59,7 +45,6 @@ app.use(morgan("dev"));
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
-// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -69,21 +54,12 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/ai", aiScanRoutes);
 app.use("/api/assistant", assistantRoutes);
-app.use("/api", healthRoute);
+app.use("/api/interactions", interactionRoutes);
+app.use("/api/drug-info", drugInfoRoutes);
+app.use("/health", healthRoute);
 
 // Auth check endpoint for frontend
 app.get("/api/auth/check", checkAuth);
-
-// Serve static frontend files in production
-if (process.env.NODE_ENV === "production") {
-  const clientDistPath = path.join(__dirname, "..", "..", "client", "dist");
-  app.use(express.static(clientDistPath));
-
-  // SPA fallback - serve index.html for all non-API routes
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(clientDistPath, "index.html"));
-  });
-}
 
 app.use(errorHandler);
 

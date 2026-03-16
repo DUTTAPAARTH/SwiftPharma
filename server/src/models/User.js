@@ -9,10 +9,11 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: Object.values(ROLES), default: ROLES.CUSTOMER },
     passwordHash: { type: String, required: true },
     medicalHistory: { type: String },
+    suspended: { type: Boolean, default: false },
     rememberMeEnabled: { type: Boolean, default: false },
     lastLoginEmail: { type: String },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("User", userSchema);

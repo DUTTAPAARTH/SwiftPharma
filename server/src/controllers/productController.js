@@ -1,5 +1,47 @@
+import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
+
+const PRODUCT_PLACEHOLDER_URL =
+  "https://via.placeholder.com/200x200/0a0f1e/00bcd4?text=%F0%9F%92%8A";
+
+const parseBoolean = (value) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value !== "string") return false;
+  return value.toLowerCase() === "true";
+};
+
+const normalizeProduct = (product) => {
+  const data =
+    typeof product.toObject === "function" ? product.toObject() : product;
+  const primaryImage =
+    data.image || data.images?.[0] || PRODUCT_PLACEHOLDER_URL;
+
+  return {
+    ...data,
+    image: primaryImage,
+    images: data.images?.length ? data.images : [primaryImage],
+  };
+};
+
+const resolveCategoryId = async (categoryValue) => {
+  if (!categoryValue) return undefined;
+
+  const categoryMatchers = [
+    { slug: categoryValue },
+    { name: { $regex: `^${categoryValue}$`, $options: "i" } },
+  ];
+
+  if (mongoose.Types.ObjectId.isValid(categoryValue)) {
+    categoryMatchers.unshift({ _id: categoryValue });
+  }
+
+  const categoryDoc = await Category.findOne({
+    $or: categoryMatchers,
+  });
+
+  return categoryDoc?._id;
+};
 
 export const listProducts = async (req, res) => {
   try {
@@ -30,7 +72,7 @@ export const listProducts = async (req, res) => {
       .limit(parseInt(limit))
       .skip(parseInt(skip));
 
-    return res.json(products);
+    return res.json(products.map(normalizeProduct));
   } catch (error) {
     console.error("listProducts error", error);
     return res.status(500).json({ message: "Failed to fetch products" });
@@ -43,7 +85,7 @@ export const getProduct = async (req, res) => {
       .populate("altGenerics")
       .populate("category");
     if (!product) return res.status(404).json({ message: "Not found" });
-    return res.json(product);
+    return res.json(normalizeProduct(product));
   } catch (error) {
     console.error("getProduct error", error);
     return res.status(500).json({ message: "Failed to fetch product" });
@@ -73,7 +115,7 @@ export const getProductsByCategory = async (req, res) => {
       .limit(parseInt(limit))
       .skip(parseInt(skip));
 
-    return res.json(products);
+    return res.json(products.map(normalizeProduct));
   } catch (error) {
     console.error("getProductsByCategory error", error);
     return res.status(500).json({ message: "Failed to fetch products" });
@@ -95,7 +137,7 @@ export const searchProducts = async (req, res) => {
       .limit(parseInt(limit))
       .skip(parseInt(skip));
 
-    return res.json(products);
+    return res.json(products.map(normalizeProduct));
   } catch (error) {
     console.error("searchProducts error", error);
     return res.status(500).json({ message: "Failed to search products" });
@@ -104,8 +146,36 @@ export const searchProducts = async (req, res) => {
 
 export const createProduct = async (req, res) => {
   try {
-    const product = await Product.create(req.body);
-    return res.status(201).json(product);
+    const categoryId = await resolveCategoryId(req.body.category);
+    const imagePath = req.file
+      ? `/uploads/products/${req.file.filename}`
+      : undefined;
+
+    const payload = {
+      name: req.body.name,
+      description: req.body.description,
+      brand: req.body.brand,
+      manufacturer: req.body.manufacturer,
+      composition: req.body.composition,
+      strength: req.body.strength,
+      packSize: req.body.packSize,
+      price: Number(req.body.price || 0),
+      category: categoryId,
+      prescriptionRequired: parseBoolean(
+        req.body.requiresRx || req.body.prescriptionRequired,
+      ),
+      isRx: parseBoolean(
+        req.body.requiresRx || req.body.prescriptionRequired || req.body.isRx,
+      ),
+      stock: Number(req.body.stock || 0),
+    };
+
+    const primaryImage = imagePath || req.body.image || PRODUCT_PLACEHOLDER_URL;
+    payload.image = primaryImage;
+    payload.images = [primaryImage];
+
+    const product = await Product.create(payload);
+    return res.status(201).json(normalizeProduct(product));
   } catch (error) {
     console.error("createProduct error", error);
     return res.status(500).json({ message: "Failed to create product" });
