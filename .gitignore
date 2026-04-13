@@ -22,4 +22,6 @@ mcp.json
 
 # Generated files
 *.log
+*.err
+*.out
 npm-debug.log*
