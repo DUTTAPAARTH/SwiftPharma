@@ -1,4 +1,5 @@
 import Prescription from "../models/Prescription.js";
+import { getPrescriptionLifecycleState } from "../utils/prescriptionLifecycle.js";
 
 export const getMyLatestPrescription = async (req, res) => {
   try {
@@ -22,19 +23,16 @@ export const getMyLatestPrescription = async (req, res) => {
       });
     }
 
-    const now = new Date();
-    const isExpired =
-      latest.isExpired ||
-      latest.status === "expired" ||
-      (latest.expiryDate && latest.expiryDate < now);
+    const lifecycle = getPrescriptionLifecycleState(latest.toObject());
 
     if (
-      isExpired &&
-      latest.status !== "rejected" &&
-      latest.status !== "ai_rejected"
+      latest.status !== lifecycle.status ||
+      latest.isExpired !== lifecycle.isExpired ||
+      String(latest.expiryDate || "") !== String(lifecycle.expiryDate || "")
     ) {
-      latest.isExpired = true;
-      latest.status = "expired";
+      latest.status = lifecycle.status;
+      latest.isExpired = lifecycle.isExpired;
+      latest.expiryDate = lifecycle.expiryDate;
       await latest.save();
     }
 

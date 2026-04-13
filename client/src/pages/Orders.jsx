@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import OrderTrackingTimeline from "../components/timeline/OrderTrackingTimeline";
+import LiveMapEmbed from "../components/tracking/LiveMapEmbed";
 import { fetchOrders } from "../services/orderService";
 
 const normalizeOrders = (payload) => {
@@ -11,6 +12,12 @@ const normalizeOrders = (payload) => {
   if (Array.isArray(payload?.data)) return payload.data;
   return [];
 };
+
+const normalizeStatus = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -91,67 +98,76 @@ const Orders = () => {
                 </div>
 
                 <div className="lg:w-1/3 flex flex-col justify-between gap-10">
-                  <div className="space-y-8">
-                    <div className="space-y-3">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-primary">
-                        Order ID
-                      </p>
-                      <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
-                        #{order._id.slice(-8).toUpperCase()}
-                      </h3>
-                    </div>
+                  {(() => {
+                    const orderStatus = normalizeStatus(order.status);
+                    const delivered = orderStatus === "delivered";
 
-                    <div className="grid grid-cols-2 gap-8">
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          Items
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-slate-400 text-sm">
-                            pill
-                          </span>
-                          <p className="text-lg font-black text-slate-800 dark:text-white">
-                            {order.items?.length || 0} item(s)
-                          </p>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          Total paid
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-slate-400 text-sm">
-                            payments
-                          </span>
-                          <p className="text-lg font-black text-slate-800 dark:text-white">
-                            ₹{order.payment?.amount || 0}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    return (
+                      <>
+                        <div className="space-y-8">
+                          <div className="space-y-3">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                              Order ID
+                            </p>
+                            <h3 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+                              #{order._id.slice(-8).toUpperCase()}
+                            </h3>
+                          </div>
 
-                  <div className="flex items-center gap-6 pt-10 border-t border-slate-100 dark:border-slate-800">
-                    <div
-                      className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${
-                        order.status === "delivered"
-                          ? "bg-green-500 text-white"
-                          : "bg-primary text-white animate-pulse"
-                      }`}
-                    >
-                      {order.status}
-                    </div>
-                    {order.prescriptionId && (
-                      <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                        <span className="material-symbols-outlined text-amber-500 text-sm font-black">
-                          verified_user
-                        </span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                          R<span className="lowercase">x</span> Verified
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                          <div className="grid grid-cols-2 gap-8">
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Items
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-slate-400 text-sm">
+                                  pill
+                                </span>
+                                <p className="text-lg font-black text-slate-800 dark:text-white">
+                                  {order.items?.length || 0} item(s)
+                                </p>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                Total paid
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-slate-400 text-sm">
+                                  payments
+                                </span>
+                                <p className="text-lg font-black text-slate-800 dark:text-white">
+                                  ₹{order.payment?.amount || 0}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-6 pt-10 border-t border-slate-100 dark:border-slate-800">
+                          <div
+                            className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${
+                              delivered
+                                ? "bg-green-500 text-white"
+                                : "bg-primary text-white animate-pulse"
+                            }`}
+                          >
+                            {order.status}
+                          </div>
+                          {order.prescriptionId && (
+                            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                              <span className="material-symbols-outlined text-amber-500 text-sm font-black">
+                                verified_user
+                              </span>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                R<span className="lowercase">x</span> Verified
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="lg:w-2/3 space-y-12 bg-slate-50 dark:bg-slate-800/50 rounded-[56px] p-12 border border-slate-100 dark:border-slate-700/50 shadow-inner group-hover:bg-white dark:group-hover:bg-slate-900 transition-all duration-500">
@@ -165,18 +181,46 @@ const Orders = () => {
                   </div>
 
                   <div className="px-6 py-4">
-                    <OrderTrackingTimeline
-                      currentStep={order.status === "delivered" ? 4 : 2}
-                    />
+                    {(() => {
+                      const status = normalizeStatus(order.status);
+                      const step =
+                        status === "delivered"
+                          ? 4
+                          : status === "out_for_delivery"
+                            ? 3
+                            : 2;
+                      return <OrderTrackingTimeline currentStep={step} />;
+
+                      {
+                        normalizeStatus(order.status) ===
+                          "out_for_delivery" && (
+                          <div className="px-6 pb-4">
+                            <LiveMapEmbed orderId={order._id} />
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
 
                   <div className="flex items-center justify-between gap-8 pt-6 border-t border-slate-100 dark:border-slate-700">
-                    <button className="h-14 px-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:border-primary transition-all flex items-center gap-3">
-                      <span className="material-symbols-outlined text-lg">
-                        receipt_long
-                      </span>{" "}
-                      Download invoice
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button className="h-14 px-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:border-primary transition-all flex items-center gap-3">
+                        <span className="material-symbols-outlined text-lg">
+                          receipt_long
+                        </span>{" "}
+                        Download invoice
+                      </button>
+                      {normalizeStatus(order.status) === "out_for_delivery" ? (
+                        <Link to={`/orders/${order._id}/track`}>
+                          <button className="h-14 px-8 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-cyan-500/30 flex items-center gap-3">
+                            <span className="material-symbols-outlined text-lg">
+                              open_in_full
+                            </span>
+                            Full Map
+                          </button>
+                        </Link>
+                      ) : null}
+                    </div>
                     <div className="flex items-center gap-4">
                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                         Need help?

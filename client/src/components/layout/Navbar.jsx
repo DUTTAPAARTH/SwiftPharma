@@ -10,6 +10,8 @@ const links = [
   { href: "/ai-assistant", label: "AI Assistant", icon: "smart_toy" },
   { href: "/ai-prescription", label: "Prescriptions", icon: "prescriptions" },
   { href: "/prescription-status", label: "Rx Status", icon: "fact_check" },
+  { href: "/subscriptions", label: "Subscriptions", icon: "autorenew" },
+  { href: "/reminders", label: "Reminders", icon: "notifications_active" },
   { href: "/cart", label: "Cart", icon: "shopping_cart" },
   { href: "/profile", label: "Profile", icon: "person" },
 ];
@@ -59,7 +61,7 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1 p-1.5 bg-slate-100/60 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 backdrop-blur-md">
-            {links.slice(0, 5).map((link) => (
+            {links.slice(0, 7).map((link) => (
               <Link
                 key={link.href}
                 to={link.href}

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { fetchUserPrescriptions } from "../services/prescriptionService";
+import { getPrescriptionDisplayState } from "../utils/prescriptionLifecycle";
 
 const STATUS_STYLES = {
   pending: "bg-slate-500/20 text-slate-200 border-slate-400/40",
@@ -116,8 +117,9 @@ const PrescriptionStatus = () => {
 
         <div className="grid md:grid-cols-2 gap-5">
           {prescriptions.map((prescription) => {
+            const lifecycle = getPrescriptionDisplayState(prescription);
             const statusClass =
-              STATUS_STYLES[prescription.status] || STATUS_STYLES.pending;
+              STATUS_STYLES[lifecycle.status] || STATUS_STYLES.pending;
             const confidence = toPercent(prescription.aiConfidenceScore);
 
             return (
@@ -147,7 +149,7 @@ const PrescriptionStatus = () => {
                       <span
                         className={`px-2.5 py-1 rounded-full border text-xs font-bold uppercase tracking-wide ${statusClass}`}
                       >
-                        {STATUS_LABELS[prescription.status] ||
+                        {STATUS_LABELS[lifecycle.status] ||
                           STATUS_LABELS.pending}
                       </span>
                       <span className="text-xs text-slate-400">
@@ -202,8 +204,7 @@ const PrescriptionStatus = () => {
                   </div>
                 </div>
 
-                {(prescription.status === "ai_rejected" ||
-                  prescription.status === "rejected") && (
+                {["ai_rejected", "rejected"].includes(lifecycle.status) && (
                   <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100">
                     Rejection reason:{" "}
                     {prescription.aiRejectionReason ||
@@ -212,17 +213,22 @@ const PrescriptionStatus = () => {
                   </div>
                 )}
 
-                {prescription.status === "approved" &&
+                {lifecycle.status === "approved" &&
                   prescription.pharmacistNotes && (
                     <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
                       Pharmacist note: {prescription.pharmacistNotes}
                     </div>
                   )}
 
-                {prescription.expiryDate && (
+                {lifecycle.isPendingReview && (
                   <p className="text-xs text-slate-400">
-                    Expiry:{" "}
-                    {new Date(prescription.expiryDate).toLocaleDateString()}
+                    Review expires: {lifecycle.reviewExpiresAt.toLocaleString()}
+                  </p>
+                )}
+
+                {lifecycle.status === "approved" && lifecycle.expiryDate && (
+                  <p className="text-xs text-slate-400">
+                    Expiry: {lifecycle.expiryDate.toLocaleDateString()}
                   </p>
                 )}
               </article>

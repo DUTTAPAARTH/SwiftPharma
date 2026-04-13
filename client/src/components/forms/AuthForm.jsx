@@ -307,9 +307,7 @@ export default function AuthForm({ mode = "login" }) {
                         setError("");
                       }}
                       aria-label={
-                        i === 0
-                          ? "Switch to login tab"
-                          : "Switch to signup tab"
+                        i === 0 ? "Switch to login tab" : "Switch to signup tab"
                       }
                       className={`rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
                         (i === 0 ? isLogin : !isLogin)
@@ -482,7 +480,10 @@ export default function AuthForm({ mode = "login" }) {
 
                 <p className="mt-5 text-center text-xs leading-6 text-slate-500">
                   By continuing, you agree to our{" "}
-                  <a href="/terms" className="font-semibold text-primary hover:underline">
+                  <a
+                    href="/terms"
+                    className="font-semibold text-primary hover:underline"
+                  >
                     Terms
                   </a>
                   {" and "}

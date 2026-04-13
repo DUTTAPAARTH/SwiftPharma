@@ -15,10 +15,14 @@ import aiScanRoutes from "./routes/aiScanRoutes.js";
 import assistantRoutes from "./routes/assistantRoutes.js";
 import interactionRoutes from "./routes/interactionRoutes.js";
 import drugInfoRoutes from "./routes/drugInfoRoutes.js";
+import subscriptionRoutes from "./routes/subscriptionRoutes.js";
+import reminderRoutes from "./routes/reminderRoutes.js";
 import healthRoute from "./routes/healthRoute.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { checkAuth } from "./middleware/authMiddleware.js";
 import { initializeMedicalMCP } from "./config/mcp.js";
+import { startScheduler } from "./services/subscriptionScheduler.js";
+import { startTrackingSimulator } from "./services/trackingSimulator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,11 +60,22 @@ app.use("/api/ai", aiScanRoutes);
 app.use("/api/assistant", assistantRoutes);
 app.use("/api/interactions", interactionRoutes);
 app.use("/api/drug-info", drugInfoRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
+app.use("/api/reminders", reminderRoutes);
 app.use("/health", healthRoute);
 
 // Auth check endpoint for frontend
 app.get("/api/auth/check", checkAuth);
 
 app.use(errorHandler);
+
+export const startAppServices = () => {
+  try {
+    startScheduler();
+    startTrackingSimulator();
+  } catch (error) {
+    console.error("[app] failed to start background services", error);
+  }
+};
 
 export default app;

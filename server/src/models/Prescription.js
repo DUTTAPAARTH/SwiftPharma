@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import {
+  getDefaultPrescriptionExpiryDate,
+  getPrescriptionLifecycleState,
+} from "../utils/prescriptionLifecycle.js";
 
 const medicineSchema = new mongoose.Schema(
   {
@@ -60,27 +64,6 @@ const prescriptionSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Helper to recalculate expiry and expiration status
-function computeExpiry(doc) {
-  if (!doc.issueDate) {
-    doc.issueDate = doc.createdAt || new Date();
-  }
-
-  // If expiry date is not explicitly set, default to six months from upload.
-  if (!doc.expiryDate) {
-    const baseDate = doc.createdAt || doc.issueDate || new Date();
-    const expiry = new Date(baseDate);
-    expiry.setMonth(expiry.getMonth() + 6);
-    doc.expiryDate = expiry;
-  }
-
-  doc.isExpired = doc.expiryDate < new Date();
-
-  if (doc.isExpired && doc.status !== "approved" && doc.status !== "rejected") {
-    doc.status = "expired";
-  }
-}
-
 prescriptionSchema.pre("save", function (next) {
   if (typeof next !== "function") {
     console.error(
@@ -90,7 +73,27 @@ prescriptionSchema.pre("save", function (next) {
     return;
   }
   try {
-    computeExpiry(this);
+    const now = new Date();
+
+    if (!this.expiryDate) {
+      this.expiryDate = getDefaultPrescriptionExpiryDate(
+        this.issueDate || this.createdAt || now,
+      );
+    }
+
+    const lifecycle = getPrescriptionLifecycleState(
+      {
+        ...this.toObject(),
+        createdAt: this.createdAt || now,
+        expiryDate: this.expiryDate,
+      },
+      now,
+    );
+
+    this.expiryDate = lifecycle.expiryDate;
+    this.isExpired = lifecycle.isExpired;
+    this.status = lifecycle.status;
+
     next();
   } catch (error) {
     next(error);
@@ -108,19 +111,34 @@ prescriptionSchema.pre("findOneAndUpdate", function (next) {
   try {
     const update = this.getUpdate();
     if (!update) return next();
-    // Normalize nested $set updates
     const target = update.$set || update;
-    if (target.issueDate || target.expiryDate) {
-      const working = {
-        issueDate: target.issueDate,
-        expiryDate: target.expiryDate,
-      };
-      computeExpiry(working);
-      target.issueDate = working.issueDate;
-      target.expiryDate = working.expiryDate;
-      target.isExpired = working.isExpired;
-    }
-    next();
+    const now = new Date();
+
+    this.model
+      .findOne(this.getQuery())
+      .lean()
+      .then((current) => {
+        const merged = {
+          ...(current || {}),
+          ...update,
+          ...target,
+          createdAt: target.createdAt || current?.createdAt || now,
+        };
+
+        if (!merged.expiryDate) {
+          merged.expiryDate = getDefaultPrescriptionExpiryDate(
+            merged.issueDate || merged.createdAt || now,
+          );
+        }
+
+        const lifecycle = getPrescriptionLifecycleState(merged, now);
+        target.expiryDate = lifecycle.expiryDate;
+        target.isExpired = lifecycle.isExpired;
+        target.status = lifecycle.status;
+
+        next();
+      })
+      .catch(next);
   } catch (error) {
     next(error);
   }

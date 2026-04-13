@@ -19,5 +19,12 @@ export default defineConfig({
     alias: {
       "@": "/src",
     },
+    dedupe: ["react", "react-dom"],
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom", "react/jsx-runtime"],
+    esbuildOptions: {
+      define: { "process.env.NODE_ENV": JSON.stringify("development") },
+    },
   },
 });

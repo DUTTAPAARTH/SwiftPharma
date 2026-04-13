@@ -3,10 +3,9 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { usePrescription } from "../hooks/usePrescription";
-import PrescriptionUpload from "../components/forms/PrescriptionUpload";
 
 const Profile = () => {
-  const { prescriptions, loadPrescriptions, upload } = usePrescription();
+  const { prescriptions, loadPrescriptions } = usePrescription();
   const [tab, setTab] = useState("all");
 
   useEffect(() => {
@@ -178,8 +177,20 @@ const Profile = () => {
                 )}
               </div>
 
-              <div className="pt-8 border-t border-slate-100 dark:border-slate-800">
-                <PrescriptionUpload onSubmit={upload} />
+              <div className="pt-8 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <p className="text-sm font-black text-slate-900 dark:text-white tracking-tight">
+                    Need to upload a new prescription?
+                  </p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">
+                    Use the dedicated prescription page instead of the profile view.
+                  </p>
+                </div>
+                <Link to="/prescriptions/scan">
+                  <button className="h-12 px-6 rounded-2xl bg-primary text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all">
+                    Open Prescription Page
+                  </button>
+                </Link>
               </div>
             </div>
           </div>

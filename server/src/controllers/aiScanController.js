@@ -168,7 +168,9 @@ Confidence score guide:
     if (GROQ_API_KEY) {
       const groqValidation = await tryGroqValidation(prompt, extractedText);
       if (groqValidation) {
-        console.log("[AI-SCAN] Using Groq fallback validator (Gemini key missing)");
+        console.log(
+          "[AI-SCAN] Using Groq fallback validator (Gemini key missing)",
+        );
         return groqValidation;
       }
     }
@@ -222,7 +224,9 @@ Confidence score guide:
     if (GROQ_API_KEY) {
       const groqValidation = await tryGroqValidation(prompt, extractedText);
       if (groqValidation) {
-        console.log("[AI-SCAN] Using Groq fallback validator after Gemini failure");
+        console.log(
+          "[AI-SCAN] Using Groq fallback validator after Gemini failure",
+        );
         return groqValidation;
       }
     }
@@ -243,7 +247,9 @@ Confidence score guide:
     if (GROQ_API_KEY) {
       const groqValidation = await tryGroqValidation(prompt, extractedText);
       if (groqValidation) {
-        console.log("[AI-SCAN] Using Groq fallback validator after empty Gemini response");
+        console.log(
+          "[AI-SCAN] Using Groq fallback validator after empty Gemini response",
+        );
         return groqValidation;
       }
     }
@@ -263,7 +269,9 @@ Confidence score guide:
     if (GROQ_API_KEY) {
       const groqValidation = await tryGroqValidation(prompt, extractedText);
       if (groqValidation) {
-        console.log("[AI-SCAN] Using Groq fallback validator after Gemini parse error");
+        console.log(
+          "[AI-SCAN] Using Groq fallback validator after Gemini parse error",
+        );
         return groqValidation;
       }
     }
@@ -471,8 +479,19 @@ export const scanPrescription = async (req, res) => {
 
     const aiMeds = normalizeMedicines(aiValidation.medicines || medicines);
 
-    const expiryDate = new Date(issuedDate);
+    const fallbackExpiryDate = new Date(
+      Date.now() + 6 * 30 * 24 * 60 * 60 * 1000,
+    );
+    let expiryDate = new Date(issuedDate);
     expiryDate.setMonth(expiryDate.getMonth() + 6);
+
+    if (
+      !expiryDate ||
+      Number.isNaN(expiryDate.getTime()) ||
+      expiryDate < new Date()
+    ) {
+      expiryDate = fallbackExpiryDate;
+    }
 
     // SECURITY: Always use authenticated user's ID - never accept from request body
     if (!req.user || !req.user.id) {
@@ -483,8 +502,10 @@ export const scanPrescription = async (req, res) => {
       });
     }
 
-    // Save prescription record
-    const prescription = await Prescription.create({
+    const safeStatus =
+      derivedStatus === "expired" ? "awaiting_pharmacist" : derivedStatus;
+
+    const prescriptionPayload = {
       userId: req.user.id,
       images: [imageUrl],
       ocrText,
@@ -493,7 +514,8 @@ export const scanPrescription = async (req, res) => {
       expiryDate,
       doctorRegistration:
         aiValidation.doctorRegistrationNumber || doctor.reg_no,
-      status: derivedStatus,
+      status: safeStatus,
+      isExpired: false,
       aiValidated: !hardRejected,
       aiConfidenceScore: confidenceScore,
       aiExtractedMedicines: aiMeds,
@@ -502,7 +524,19 @@ export const scanPrescription = async (req, res) => {
       verificationAttempts: 1,
       lastVerificationAt: new Date(),
       notes: req.body.notes || "",
-    });
+    };
+
+    if (
+      !prescriptionPayload.expiryDate ||
+      Number.isNaN(new Date(prescriptionPayload.expiryDate).getTime()) ||
+      prescriptionPayload.expiryDate < new Date()
+    ) {
+      prescriptionPayload.expiryDate = fallbackExpiryDate;
+    }
+    prescriptionPayload.isExpired = false;
+
+    // Save prescription record
+    const prescription = await Prescription.create(prescriptionPayload);
 
     console.log("[AI-SCAN] Prescription created:", prescription._id);
 

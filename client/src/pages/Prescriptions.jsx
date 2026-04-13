@@ -1,3 +1,10 @@
+import { useEffect, useState } from "react";
+import PrescriptionUpload from "../components/forms/PrescriptionUpload";
+import Footer from "../components/layout/Footer";
+import Navbar from "../components/layout/Navbar";
+import { usePrescription } from "../context/PrescriptionContext";
+import { getPrescriptionDisplayState } from "../utils/prescriptionLifecycle";
+
 const Prescriptions = () => {
   const {
     prescriptions,
@@ -16,12 +23,16 @@ const Prescriptions = () => {
     loadPrescriptions();
   }, []);
 
-  const getStatusConfig = (prescription) => {
-    const now = new Date();
-    const expiry = new Date(prescription.expiryDate);
-    const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+  const getLifecycle = (prescription) =>
+    getPrescriptionDisplayState(prescription);
 
-    if (prescription.status === "awaiting_pharmacist") {
+  const getStatusConfig = (prescription) => {
+    const lifecycle = getLifecycle(prescription);
+    const daysLeft = lifecycle.expiryDate
+      ? Math.ceil((lifecycle.expiryDate - new Date()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    if (lifecycle.status === "awaiting_pharmacist") {
       return {
         label: "Awaiting Pharmacist Approval",
         icon: "pending_actions",
@@ -32,7 +43,7 @@ const Prescriptions = () => {
       };
     }
 
-    if (prescription.status === "ai_rejected") {
+    if (lifecycle.status === "ai_rejected") {
       return {
         label: "Rejected by AI",
         icon: "warning",
@@ -42,7 +53,7 @@ const Prescriptions = () => {
       };
     }
 
-    if (prescription.status === "rejected") {
+    if (lifecycle.status === "rejected") {
       return {
         label: "Rejected by Pharmacist",
         icon: "cancel",
@@ -51,7 +62,7 @@ const Prescriptions = () => {
         border: "border-red-100",
       };
     }
-    if (prescription.status === "invalid") {
+    if (lifecycle.status === "invalid") {
       return {
         label: "Invalid prescription",
         icon: "error",
@@ -60,7 +71,7 @@ const Prescriptions = () => {
         border: "border-slate-100",
       };
     }
-    if (prescription.status === "pending") {
+    if (lifecycle.status === "pending" || lifecycle.status === "ai_reviewing") {
       return {
         label: "Verification Pending",
         icon: "hourglass_top",
@@ -70,7 +81,7 @@ const Prescriptions = () => {
         animate: "animate-pulse",
       };
     }
-    if (expiry < now) {
+    if (lifecycle.status === "expired") {
       return {
         label: "Expired",
         icon: "history",
@@ -79,7 +90,7 @@ const Prescriptions = () => {
         border: "border-slate-200",
       };
     }
-    if (daysLeft <= 7) {
+    if (lifecycle.status === "approved" && daysLeft != null && daysLeft <= 7) {
       return {
         label: "Expiring Soon",
         icon: "notification_important",
@@ -98,15 +109,18 @@ const Prescriptions = () => {
   };
 
   const filteredPrescriptions = prescriptions.filter((rx) => {
+    const lifecycle = getLifecycle(rx);
     if (filter === "all") return true;
     if (filter === "valid") {
-      return rx.status === "approved" && new Date(rx.expiryDate) > new Date();
+      return lifecycle.status === "approved";
     }
     if (filter === "expired") {
-      return new Date(rx.expiryDate) < new Date();
+      return lifecycle.status === "expired";
     }
     if (filter === "pending") {
-      return rx.status === "pending";
+      return ["pending", "ai_reviewing", "awaiting_pharmacist"].includes(
+        lifecycle.status,
+      );
     }
     return true;
   });
@@ -255,8 +269,8 @@ const Prescriptions = () => {
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {filteredPrescriptions.map((rx) => {
               const cfg = getStatusConfig(rx);
-              const expiry = new Date(rx.expiryDate);
-              const isActuallyExpired = expiry < new Date();
+              const lifecycle = getLifecycle(rx);
+              const isActuallyExpired = lifecycle.status === "expired";
 
               return (
                 <div
@@ -300,13 +314,20 @@ const Prescriptions = () => {
                     className={`p-6 rounded-[32px] border ${isActuallyExpired ? "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800" : "border-primary/10 bg-primary/5"} space-y-4`}
                   >
                     <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                      <span className="text-slate-400">Valid until</span>
+                      <span className="text-slate-400">
+                        {lifecycle.isPendingReview
+                          ? "Review expires"
+                          : "Valid until"}
+                      </span>
                       <span
                         className={
                           isActuallyExpired ? "text-slate-500" : "text-primary"
                         }
                       >
-                        {new Date(rx.expiryDate).toLocaleDateString()}
+                        {(lifecycle.isPendingReview
+                          ? lifecycle.reviewExpiresAt
+                          : lifecycle.expiryDate
+                        )?.toLocaleDateString()}
                       </span>
                     </div>
                     {rx.medicines && rx.medicines.length > 0 && (
@@ -341,7 +362,8 @@ const Prescriptions = () => {
                       </span>{" "}
                       Inspect
                     </button>
-                    {(rx.status === "rejected" || isActuallyExpired) && (
+                    {(["rejected", "ai_rejected"].includes(lifecycle.status) ||
+                      isActuallyExpired) && (
                       <button
                         onClick={() => handleReupload(rx)}
                         className="h-14 rounded-2xl bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-orange-500/20 hover:scale-105 transition-all flex items-center justify-center gap-2"
@@ -371,23 +393,25 @@ const Prescriptions = () => {
             {
               label: "Approved",
               val: prescriptions.filter(
-                (rx) =>
-                  rx.status === "approved" &&
-                  new Date(rx.expiryDate) > new Date(),
+                (rx) => getLifecycle(rx).status === "approved",
               ).length,
               icon: "verified",
               color: "text-green-500",
             },
             {
               label: "Pending review",
-              val: prescriptions.filter((rx) => rx.status === "pending").length,
+              val: prescriptions.filter((rx) =>
+                ["pending", "ai_reviewing", "awaiting_pharmacist"].includes(
+                  getLifecycle(rx).status,
+                ),
+              ).length,
               icon: "hourglass_top",
               color: "text-amber-500",
             },
             {
               label: "Expired",
               val: prescriptions.filter(
-                (rx) => new Date(rx.expiryDate) < new Date(),
+                (rx) => getLifecycle(rx).status === "expired",
               ).length,
               icon: "auto_delete",
               color: "text-slate-400",

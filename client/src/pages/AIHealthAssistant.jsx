@@ -1,4 +1,4 @@
-import React, { useContext, useReducer, useRef, useEffect } from "react";
+import { useContext, useEffect, useReducer, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/layout/Navbar";
 import { AuthContext } from "../context/AuthContext";
@@ -210,38 +210,43 @@ const BotMessage = ({ msg, onFollowUpClick, showFollowUps }) => (
         </div>
       )}
 
-      {showFollowUps && Array.isArray(msg.followUps) && msg.followUps.length > 0 && (
-        <div className="pl-1">
-          <p className="text-[10px] font-semibold mb-2" style={{ color: "#64748b" }}>
-            You might also ask:
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {msg.followUps.map((followUp) => (
-              <button
-                key={followUp}
-                type="button"
-                onClick={() => onFollowUpClick(followUp)}
-                className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid #1e2d42",
-                  color: "#64748b",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(0,188,212,0.5)";
-                  e.currentTarget.style.color = "#00bcd4";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "#1e2d42";
-                  e.currentTarget.style.color = "#64748b";
-                }}
-              >
-                {followUp}
-              </button>
-            ))}
+      {showFollowUps &&
+        Array.isArray(msg.followUps) &&
+        msg.followUps.length > 0 && (
+          <div className="pl-1">
+            <p
+              className="text-[10px] font-semibold mb-2"
+              style={{ color: "#64748b" }}
+            >
+              You might also ask:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {msg.followUps.map((followUp) => (
+                <button
+                  key={followUp}
+                  type="button"
+                  onClick={() => onFollowUpClick(followUp)}
+                  className="px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid #1e2d42",
+                    color: "#64748b",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "rgba(0,188,212,0.5)";
+                    e.currentTarget.style.color = "#00bcd4";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#1e2d42";
+                    e.currentTarget.style.color = "#64748b";
+                  }}
+                >
+                  {followUp}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       <div className="flex items-center flex-wrap gap-x-3 gap-y-1 pl-1">
         <span
@@ -397,8 +402,8 @@ const WelcomeScreen = ({ onChipClick }) => (
 const AIHealthAssistant = () => {
   const { user } = useContext(AuthContext);
   const [state, dispatch] = useReducer(reducer, initialState);
-  const [aiProvider, setAiProvider] = React.useState("Groq");
-  const [historyNotice, setHistoryNotice] = React.useState("");
+  const [aiProvider, setAiProvider] = useState("Groq");
+  const [historyNotice, setHistoryNotice] = useState("");
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -414,7 +419,9 @@ const AIHealthAssistant = () => {
 
       try {
         const { data } = await getChatHistory();
-        const historyMessages = Array.isArray(data?.messages) ? data.messages : [];
+        const historyMessages = Array.isArray(data?.messages)
+          ? data.messages
+          : [];
 
         if (!active) return;
 
@@ -595,7 +602,10 @@ const AIHealthAssistant = () => {
                 }}
                 title="Clear History"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: "16px" }}
+                >
                   delete
                 </span>
               </button>

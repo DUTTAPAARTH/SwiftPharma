@@ -1,12 +1,31 @@
-import { useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { AuthContext } from "../context/AuthContext";
+import { getTodayReminders } from "../services/reminderService";
+
+const normalizeStatus = (value) =>
+  String(value || "pending")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+const formatTimeLabel = (value) => {
+  if (!value) return "";
+  const [hours, minutes] = String(value).split(":").map(Number);
+  const date = new Date();
+  date.setHours(hours || 0, minutes || 0, 0, 0);
+  return date.toLocaleTimeString("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const [todaySchedule, setTodaySchedule] = useState([]);
 
   const quickActions = [
     {
@@ -38,6 +57,35 @@ const Dashboard = () => {
       theme: "bg-orange-500",
     },
   ];
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadTodaySchedule = async () => {
+      try {
+        const { data } = await getTodayReminders();
+        if (!mounted) return;
+        setTodaySchedule(Array.isArray(data?.schedule) ? data.schedule : []);
+      } catch {
+        if (!mounted) return;
+        setTodaySchedule([]);
+      }
+    };
+
+    loadTodaySchedule();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const upcomingDoses = useMemo(
+    () => todaySchedule.slice(0, 3),
+    [todaySchedule],
+  );
+
+  const allTaken =
+    todaySchedule.length > 0 &&
+    todaySchedule.every((entry) => normalizeStatus(entry.status) === "taken");
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark font-nexus-bold">
@@ -84,6 +132,74 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {todaySchedule.length > 0 ? (
+          <div className="rounded-[48px] border border-slate-800 bg-[#08111d] p-6 md:p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
+                  Today's Medicines
+                </p>
+                <h2 className="mt-3 text-3xl font-black text-white">
+                  Keep your day on schedule
+                </h2>
+                <p className="mt-2 text-sm text-slate-400">
+                  Your next doses are listed here for quick reference.
+                </p>
+              </div>
+
+              <Link
+                to="/reminders"
+                className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-100"
+              >
+                View all reminders
+                <span className="material-symbols-outlined text-base">
+                  arrow_forward
+                </span>
+              </Link>
+            </div>
+
+            {allTaken ? (
+              <div className="mt-6 rounded-[28px] border border-emerald-500/30 bg-emerald-500/10 p-5 text-emerald-100">
+                <p className="text-lg font-black">All done!</p>
+                <p className="mt-2 text-sm text-emerald-200/80">
+                  Every scheduled medicine has been marked as taken today.
+                </p>
+              </div>
+            ) : null}
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {upcomingDoses.map((dose) => {
+                const status = normalizeStatus(dose.status);
+                const badge =
+                  status === "taken"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                    : "border-[#234861] bg-[#0d1424] text-slate-300";
+
+                return (
+                  <div
+                    key={`${dose.reminderId}-${dose.time}`}
+                    className="rounded-[28px] border border-[#17334c] bg-[#0d1424] p-5"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-lg font-black text-white">
+                        {dose.medicineName}
+                      </p>
+                      <span
+                        className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${badge}`}
+                      >
+                        {status}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm text-slate-400">
+                      {formatTimeLabel(dose.time)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         {/* Quick Actions Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">

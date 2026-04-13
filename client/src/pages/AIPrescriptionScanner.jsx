@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useCart } from "../hooks/useCart";
+import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
@@ -24,12 +26,15 @@ const statusTone = {
   awaiting_pharmacist: "text-amber-300 border-amber-400/30 bg-amber-500/10",
   ai_rejected: "text-red-200 border-red-400/30 bg-red-500/10",
   rejected: "text-red-200 border-red-400/30 bg-red-500/10",
+  expired: "text-orange-200 border-orange-400/30 bg-orange-500/10",
   approved: "text-emerald-200 border-emerald-400/30 bg-emerald-500/10",
 };
+
 
 const AIPrescriptionScanner = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const { addItem } = useCart();
 
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -37,12 +42,16 @@ const AIPrescriptionScanner = () => {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [stage, setStage] = useState("upload");
+  // Confirmation step state
+  const [confirming, setConfirming] = useState(false);
+  const [selectedMeds, setSelectedMeds] = useState([]);
 
   const stageLabel = useMemo(() => {
     if (stage === "upload") return "Stage 1: Upload";
     if (stage === "reviewing") return "Stage 2: AI Reviewing";
     if (stage === "awaiting_pharmacist") return "Stage 3A: Awaiting Pharmacist";
     if (stage === "ai_rejected") return "Stage 3B: AI Rejected";
+    if (stage === "expired") return "Stage 3C: Prescription Expired";
     if (stage === "rejected") return "Stage 4: Pharmacist Rejected";
     if (stage === "approved") return "Stage 4: Pharmacist Approved";
     return "Prescription Verification";
@@ -147,12 +156,22 @@ const AIPrescriptionScanner = () => {
         setStage("ai_rejected");
       } else if (data.status === "rejected") {
         setStage("rejected");
+      } else if (data.status === "expired") {
+        setStage("expired");
       } else if (data.status === "awaiting_pharmacist") {
         setStage("awaiting_pharmacist");
       } else if (data.status === "approved") {
-        setStage("approved");
+        // Confirmation step: show confirmation UI instead of adding to cart
+        setSelectedMeds(
+          Array.isArray(data.medicines)
+            ? data.medicines.map((med) => ({ ...med, checked: true }))
+            : []
+        );
+        setConfirming(true);
+        setStage("confirm");
       } else {
-        setStage("awaiting_pharmacist");
+        setStage("upload");
+        setError(data?.message || "Unexpected prescription status returned.");
       }
     } catch (scanError) {
       setStage("upload");
@@ -168,6 +187,32 @@ const AIPrescriptionScanner = () => {
 
   const currentStatusTone =
     statusTone[stage] || "text-slate-200 border-slate-600 bg-slate-800/60";
+
+  // Select all/deselect all handlers
+  const handleSelectAll = () => {
+    setSelectedMeds((meds) => meds.map((med) => ({ ...med, checked: true })));
+  };
+  const handleDeselectAll = () => {
+    setSelectedMeds((meds) => meds.map((med) => ({ ...med, checked: false })));
+  };
+  const handleToggleMed = (idx) => {
+    setSelectedMeds((meds) =>
+      meds.map((med, i) => (i === idx ? { ...med, checked: !med.checked } : med))
+    );
+  };
+
+  // Add selected medicines to cart
+  const handleAddToCart = () => {
+    const medsToAdd = selectedMeds.filter((med) => med.checked);
+    medsToAdd.forEach((med) => addItem(med));
+    toast.success(`Added ${medsToAdd.length} medicine(s) to cart!`);
+    setTimeout(() => navigate("/cart"), 1500);
+  };
+
+  // Skip confirmation
+  const handleSkip = () => {
+    navigate("/categories");
+  };
 
   return (
     <div className="min-h-screen bg-[#081123] text-slate-100">
@@ -201,6 +246,7 @@ const AIPrescriptionScanner = () => {
               {stage === "awaiting_pharmacist" &&
                 "Awaiting pharmacist approval"}
               {stage === "ai_rejected" && "AI rejected"}
+              {stage === "expired" && "Prescription expired"}
               {stage === "rejected" && "Rejected by pharmacist"}
               {stage === "approved" && "Approved"}
             </span>
@@ -380,17 +426,23 @@ const AIPrescriptionScanner = () => {
             </div>
           )}
 
-          {(stage === "ai_rejected" || stage === "rejected") && (
+          {(stage === "ai_rejected" ||
+            stage === "rejected" ||
+            stage === "expired") && (
             <div className="rounded-3xl border border-red-400/30 bg-red-500/10 p-7 space-y-5">
               <h2 className="text-2xl font-black text-red-100">
                 {stage === "rejected"
                   ? "Prescription Rejected by Pharmacist"
-                  : "Prescription Rejected by AI"}
+                  : stage === "expired"
+                    ? "Prescription Expired"
+                    : "Prescription Rejected by AI"}
               </h2>
               <p className="text-red-100/90 text-sm">
-                {result?.latestPrescription?.pharmacistNotes ||
-                  result?.aiValidation?.rejectionReason ||
-                  "The uploaded prescription did not pass strict validation."}
+                {stage === "expired"
+                  ? "This prescription appears older than 6 months. Please upload a current valid prescription."
+                  : result?.latestPrescription?.pharmacistNotes ||
+                    result?.aiValidation?.rejectionReason ||
+                    "The uploaded prescription did not pass strict validation."}
               </p>
 
               {Array.isArray(result?.aiValidation?.flags) &&
@@ -434,24 +486,80 @@ const AIPrescriptionScanner = () => {
             </div>
           )}
 
-          {stage === "approved" && (
-            <div className="rounded-3xl border border-emerald-400/35 bg-emerald-500/10 p-8 text-center space-y-4">
-              <span className="material-symbols-outlined text-6xl text-emerald-200">
-                verified
-              </span>
-              <h2 className="text-3xl font-black text-emerald-100">
-                Your prescription is verified and approved!
-              </h2>
-              <p className="text-emerald-100/90">
-                You can now order your medicines.
-              </p>
-              <button
-                type="button"
-                onClick={() => navigate("/categories")}
-                className="rounded-2xl px-8 py-3 bg-emerald-400 text-slate-900 font-black hover:bg-emerald-300"
-              >
-                Shop Now
-              </button>
+
+          {/* Confirmation step UI */}
+          {stage === "confirm" && (
+            <div className="rounded-3xl border border-emerald-400/35 bg-emerald-500/10 p-8 space-y-6">
+              <div className="mb-4">
+                <div className="rounded-t-xl bg-emerald-700/80 px-4 py-2 text-center">
+                  <h2 className="text-lg font-bold text-white">
+                    AI found {selectedMeds.length} medicine{selectedMeds.length !== 1 ? "s" : ""} in your prescription
+                  </h2>
+                  <p className="text-emerald-100 text-sm">
+                    Review and select which to add to cart
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {selectedMeds.map((med, idx) => (
+                  <div key={med.name + idx} className="flex items-center gap-4 bg-slate-900/80 rounded-xl p-3">
+                    <input
+                      type="checkbox"
+                      checked={!!med.checked}
+                      onChange={() => handleToggleMed(idx)}
+                      className="accent-cyan-400 w-5 h-5"
+                      disabled={med.notInCatalog}
+                    />
+                    <div className="flex-1">
+                      <div className="font-bold text-white text-base">{med.name}</div>
+                      {med.dosage && (
+                        <div className="text-cyan-300 text-xs font-semibold">{med.dosage}</div>
+                      )}
+                      {med.quantity && (
+                        <div className="text-slate-400 text-xs">Qty: {med.quantity}</div>
+                      )}
+                    </div>
+                    {med.notInCatalog ? (
+                      <span className="bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded">Not in catalog</span>
+                    ) : (
+                      <span className="text-emerald-200 text-xs font-bold">
+                        ₹{med.price || med.mrp || "-"} In stock
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-4 mt-2">
+                <button type="button" className="text-cyan-300 underline" onClick={handleSelectAll}>
+                  Select All
+                </button>
+                <button type="button" className="text-cyan-300 underline" onClick={handleDeselectAll}>
+                  Deselect All
+                </button>
+                <span className="text-cyan-400 ml-2 text-sm font-semibold">
+                  {selectedMeds.filter((m) => m.checked).length} of {selectedMeds.length} selected
+                </span>
+              </div>
+              <div className="rounded-xl bg-amber-400/20 border border-amber-400/30 p-3 text-amber-200 text-sm font-semibold mt-4">
+                These medicines will be added to your cart. Prescription medicines still require pharmacist approval before checkout.
+              </div>
+              <div className="flex flex-col md:flex-row gap-3 mt-6">
+                <button
+                  type="button"
+                  className="flex-1 rounded-2xl py-3 font-bold bg-cyan-400 text-slate-900 hover:bg-cyan-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={selectedMeds.filter((m) => m.checked).length === 0}
+                  onClick={handleAddToCart}
+                >
+                  Add {selectedMeds.filter((m) => m.checked).length} Medicine{selectedMeds.filter((m) => m.checked).length !== 1 ? "s" : ""} to Cart
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-2xl py-3 font-bold bg-slate-700 text-white hover:bg-slate-600"
+                  onClick={handleSkip}
+                >
+                  Skip — Add manually
+                </button>
+              </div>
             </div>
           )}
 

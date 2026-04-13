@@ -7,6 +7,7 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
+import OrderTracking from "./pages/OrderTracking";
 import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import Dashboard from "./pages/Dashboard";
@@ -14,6 +15,8 @@ import AIPrescriptionScanner from "./pages/AIPrescriptionScanner";
 import PrescriptionStatus from "./pages/PrescriptionStatus";
 import AIHealthAssistant from "./pages/AIHealthAssistant";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
+import MySubscriptions from "./pages/MySubscriptions";
+import MedicineReminders from "./pages/MedicineReminders";
 import Auth from "./pages/Auth";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -74,6 +77,18 @@ const RoutesConfig = () => (
       <Route path="/cart" element={withProtectedBoundary(<Cart />)} />
       <Route path="/checkout" element={withProtectedBoundary(<Checkout />)} />
       <Route path="/orders" element={withProtectedBoundary(<Orders />)} />
+      <Route
+        path="/orders/:orderId/track"
+        element={withProtectedBoundary(<OrderTracking />)}
+      />
+      <Route
+        path="/subscriptions"
+        element={withProtectedBoundary(<MySubscriptions />)}
+      />
+      <Route
+        path="/reminders"
+        element={withProtectedBoundary(<MedicineReminders />)}
+      />
       <Route path="/wishlist" element={withProtectedBoundary(<Wishlist />)} />
       <Route path="/profile" element={withProtectedBoundary(<Profile />)} />
       <Route

@@ -4,6 +4,8 @@ import {
   getDashboardStats,
   adminListPrescriptions,
   getPrescriptionQueue,
+  getPrescriptionDebug,
+  fixExpiredPrescriptions,
   getAllPrescriptions,
   getSinglePrescription,
   approvePrescription,
@@ -33,6 +35,9 @@ import { uploadProductImage } from "../middleware/uploadMiddleware.js";
 
 const router = Router();
 
+// TEMP DEBUG: keep unauthenticated for queue diagnostics
+router.get("/prescriptions/debug", getPrescriptionDebug);
+
 router.use(requireAdmin);
 
 // Stats & dashboard
@@ -41,6 +46,7 @@ router.get("/dashboard", adminDashboard);
 
 // Prescriptions — static paths MUST come before parameterized /:id
 router.get("/prescriptions/queue", getPrescriptionQueue);
+router.post("/prescriptions/fix-expired", fixExpiredPrescriptions);
 router.get("/prescriptions/all", getAllPrescriptions);
 router.get("/prescriptions/:id/image", getPrescriptionImage);
 router.get("/prescriptions/:id", getSinglePrescription);

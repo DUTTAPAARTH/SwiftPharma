@@ -1,14 +1,16 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { useCart } from "../hooks/useCart";
 import { fetchProductById, fetchProducts } from "../services/productService";
 import { fetchDrugInfo } from "../services/drugInfoService";
+import { createSubscription } from "../services/subscriptionService";
 import { useWishlist } from "../hooks/useWishlist";
 import SubstituteModal from "../components/modals/SubstituteModal";
 import { ensureAuthenticated } from "../utils/auth";
 import ProductCard from "../components/cards/ProductCard";
+import { AuthContext } from "../context/AuthContext";
 
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/200x200/0a0f1e/00bcd4?text=%F0%9F%92%8A";
@@ -17,6 +19,69 @@ const normalizeImage = (value) => {
   if (!value) return "";
   if (value.startsWith("http://") || value.startsWith("https://")) return value;
   return value.startsWith("/") ? value : `/${value}`;
+};
+
+const reminderOptions = [
+  { value: 1, label: "1 day before" },
+  { value: 2, label: "2 days before" },
+  { value: 3, label: "3 days before" },
+  { value: 7, label: "1 week before" },
+];
+
+const frequencyOptions = [
+  { value: "weekly", label: "Weekly" },
+  { value: "biweekly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Monthly" },
+  { value: "bimonthly", label: "Every 2 months" },
+];
+
+const freqLabel = frequencyOptions.reduce((acc, item) => {
+  acc[item.value] = item.label;
+  return acc;
+}, {});
+
+const calculateFirstRefillDate = (frequency) => {
+  const date = new Date();
+  switch (frequency) {
+    case "weekly":
+      date.setDate(date.getDate() + 7);
+      break;
+    case "biweekly":
+      date.setDate(date.getDate() + 14);
+      break;
+    case "bimonthly":
+      date.setMonth(date.getMonth() + 2);
+      break;
+    case "monthly":
+    default:
+      date.setMonth(date.getMonth() + 1);
+      break;
+  }
+  return date;
+};
+
+const formatDate = (date) =>
+  new Date(date).toLocaleDateString("en-IN", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+const buildSavedAddress = (user) => {
+  if (!user) {
+    return { street: "", city: "", state: "", pincode: "" };
+  }
+
+  if (user.address && typeof user.address === "object") {
+    return {
+      street: user.address.street || "",
+      city: user.address.city || "",
+      state: user.address.state || "",
+      pincode: user.address.pincode || "",
+    };
+  }
+
+  return { street: "", city: "", state: "", pincode: "" };
 };
 
 const MedicineFallback = ({ className = "h-full w-full" }) => (
@@ -67,6 +132,7 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useContext(AuthContext);
   const { addItem, items, replaceItem } = useCart();
   const { toggle, isSaved } = useWishlist();
 
@@ -85,6 +151,16 @@ const ProductDetail = () => {
   const [fdaLoading, setFdaLoading] = useState(false);
   const [fdaOpen, setFdaOpen] = useState(false);
   const [fdaFetched, setFdaFetched] = useState(false);
+  const [subscribeOpen, setSubscribeOpen] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeToast, setSubscribeToast] = useState("");
+  const [subscriptionForm, setSubscriptionForm] = useState({
+    frequency: "monthly",
+    quantity: 1,
+    reminderDaysBefore: 2,
+    useSavedAddress: true,
+    deliveryAddress: buildSavedAddress(user),
+  });
 
   const cartItem = useMemo(
     () => items.find((i) => i.id === id || i.productId === id),
@@ -148,6 +224,16 @@ const ProductDetail = () => {
     setFdaFetched(false);
   }, [product?._id]);
 
+  useEffect(() => {
+    setSubscriptionForm({
+      frequency: "monthly",
+      quantity: 1,
+      reminderDaysBefore: 2,
+      useSavedAddress: true,
+      deliveryAddress: buildSavedAddress(user),
+    });
+  }, [product?._id, user]);
+
   const handleFdaToggle = async () => {
     const nextOpen = !fdaOpen;
     setFdaOpen(nextOpen);
@@ -201,6 +287,43 @@ const ProductDetail = () => {
     addItem(normalize(product), quantity);
     setTimeout(() => setAdding(false), 1000);
   };
+
+  const handleStartSubscription = async () => {
+    if (!product || !ensureAuthenticated(navigate)) return;
+
+    setSubscribing(true);
+    try {
+      const payload = {
+        productId: product._id,
+        quantity: Math.max(1, Number(subscriptionForm.quantity || 1)),
+        frequency: subscriptionForm.frequency,
+        deliveryAddress: subscriptionForm.deliveryAddress,
+        reminderDaysBefore: Number(subscriptionForm.reminderDaysBefore || 2),
+      };
+
+      const { data } = await createSubscription(payload);
+      const firstRefill = data?.subscription?.nextRefillDate
+        ? formatDate(data.subscription.nextRefillDate)
+        : formatDate(calculateFirstRefillDate(subscriptionForm.frequency));
+
+      setSubscribeOpen(false);
+      setSubscribeToast(`Subscription started! First refill on ${firstRefill}`);
+      setTimeout(() => setSubscribeToast(""), 4000);
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        "Failed to start subscription. Please try again.";
+      setSubscribeToast(msg);
+      setTimeout(() => setSubscribeToast(""), 4500);
+    } finally {
+      setSubscribing(false);
+    }
+  };
+
+  const firstRefillDate = useMemo(
+    () => calculateFirstRefillDate(subscriptionForm.frequency),
+    [subscriptionForm.frequency],
+  );
 
   if (loading)
     return (
@@ -552,6 +675,19 @@ const ProductDetail = () => {
             </div>
 
             <button
+              onClick={() => {
+                if (!ensureAuthenticated(navigate)) return;
+                setSubscribeOpen(true);
+              }}
+              className="w-full h-16 rounded-[28px] border-2 border-cyan-400/50 text-cyan-300 font-black text-[10px] uppercase tracking-[0.18em] hover:bg-cyan-500/10 transition-all flex items-center justify-center gap-3"
+            >
+              <span className="material-symbols-outlined text-lg">
+                autorenew
+              </span>
+              Subscribe & Save - Auto-refill monthly
+            </button>
+
+            <button
               onClick={() => setSubstituteOpen(true)}
               className="w-full h-14 rounded-3xl border-2 border-slate-200 dark:border-slate-800 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-3"
             >
@@ -675,6 +811,233 @@ const ProductDetail = () => {
       </main>
 
       <Footer />
+
+      {subscribeToast && (
+        <div className="fixed top-5 right-5 z-[140] rounded-xl border border-cyan-400/35 bg-[#0a0f1e] px-4 py-3 text-sm text-cyan-200 shadow-[0_18px_40px_rgba(0,0,0,0.45)]">
+          {subscribeToast}
+        </div>
+      )}
+
+      {subscribeOpen && (
+        <div
+          className="fixed inset-0 z-[130] bg-[#05080f]/90 backdrop-blur-sm px-4 py-6 overflow-y-auto"
+          onClick={() => setSubscribeOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="max-w-3xl mx-auto rounded-3xl border border-cyan-400/30 bg-[#0a0f1e] p-6 md:p-8 space-y-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-black text-white">
+                  Subscribe to {product?.name}
+                </h2>
+                <p className="text-slate-400 mt-1">
+                  Never run out - we will refill automatically
+                </p>
+              </div>
+              <button
+                onClick={() => setSubscribeOpen(false)}
+                className="size-10 rounded-xl border border-slate-700 text-slate-300 hover:text-white"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <section className="space-y-3">
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-black">
+                Frequency
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {frequencyOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() =>
+                      setSubscriptionForm((prev) => ({
+                        ...prev,
+                        frequency: option.value,
+                      }))
+                    }
+                    className={`rounded-xl border px-3 py-2 text-xs font-bold ${
+                      subscriptionForm.frequency === option.value
+                        ? "border-cyan-400 bg-cyan-500/20 text-cyan-200"
+                        : "border-slate-700 text-slate-300"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-black">
+                Quantity per refill
+              </p>
+              <div className="flex items-center gap-2 w-fit rounded-2xl border border-slate-700 bg-[#12192b] p-1.5">
+                <button
+                  onClick={() =>
+                    setSubscriptionForm((prev) => ({
+                      ...prev,
+                      quantity: Math.max(1, Number(prev.quantity || 1) - 1),
+                    }))
+                  }
+                  className="size-10 rounded-xl bg-[#0a0f1e] text-white"
+                >
+                  -
+                </button>
+                <span className="w-10 text-center text-white font-black">
+                  {subscriptionForm.quantity}
+                </span>
+                <button
+                  onClick={() =>
+                    setSubscriptionForm((prev) => ({
+                      ...prev,
+                      quantity: Number(prev.quantity || 1) + 1,
+                    }))
+                  }
+                  className="size-10 rounded-xl bg-cyan-500 text-[#0a0f1e] font-black"
+                >
+                  +
+                </button>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-700 bg-[#12192b] p-4">
+              <p className="text-sm text-slate-200 font-semibold">
+                First refill: {formatDate(firstRefillDate)}
+              </p>
+              <p className="text-sm text-slate-400 mt-1">
+                Then every{" "}
+                {freqLabel[subscriptionForm.frequency]?.toLowerCase() ||
+                  "monthly"}{" "}
+                after that
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-widest text-slate-400 font-black">
+                  Delivery address
+                </p>
+                <label className="inline-flex items-center gap-2 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={subscriptionForm.useSavedAddress}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setSubscriptionForm((prev) => ({
+                        ...prev,
+                        useSavedAddress: checked,
+                        deliveryAddress: checked
+                          ? buildSavedAddress(user)
+                          : prev.deliveryAddress,
+                      }));
+                    }}
+                  />
+                  Use my saved address
+                </label>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-3">
+                {[
+                  { key: "street", label: "Street" },
+                  { key: "city", label: "City" },
+                  { key: "state", label: "State" },
+                  { key: "pincode", label: "Pincode" },
+                ].map((field) => (
+                  <label key={field.key} className="space-y-1">
+                    <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">
+                      {field.label}
+                    </span>
+                    <input
+                      value={subscriptionForm.deliveryAddress[field.key]}
+                      onChange={(event) =>
+                        setSubscriptionForm((prev) => ({
+                          ...prev,
+                          useSavedAddress: false,
+                          deliveryAddress: {
+                            ...prev.deliveryAddress,
+                            [field.key]: event.target.value,
+                          },
+                        }))
+                      }
+                      className="w-full rounded-xl border border-slate-700 bg-[#12192b] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                    />
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            <section className="space-y-1">
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-black">
+                Remind me before refill
+              </p>
+              <select
+                value={subscriptionForm.reminderDaysBefore}
+                onChange={(event) =>
+                  setSubscriptionForm((prev) => ({
+                    ...prev,
+                    reminderDaysBefore: Number(event.target.value),
+                  }))
+                }
+                className="w-full rounded-xl border border-slate-700 bg-[#12192b] px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+              >
+                {reminderOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </section>
+
+            <section className="rounded-2xl border border-cyan-400/25 bg-cyan-500/10 p-4 space-y-2">
+              <p className="text-xs uppercase tracking-widest text-cyan-200 font-black">
+                Subscription Summary
+              </p>
+              <p className="text-sm text-white">
+                Medicine name: {product?.name}
+              </p>
+              <p className="text-sm text-slate-200">
+                Quantity per refill: {subscriptionForm.quantity}
+              </p>
+              <p className="text-sm text-slate-200">
+                Price per refill: ₹
+                {Number(
+                  (product?.price || 0) * subscriptionForm.quantity,
+                ).toLocaleString()}
+              </p>
+              <p className="text-sm text-slate-200">
+                Frequency: {freqLabel[subscriptionForm.frequency] || "Monthly"}
+              </p>
+              <p className="text-sm text-slate-200">
+                Next refill: {formatDate(firstRefillDate)}
+              </p>
+              <p className="text-sm text-cyan-100">
+                You save time and never miss a dose
+              </p>
+            </section>
+
+            <div className="flex flex-wrap gap-3 pt-1">
+              <button
+                onClick={handleStartSubscription}
+                disabled={subscribing}
+                className="flex-1 min-w-[180px] rounded-xl bg-cyan-400 text-[#0a0f1e] font-black py-3 hover:bg-cyan-300 disabled:opacity-50"
+              >
+                {subscribing ? "Starting..." : "Start Subscription"}
+              </button>
+              <button
+                onClick={() => setSubscribeOpen(false)}
+                className="flex-1 min-w-[180px] rounded-xl border border-slate-700 bg-[#12192b] text-slate-200 font-bold py-3"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {substituteOpen && (
         <SubstituteModal

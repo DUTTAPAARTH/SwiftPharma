@@ -1,12 +1,14 @@
 import dotenv from "dotenv";
-import app from "./src/app.js";
-import connectDB from "./src/config/db.js";
 
 dotenv.config({ path: ".env" });
 console.log(
   "[ENV] Loading from .env - GEMINI_API_KEY:",
   process.env.GEMINI_API_KEY ? "✓" : "✗",
 );
+
+// Important: load env before importing app/config modules that read process.env
+const { default: app, startAppServices } = await import("./src/app.js");
+const { default: connectDB } = await import("./src/config/db.js");
 
 const PORT = process.env.PORT || 5000;
 
@@ -17,6 +19,7 @@ const startServer = async () => {
     try {
       await connectDB();
       console.log("✅ MongoDB connected successfully");
+      startAppServices();
     } catch (dbError) {
       console.warn("⚠️  MongoDB connection failed - running without database");
       console.warn("   Make sure MongoDB is installed and running locally");

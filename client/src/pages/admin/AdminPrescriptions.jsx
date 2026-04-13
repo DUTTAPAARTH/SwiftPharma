@@ -862,6 +862,7 @@ const AdminPrescriptions = () => {
       const res = await apiClient.get(
         "/admin/prescriptions/queue?page=1&limit=100",
       );
+      console.log("Queue response:", res.data);
       const prescriptions = res.data?.prescriptions || [];
       setQueue(
         prescriptions.filter((item) => !pendingActionRef.current[item._id]),

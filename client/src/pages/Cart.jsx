@@ -5,6 +5,7 @@ import Footer from "../components/layout/Footer";
 import { useCart } from "../hooks/useCart";
 import { checkCartInteractions } from "../services/interactionService";
 import { fetchLatestPrescriptionStatus } from "../services/prescriptionService";
+import { getPrescriptionDisplayState } from "../utils/prescriptionLifecycle";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -105,21 +106,13 @@ const Cart = () => {
     if (rxLoading) return "loading";
     if (!rxStatus.exists || !rxStatus.prescription) return "no_prescription";
 
-    const status = rxStatus.prescription.status;
+    const lifecycle = getPrescriptionDisplayState(rxStatus.prescription);
+    const status = lifecycle.status;
     if (["pending", "ai_reviewing", "awaiting_pharmacist"].includes(status))
       return "pending";
     if (["ai_rejected", "rejected"].includes(status)) return "rejected";
 
-    const now = new Date();
-    const expiry = rxStatus.prescription.expiryDate
-      ? new Date(rxStatus.prescription.expiryDate)
-      : null;
-
-    if (
-      status === "expired" ||
-      rxStatus.prescription.isExpired ||
-      (expiry && expiry < now)
-    ) {
+    if (lifecycle.isExpired) {
       return "expired";
     }
 

@@ -5,6 +5,15 @@ import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import fs from "fs";
 import path from "path";
+import {
+  getPrescriptionLifecycleState,
+  getRestoredPendingStatus,
+  PRESCRIPTION_REVIEW_WINDOW_MS,
+} from "../utils/prescriptionLifecycle.js";
+import {
+  ensureTrackingInitialized,
+  appendTrackingEvent,
+} from "../utils/orderTracking.js";
 
 const ORDER_STATUS_FLOW = [
   "pending",
@@ -45,19 +54,20 @@ const toCanonicalStatus = (value) => {
   return LEGACY_TO_CANONICAL_STATUS[normalized] || "pending";
 };
 
+const FORWARD_STATUS_FLOW = [
+  "pending",
+  "confirmed",
+  "processing",
+  "out_for_delivery",
+  "delivered",
+];
+
 const allowedNextStatuses = (current) => {
-  switch (current) {
-    case "pending":
-      return ["confirmed", "cancelled"];
-    case "confirmed":
-      return ["processing", "cancelled"];
-    case "processing":
-      return ["out_for_delivery", "cancelled"];
-    case "out_for_delivery":
-      return ["delivered", "cancelled"];
-    default:
-      return [];
-  }
+  if (current === "cancelled" || current === "delivered") return [];
+  const idx = FORWARD_STATUS_FLOW.indexOf(current);
+  if (idx === -1) return [];
+  // Allow jumping to any forward status (not just the next one)
+  return [...FORWARD_STATUS_FLOW.slice(idx + 1), "cancelled"];
 };
 
 const parseBoolean = (value) => {
@@ -170,34 +180,70 @@ export const getPrescriptionQueue = async (req, res) => {
     const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
     const skip = (page - 1) * limit;
 
-    const filter = { status: { $in: ["pending", "awaiting_pharmacist"] } };
+    const reviewCutoff = new Date(Date.now() - PRESCRIPTION_REVIEW_WINDOW_MS);
+    const candidates = await Prescription.find({
+      $or: [
+        { status: { $in: ["pending", "awaiting_pharmacist", "ai_reviewing"] } },
+        {
+          status: "expired",
+          createdAt: { $gte: reviewCutoff },
+          approvedAt: null,
+          rejectedAt: null,
+        },
+      ],
+    })
+      .populate("userId", "name email")
+      .sort({ createdAt: 1 });
 
-    const [items, total] = await Promise.all([
-      Prescription.find(filter)
-        .populate("userId", "name email")
-        .sort({ createdAt: 1 })
-        .skip(skip)
-        .limit(limit),
-      Prescription.countDocuments(filter),
-    ]);
+    const pendingWrites = [];
+    const queueItems = [];
 
-    const prescriptions = items.map((rx) => ({
-      _id: rx._id,
-      imageUrl: rx.images?.[0] || null,
-      images: rx.images || [],
-      status: rx.status,
-      aiConfidenceScore: rx.aiConfidenceScore ?? null,
-      aiExtractedMedicines: rx.aiExtractedMedicines || [],
-      aiRejectionReason: rx.aiRejectionReason || null,
-      aiFlags: rx.aiFlags || [],
-      doctorName: rx.doctorName || null,
-      createdAt: rx.createdAt,
-      user: {
-        _id: rx.userId?._id || null,
-        name: rx.userId?.name || "Unknown User",
-        email: rx.userId?.email || "N/A",
-      },
-    }));
+    for (const rx of candidates) {
+      const lifecycle = getPrescriptionLifecycleState(rx.toObject());
+
+      if (
+        rx.status !== lifecycle.status ||
+        rx.isExpired !== lifecycle.isExpired
+      ) {
+        rx.status = lifecycle.status;
+        rx.isExpired = lifecycle.isExpired;
+        rx.expiryDate = lifecycle.expiryDate;
+        pendingWrites.push(rx.save());
+      }
+
+      if (
+        !["pending", "awaiting_pharmacist", "ai_reviewing"].includes(
+          lifecycle.status,
+        )
+      ) {
+        continue;
+      }
+
+      queueItems.push({
+        _id: rx._id,
+        imageUrl: rx.images?.[0] || null,
+        images: rx.images || [],
+        status: lifecycle.status,
+        aiConfidenceScore: rx.aiConfidenceScore ?? null,
+        aiExtractedMedicines: rx.aiExtractedMedicines || [],
+        aiRejectionReason: rx.aiRejectionReason || null,
+        aiFlags: rx.aiFlags || [],
+        doctorName: rx.doctorName || null,
+        createdAt: rx.createdAt,
+        user: {
+          _id: rx.userId?._id || null,
+          name: rx.userId?.name || "Unknown User",
+          email: rx.userId?.email || "N/A",
+        },
+      });
+    }
+
+    if (pendingWrites.length) {
+      await Promise.allSettled(pendingWrites);
+    }
+
+    const total = queueItems.length;
+    const prescriptions = queueItems.slice(skip, skip + limit);
 
     return res.json({
       success: true,
@@ -211,6 +257,89 @@ export const getPrescriptionQueue = async (req, res) => {
     return res
       .status(500)
       .json({ success: false, message: "Failed to load prescription queue" });
+  }
+};
+
+// TEMP DEBUG: status distribution to verify queue intake from uploads
+export const getPrescriptionDebug = async (_req, res) => {
+  try {
+    const [total, grouped] = await Promise.all([
+      Prescription.countDocuments({}),
+      Prescription.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const byStatus = {
+      pending: 0,
+      awaiting_pharmacist: 0,
+      approved: 0,
+      rejected: 0,
+    };
+
+    for (const row of grouped) {
+      const key = String(row?._id || "");
+      if (Object.prototype.hasOwnProperty.call(byStatus, key)) {
+        byStatus[key] = Number(row?.count || 0);
+      }
+    }
+
+    return res.json({
+      success: true,
+      total,
+      byStatus,
+    });
+  } catch (error) {
+    console.error("getPrescriptionDebug error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch prescription debug stats",
+    });
+  }
+};
+
+export const fixExpiredPrescriptions = async (_req, res) => {
+  try {
+    const reviewCutoff = new Date(Date.now() - PRESCRIPTION_REVIEW_WINDOW_MS);
+
+    const targets = await Prescription.find({
+      status: "expired",
+      createdAt: { $gte: reviewCutoff },
+      approvedAt: null,
+      rejectedAt: null,
+    }).select("_id aiValidated aiConfidenceScore");
+
+    if (!targets.length) {
+      return res.json({ success: true, fixed: 0 });
+    }
+
+    const operations = targets.map((rx) => ({
+      updateOne: {
+        filter: { _id: rx._id },
+        update: {
+          $set: {
+            status: getRestoredPendingStatus(rx),
+            isExpired: false,
+          },
+        },
+      },
+    }));
+
+    const result = await Prescription.bulkWrite(operations);
+    const fixed = Number(result.modifiedCount || 0);
+
+    return res.json({ success: true, fixed });
+  } catch (error) {
+    console.error("fixExpiredPrescriptions error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fix expired prescriptions",
+    });
   }
 };
 
@@ -639,6 +768,27 @@ export const updateAdminOrderStatus = async (req, res) => {
       changedAt: new Date(),
     });
 
+    if (nextStatus === "out_for_delivery") {
+      ensureTrackingInitialized(order);
+      if (note) {
+        appendTrackingEvent(order, "dispatch_note", note);
+      }
+      appendTrackingEvent(order, "out_for_delivery", "Order is on the way");
+    }
+
+    if (nextStatus === "delivered" && order.tracking) {
+      ensureTrackingInitialized(order);
+      if (order.tracking.destinationLocation) {
+        order.tracking.currentLocation = {
+          lat: order.tracking.destinationLocation.lat,
+          lng: order.tracking.destinationLocation.lng,
+          updatedAt: new Date(),
+        };
+      }
+      order.tracking.estimatedDeliveryTime = new Date();
+      appendTrackingEvent(order, "delivered", "Order delivered successfully");
+    }
+
     await order.save();
 
     return res.json({ success: true, order: mapOrderForAdmin(order) });
@@ -885,12 +1035,10 @@ export const createAdminProduct = async (req, res) => {
     return res.status(201).json({ success: true, product: populated });
   } catch (error) {
     console.error("createAdminProduct error", error);
-    return res
-      .status(400)
-      .json({
-        success: false,
-        message: error.message || "Failed to create product",
-      });
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to create product",
+    });
   }
 };
 
@@ -929,12 +1077,10 @@ export const updateAdminProduct = async (req, res) => {
     return res.json({ success: true, product: updated });
   } catch (error) {
     console.error("updateAdminProduct error", error);
-    return res
-      .status(400)
-      .json({
-        success: false,
-        message: error.message || "Failed to update product",
-      });
+    return res.status(400).json({
+      success: false,
+      message: error.message || "Failed to update product",
+    });
   }
 };
 
@@ -1803,12 +1949,10 @@ export const updateAdminUserRole = async (req, res) => {
 export const toggleAdminUserSuspend = async (req, res) => {
   try {
     if (String(req.user._id) === String(req.params.id)) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "You cannot suspend your own account",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "You cannot suspend your own account",
+      });
     }
 
     const suspended = Boolean(req.body.suspended);

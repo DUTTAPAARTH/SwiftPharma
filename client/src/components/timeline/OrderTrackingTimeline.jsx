@@ -1,10 +1,18 @@
 const OrderTrackingTimeline = ({ currentStep = 0 }) => {
   const steps = [
-    { label: "Injection", icon: "order_approve", desc: "Placed" },
-    { label: "Verification", icon: "verified_user", desc: "Approved" },
-    { label: "Sterile Prep", icon: "inventory", desc: "Packed" },
-    { label: "Transit", icon: "local_shipping", desc: "Dispatch" },
-    { label: "Fulfillment", icon: "task_alt", desc: "Delivered" },
+    { label: "Order Placed", icon: "order_approve", desc: "Order Placed" },
+    {
+      label: "Order Confirmed",
+      icon: "verified_user",
+      desc: "Order Confirmed",
+    },
+    { label: "Being Prepared", icon: "inventory", desc: "Being Prepared" },
+    {
+      label: "Out for Delivery",
+      icon: "local_shipping",
+      desc: "Dispatched",
+    },
+    { label: "Delivered", icon: "task_alt", desc: "Delivered" },
   ];
 
   return (

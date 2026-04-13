@@ -6,6 +6,7 @@ import Prescription from "../models/Prescription.js";
 import { uploadBufferToCloudinary } from "../services/uploadService.js";
 import { parsePrescriptionOCR } from "../services/prescriptionParser.js";
 import { filterMedicineLines } from "../services/lineFilter.js";
+import { getPrescriptionLifecycleState } from "../utils/prescriptionLifecycle.js";
 
 const uploadsDir = path.resolve(process.cwd(), "uploads", "prescriptions");
 const ensureUploadsDir = async () => {
@@ -1133,23 +1134,30 @@ export const validatePrescription = async (req, res) => {
       });
     }
 
-    const now = new Date();
-    const isExpired = prescription.expiryDate < now;
+    const lifecycle = getPrescriptionLifecycleState(prescription.toObject());
     const daysLeft = Math.ceil(
-      (prescription.expiryDate - now) / (1000 * 60 * 60 * 24),
+      (lifecycle.expiryDate - new Date()) / (1000 * 60 * 60 * 24),
     );
-    const nearExpiry = !isExpired && daysLeft <= 30;
+    const nearExpiry =
+      lifecycle.status === "approved" && !lifecycle.isExpired && daysLeft <= 30;
 
-    if (prescription.isExpired !== isExpired) {
-      prescription.isExpired = isExpired;
+    if (
+      prescription.status !== lifecycle.status ||
+      prescription.isExpired !== lifecycle.isExpired
+    ) {
+      prescription.status = lifecycle.status;
+      prescription.isExpired = lifecycle.isExpired;
+      prescription.expiryDate = lifecycle.expiryDate;
       await prescription.save();
     }
 
     return res.json({
-      valid: !isExpired,
+      valid: !lifecycle.isExpired,
       nearExpiry,
       daysLeft,
-      message: isExpired ? "Prescription expired" : "Prescription valid",
+      message: lifecycle.isExpired
+        ? "Prescription expired"
+        : "Prescription valid",
     });
   } catch (error) {
     console.error("validatePrescription error", error);
@@ -1173,14 +1181,22 @@ export const getUserPrescriptions = async (req, res) => {
         createdAt: -1,
       },
     );
-    const now = new Date();
     const result = prescriptions.map((p) => {
-      const expired = p.expiryDate < now;
-      const daysLeft = Math.ceil((p.expiryDate - now) / (1000 * 60 * 60 * 24));
+      const lifecycle = getPrescriptionLifecycleState(p.toObject());
+      const daysLeft = Math.ceil(
+        (lifecycle.expiryDate - new Date()) / (1000 * 60 * 60 * 24),
+      );
       return {
         ...p.toObject(),
-        statusLabel: expired ? "expired" : "valid",
-        nearExpiry: !expired && daysLeft <= 30,
+        status: lifecycle.status,
+        isExpired: lifecycle.isExpired,
+        expiryDate: lifecycle.expiryDate,
+        reviewExpiresAt: lifecycle.reviewExpiresAt,
+        statusLabel: lifecycle.status === "expired" ? "expired" : "valid",
+        nearExpiry:
+          lifecycle.status === "approved" &&
+          !lifecycle.isExpired &&
+          daysLeft <= 30,
         downloadUrl: p.images?.[0],
       };
     });
@@ -1276,7 +1292,6 @@ export const adminReviewPrescription = async (req, res) => {
     const { status, adminNotes, expiryDate } = req.body;
     const update = { status, adminNotes };
     if (expiryDate) update.expiryDate = new Date(expiryDate);
-    if (update.expiryDate) update.isExpired = update.expiryDate < new Date();
     const updated = await Prescription.findByIdAndUpdate(
       req.params.id,
       update,
@@ -1299,7 +1314,8 @@ export const matchPrescriptionForOrder = async (prescriptionId, userId) => {
     userId,
   });
   if (!prescription) return { ok: false, reason: "Prescription not found" };
-  if (prescription.isExpired || prescription.expiryDate < new Date())
+  const lifecycle = getPrescriptionLifecycleState(prescription.toObject());
+  if (lifecycle.status !== "approved")
     return { ok: false, reason: "Prescription expired" };
   return { ok: true, prescription };
 };
