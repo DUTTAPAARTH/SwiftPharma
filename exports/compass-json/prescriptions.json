@@ -1,0 +1,1531 @@
+﻿[
+  {
+    "_id": {
+      "$oid": "69747a6ff27999146e6955ed"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769241194911-prec1.png"
+    ],
+    "ocrText": "Dr. Onkar Bhave Care Clinic\nTv SE\nMab. 903390126 BE\n\nPh 094233 80390, Tring: 05:00\nA -02:00 PM | Qosed Thursday\nDate: 27-Apr-2020, 04:37 P10\nID: 266 - DEMO PATIENT (M)\nArar PONE\nTem deg 5, 9: 120/80 mg\nFL ΓÇö\nasic Tame Sosa Sursten\nFE ppΓÇö taming, 1 ight 20002\nee Bod ese\n2) car. mo epee 2 taming, 1 ight 10002\n(Before Food) (Tot:20 Cap)\nER ΓÇöΓÇö itaming, 14%, 1 Eve, 1 Wight 10 Days\nrash) eit\nPr ΓÇö 2 oming, 112 ight 100m:\n(oie rood etm)\nAdvice Given:\nRoto OR Avo S71 Fo0D\nFollow Up: 12-05-2070\nCharts\nFu TT a\nHe Pe\nfo ie\nor. oniar Bhave\nWas, MD MS,\n",
+    "doctorName": "Dr. Onkar B",
+    "issueDate": {
+      "$date": "2070-05-11T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2070-11-11T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-24T07:53:19.527Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T17:58:17.043Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T17:58:17.043Z"
+    },
+    "pharmacistNotes": "approved for test",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69747bd0f27999146e6955ef"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769241547532-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara A",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-24T07:59:12.308Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T17:55:17.050Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T17:55:17.048Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6974809c405f49fb2744bf41"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769242773614-prescription.jpeg"
+    ],
+    "ocrText": "Pa ried\n> N oi\nLS i\n< Tei\nLi El\nhe ECR\ngal fi\nnl \"\n2) ENDOCRINE & METABOLISM ΓÇ£WN\n)) | Coles By Sahai Path Lay\nta & Time: 08-Dac-2026\n06:51\nBP 120/80 mmHg | Pulse 71 bpm | Helght 182.6 cm | Weight 132k | spo; J\nI 2 00%, v\nDiagnosis: DYSGLYGAEMIA (7 PREDIABETES) , VIT, D DEFICIENCY. ors M3205 sf\n2 Cr EMIA (L, MILD)\nbe BRINE ) AS\neRe D3 ST a00 Timing Fran, Duration\n5 EF apoyo ml\nGomposiion : Cholocalcforol 80000 1U /GM Bod Time - Waskly - 6 Waska\nTiming : 1 Night Bed Time ΓÇö_ΓÇö mm\nAdministration : Oral-To be swallowed\nNotes : FOLLOWED BY MONTHLY\nMobs POUOWESPYMOMWY 0 00\nAdvice: 1600 Kcal Diet\nExercises as advised (30-45 minutes per day)\nRMW REPORT\nTests Prescribed: OGTT WITH 75 GM ANHYDROUS GLUCOSE EQUIVALENT (0 HR AND 2 HR)\neee rE EN EN ANDES)\nSS) .\nWl a) C=\" of edly, DAL\n|\nJ Gf ve\nay kl I ┬«) DI\n┬⌐ 12 Rani Ka Bagh, Ams: :\n",
+    "doctorName": null,
+    "issueDate": {
+      "$date": "2026-01-24T08:19:33.621Z"
+    },
+    "expiryDate": {
+      "$date": "2026-07-24T08:19:33.621Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-24T08:19:40.473Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T17:55:20.420Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T17:55:20.419Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "697511f6e14594797bc0b106"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769279985495-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-24T18:39:50.041Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:18.784Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:18.783Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69751254e14594797bc0b10a"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769280078168-prescription.jpeg"
+    ],
+    "ocrText": "Pa ried\n> N oi\nLS i\n< Tei\nLi El\nhe ECR\ngal fi\nnl \"\n2) ENDOCRINE & METABOLISM ΓÇ£WN\n)) | Coles By Sahai Path Lay\nta & Time: 08-Dac-2026\n06:51\nBP 120/80 mmHg | Pulse 71 bpm | Helght 182.6 cm | Weight 132k | spo; J\nI 2 00%, v\nDiagnosis: DYSGLYGAEMIA (7 PREDIABETES) , VIT, D DEFICIENCY. ors M3205 sf\n2 Cr EMIA (L, MILD)\nbe BRINE ) AS\neRe D3 ST a00 Timing Fran, Duration\n5 EF apoyo ml\nGomposiion : Cholocalcforol 80000 1U /GM Bod Time - Waskly - 6 Waska\nTiming : 1 Night Bed Time ΓÇö_ΓÇö mm\nAdministration : Oral-To be swallowed\nNotes : FOLLOWED BY MONTHLY\nMobs POUOWESPYMOMWY 0 00\nAdvice: 1600 Kcal Diet\nExercises as advised (30-45 minutes per day)\nRMW REPORT\nTests Prescribed: OGTT WITH 75 GM ANHYDROUS GLUCOSE EQUIVALENT (0 HR AND 2 HR)\neee rE EN EN ANDES)\nSS) .\nWl a) C=\" of edly, DAL\n|\nJ Gf ve\nay kl I ┬«) DI\n┬⌐ 12 Rani Ka Bagh, Ams: :\n",
+    "doctorName": null,
+    "issueDate": {
+      "$date": "2026-01-24T18:41:18.173Z"
+    },
+    "expiryDate": {
+      "$date": "2026-07-24T18:41:18.173Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-24T18:41:24.544Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:21.380Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:21.379Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6975172c9b5cead71a3f6c8d"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769281319713-prec1.png"
+    ],
+    "ocrText": "Dr. Onkar Bhave Care Clinic\nTv SE\nMab. 903390126 BE\n\nPh 094233 80390, Tring: 05:00\nA -02:00 PM | Qosed Thursday\nDate: 27-Apr-2020, 04:37 P10\nID: 266 - DEMO PATIENT (M)\nArar PONE\nTem deg 5, 9: 120/80 mg\nFL ΓÇö\nasic Tame Sosa Sursten\nFE ppΓÇö taming, 1 ight 20002\nee Bod ese\n2) car. mo epee 2 taming, 1 ight 10002\n(Before Food) (Tot:20 Cap)\nER ΓÇöΓÇö itaming, 14%, 1 Eve, 1 Wight 10 Days\nrash) eit\nPr ΓÇö 2 oming, 112 ight 100m:\n(oie rood etm)\nAdvice Given:\nRoto OR Avo S71 Fo0D\nFollow Up: 12-05-2070\nCharts\nFu TT a\nHe Pe\nfo ie\nor. oniar Bhave\nWas, MD MS,\n",
+    "doctorName": "Dr. Onkar Bhave",
+    "issueDate": {
+      "$date": "2070-05-11T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2070-11-11T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-24T19:02:04.777Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:24.197Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:24.196Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6975b5c9400898870502f1b3"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769321920111-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-25T06:18:49.873Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:26.748Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:26.748Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6975fc073f34c0e285b605b6"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769339905928-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-25T11:18:31.430Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:29.195Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:29.195Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69765dba7b53e5a5be4582f2"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769364918552-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-25T18:15:22.699Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:32.873Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:32.873Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69765dd37b53e5a5be4582f4"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769364943884-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-25T18:15:47.897Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:34.960Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:34.959Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "697660c17b53e5a5be4582f6"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769365693223-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-25T18:28:17.182Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:36.828Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:36.827Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6976610f7b53e5a5be4582f8"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769365770788-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-25T18:29:35.300Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:39.075Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:39.075Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "697665607b53e5a5be45830e"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1769366876539-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-01-25T18:48:00.453Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:42.169Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:42.168Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69837e45265e035951b55c78"
+    },
+    "userId": {
+      "$oid": "695e21494402f599557ac59c"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1770225217100-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-02-04T17:13:41.937Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:45.360Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:45.360Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69b55a1ae8a594b48037f9c7"
+    },
+    "userId": {
+      "$oid": "69b46b56309158ee695074aa"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773492752759-prescription.jpeg"
+    ],
+    "ocrText": "Pa ried\n> N oi\nLS i\n< Tei\nLi El\nhe ECR\ngal fi\nnl \"\n2) ENDOCRINE & METABOLISM ΓÇ£WN\n)) | Coles By Sahai Path Lay\nta & Time: 08-Dac-2026\n06:51\nBP 120/80 mmHg | Pulse 71 bpm | Helght 182.6 cm | Weight 132k | spo; J\nI 2 00%, v\nDiagnosis: DYSGLYGAEMIA (7 PREDIABETES) , VIT, D DEFICIENCY. ors M3205 sf\n2 Cr EMIA (L, MILD)\nbe BRINE ) AS\neRe D3 ST a00 Timing Fran, Duration\n5 EF apoyo ml\nGomposiion : Cholocalcforol 80000 1U /GM Bod Time - Waskly - 6 Waska\nTiming : 1 Night Bed Time ΓÇö_ΓÇö mm\nAdministration : Oral-To be swallowed\nNotes : FOLLOWED BY MONTHLY\nMobs POUOWESPYMOMWY 0 00\nAdvice: 1600 Kcal Diet\nExercises as advised (30-45 minutes per day)\nRMW REPORT\nTests Prescribed: OGTT WITH 75 GM ANHYDROUS GLUCOSE EQUIVALENT (0 HR AND 2 HR)\neee rE EN EN ANDES)\nSS) .\nWl a) C=\" of edly, DAL\n|\nJ Gf ve\nay kl I ┬«) DI\n┬⌐ 12 Rani Ka Bagh, Ams: :\n",
+    "doctorName": null,
+    "issueDate": {
+      "$date": "2026-03-14T12:52:32.778Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-14T12:52:32.778Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-14T12:52:42.182Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:48.333Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:48.332Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69b5a3217ef1f77911ab557e"
+    },
+    "userId": {
+      "$oid": "69b46b56309158ee695074aa"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773511452574-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-14T18:04:17.431Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:03:11.174Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T18:03:11.173Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69b6256a7ef1f77911ab560a"
+    },
+    "userId": {
+      "$oid": "69b6251f7ef1f77911ab5588"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773544798451-prescription.jpeg"
+    ],
+    "ocrText": "Pa ried\n> N oi\nLS i\n< Tei\nLi El\nhe ECR\ngal fi\nnl \"\n2) ENDOCRINE & METABOLISM ΓÇ£WN\n)) | Coles By Sahai Path Lay\nta & Time: 08-Dac-2026\n06:51\nBP 120/80 mmHg | Pulse 71 bpm | Helght 182.6 cm | Weight 132k | spo; J\nI 2 00%, v\nDiagnosis: DYSGLYGAEMIA (7 PREDIABETES) , VIT, D DEFICIENCY. ors M3205 sf\n2 Cr EMIA (L, MILD)\nbe BRINE ) AS\neRe D3 ST a00 Timing Fran, Duration\n5 EF apoyo ml\nGomposiion : Cholocalcforol 80000 1U /GM Bod Time - Waskly - 6 Waska\nTiming : 1 Night Bed Time ΓÇö_ΓÇö mm\nAdministration : Oral-To be swallowed\nNotes : FOLLOWED BY MONTHLY\nMobs POUOWESPYMOMWY 0 00\nAdvice: 1600 Kcal Diet\nExercises as advised (30-45 minutes per day)\nRMW REPORT\nTests Prescribed: OGTT WITH 75 GM ANHYDROUS GLUCOSE EQUIVALENT (0 HR AND 2 HR)\neee rE EN EN ANDES)\nSS) .\nWl a) C=\" of edly, DAL\n|\nJ Gf ve\nay kl I ┬«) DI\n┬⌐ 12 Rani Ka Bagh, Ams: :\n",
+    "doctorName": null,
+    "issueDate": {
+      "$date": "2026-03-15T03:19:58.469Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-15T03:19:58.469Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-15T03:20:10.914Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T17:55:31.539Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T17:55:31.538Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69b695b17ef1f77911ab560e"
+    },
+    "userId": {
+      "$oid": "69b6251f7ef1f77911ab5588"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773573544757-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "issueDate": {
+      "$date": "2023-09-03T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-03-03T00:00:00Z"
+    },
+    "isExpired": false,
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-15T11:19:13.182Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T17:55:29.748Z"
+    },
+    "__v": 0,
+    "aiRejectionReason": null,
+    "approvedAt": {
+      "$date": "2026-03-15T17:55:29.748Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69b6f6a2243d3fc69741b679"
+    },
+    "userId": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773598367731-sample-prescription.png"
+    ],
+    "ocrText": "Dr. Test Physician\n\nDate: 2025-01-10\n\nParacetamol 500mg Qty 10 1-0-1\nAmoxicillin 500mg Qty 6 0-1-1\nCetirizine 10mg Qty 5 once daily\n",
+    "doctorName": "Dr. Test Physician",
+    "doctorRegistration": null,
+    "issueDate": {
+      "$date": "2025-01-10T00:00:00Z"
+    },
+    "expiryDate": {
+      "$date": "2025-07-10T00:00:00Z"
+    },
+    "isExpired": false,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "Paracetamol",
+        "dosage": "500mg",
+        "quantity": "10"
+      },
+      {
+        "name": "Amoxicillin",
+        "dosage": "500mg",
+        "quantity": "6"
+      },
+      {
+        "name": "Cetirizine",
+        "dosage": "10mg",
+        "quantity": "5"
+      }
+    ],
+    "aiRejectionReason": "Suspected fake prescription",
+    "aiFlags": [
+      "No patient name",
+      "No doctor registration number",
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-15T18:12:50.585Z"
+    },
+    "status": "rejected",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-15T18:12:50.617Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:16:20.725Z"
+    },
+    "__v": 0,
+    "approvedAt": null,
+    "pharmacistNotes": "Suspected fake prescription",
+    "rejectedAt": {
+      "$date": "2026-03-15T18:16:20.722Z"
+    },
+    "reviewedBy": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69b6f746243d3fc69741b683"
+    },
+    "userId": {
+      "$oid": "69648fbe0c4fd1ebad57bc76"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773598523748-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "doctorRegistration": "MMC 2018 - 411000",
+    "issueDate": {
+      "$date": "2023-08-29T18:30:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-02-29T18:30:00Z"
+    },
+    "isExpired": true,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "TAB. ABCIXIMAB",
+        "dosage": "1 Morning",
+        "quantity": "8 Tab"
+      },
+      {
+        "name": "TAB. VOMILAST",
+        "dosage": "1 Morning, 1 Night",
+        "quantity": "16 Tab"
+      },
+      {
+        "name": "CAP. ZOCLAR 500",
+        "dosage": "1 Morning",
+        "quantity": "3 Cap"
+      },
+      {
+        "name": "TAB. GESTAKIND 10/SR",
+        "dosage": "1 Night",
+        "quantity": "4 Tab"
+      }
+    ],
+    "aiRejectionReason": null,
+    "aiFlags": [
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-15T18:15:34.483Z"
+    },
+    "status": "expired",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-15T18:15:34.496Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:15:34.626Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "69b6f89f243d3fc69741b6b4"
+    },
+    "userId": {
+      "$oid": "69648fbe0c4fd1ebad57bc76"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773598870572-prescription.jpeg"
+    ],
+    "ocrText": "Pa ried\n> N oi\nLS i\n< Tei\nLi El\nhe ECR\ngal fi\nnl \"\n2) ENDOCRINE & METABOLISM ΓÇ£WN\n)) | Coles By Sahai Path Lay\nta & Time: 08-Dac-2026\n06:51\nBP 120/80 mmHg | Pulse 71 bpm | Helght 182.6 cm | Weight 132k | spo; J\nI 2 00%, v\nDiagnosis: DYSGLYGAEMIA (7 PREDIABETES) , VIT, D DEFICIENCY. ors M3205 sf\n2 Cr EMIA (L, MILD)\nbe BRINE ) AS\neRe D3 ST a00 Timing Fran, Duration\n5 EF apoyo ml\nGomposiion : Cholocalcforol 80000 1U /GM Bod Time - Waskly - 6 Waska\nTiming : 1 Night Bed Time ΓÇö_ΓÇö mm\nAdministration : Oral-To be swallowed\nNotes : FOLLOWED BY MONTHLY\nMobs POUOWESPYMOMWY 0 00\nAdvice: 1600 Kcal Diet\nExercises as advised (30-45 minutes per day)\nRMW REPORT\nTests Prescribed: OGTT WITH 75 GM ANHYDROUS GLUCOSE EQUIVALENT (0 HR AND 2 HR)\neee rE EN EN ANDES)\nSS) .\nWl a) C=\" of edly, DAL\n|\nJ Gf ve\nay kl I ┬«) DI\n┬⌐ 12 Rani Ka Bagh, Ams: :\n",
+    "doctorName": null,
+    "doctorRegistration": null,
+    "issueDate": {
+      "$date": "2026-03-15T18:21:10.579Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-15T18:21:10.579Z"
+    },
+    "isExpired": false,
+    "aiValidated": false,
+    "aiConfidenceScore": 20,
+    "aiExtractedMedicines": [
+      {
+        "name": "Cholocalciferol",
+        "dosage": "80000 IU/GM",
+        "quantity": "Weekly - 6 Weeks"
+      }
+    ],
+    "aiRejectionReason": "No doctor name or signature visible, no doctor registration number, no patient name, handwriting is partially illegible, and image appears to be a digital copy",
+    "aiFlags": [
+      "No doctor signature",
+      "No doctor registration number",
+      "No patient name",
+      "Digital copy suspected",
+      "Illegible handwriting",
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-15T18:21:19.980Z"
+    },
+    "status": "ai_rejected",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-15T18:21:20.027Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-15T18:21:20.027Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "69b7aa169c500e162477b4f2"
+    },
+    "userId": {
+      "$oid": "69648fbe0c4fd1ebad57bc76"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773644300642-prescription.jpeg"
+    ],
+    "ocrText": "Pa ried\n> N oi\nLS i\n< Tei\nLi El\nhe ECR\ngal fi\nnl \"\n2) ENDOCRINE & METABOLISM ΓÇ£WN\n)) | Coles By Sahai Path Lay\nta & Time: 08-Dac-2026\n06:51\nBP 120/80 mmHg | Pulse 71 bpm | Helght 182.6 cm | Weight 132k | spo; J\nI 2 00%, v\nDiagnosis: DYSGLYGAEMIA (7 PREDIABETES) , VIT, D DEFICIENCY. ors M3205 sf\n2 Cr EMIA (L, MILD)\nbe BRINE ) AS\neRe D3 ST a00 Timing Fran, Duration\n5 EF apoyo ml\nGomposiion : Cholocalcforol 80000 1U /GM Bod Time - Waskly - 6 Waska\nTiming : 1 Night Bed Time ΓÇö_ΓÇö mm\nAdministration : Oral-To be swallowed\nNotes : FOLLOWED BY MONTHLY\nMobs POUOWESPYMOMWY 0 00\nAdvice: 1600 Kcal Diet\nExercises as advised (30-45 minutes per day)\nRMW REPORT\nTests Prescribed: OGTT WITH 75 GM ANHYDROUS GLUCOSE EQUIVALENT (0 HR AND 2 HR)\neee rE EN EN ANDES)\nSS) .\nWl a) C=\" of edly, DAL\n|\nJ Gf ve\nay kl I ┬«) DI\n┬⌐ 12 Rani Ka Bagh, Ams: :\n",
+    "doctorName": null,
+    "doctorRegistration": null,
+    "issueDate": {
+      "$date": "2026-03-16T06:58:20.729Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-16T06:58:20.729Z"
+    },
+    "isExpired": false,
+    "aiValidated": false,
+    "aiConfidenceScore": 20,
+    "aiExtractedMedicines": [
+      {
+        "name": "Cholocalciferol",
+        "dosage": "80000 IU",
+        "quantity": "Weekly"
+      }
+    ],
+    "aiRejectionReason": "No doctor name or signature visible, no doctor registration number, no patient name, handwriting is partially illegible, and image appears to be a digital copy",
+    "aiFlags": [
+      "No doctor signature",
+      "No doctor registration number",
+      "No patient name",
+      "Potential digital copy",
+      "Illegible handwriting",
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-16T06:58:30.157Z"
+    },
+    "status": "ai_rejected",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-16T06:58:30.169Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-16T06:58:30.169Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "69b7c4ba9c500e162477b505"
+    },
+    "userId": {
+      "$oid": "69648fbe0c4fd1ebad57bc76"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773651119809-prescription.jpeg"
+    ],
+    "ocrText": "Pa ried\n> N oi\nLS i\n< Tei\nLi El\nhe ECR\ngal fi\nnl \"\n2) ENDOCRINE & METABOLISM ΓÇ£WN\n)) | Coles By Sahai Path Lay\nta & Time: 08-Dac-2026\n06:51\nBP 120/80 mmHg | Pulse 71 bpm | Helght 182.6 cm | Weight 132k | spo; J\nI 2 00%, v\nDiagnosis: DYSGLYGAEMIA (7 PREDIABETES) , VIT, D DEFICIENCY. ors M3205 sf\n2 Cr EMIA (L, MILD)\nbe BRINE ) AS\neRe D3 ST a00 Timing Fran, Duration\n5 EF apoyo ml\nGomposiion : Cholocalcforol 80000 1U /GM Bod Time - Waskly - 6 Waska\nTiming : 1 Night Bed Time ΓÇö_ΓÇö mm\nAdministration : Oral-To be swallowed\nNotes : FOLLOWED BY MONTHLY\nMobs POUOWESPYMOMWY 0 00\nAdvice: 1600 Kcal Diet\nExercises as advised (30-45 minutes per day)\nRMW REPORT\nTests Prescribed: OGTT WITH 75 GM ANHYDROUS GLUCOSE EQUIVALENT (0 HR AND 2 HR)\neee rE EN EN ANDES)\nSS) .\nWl a) C=\" of edly, DAL\n|\nJ Gf ve\nay kl I ┬«) DI\n┬⌐ 12 Rani Ka Bagh, Ams: :\n",
+    "doctorName": null,
+    "doctorRegistration": null,
+    "issueDate": {
+      "$date": "2026-03-16T08:51:59.823Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-16T08:51:59.823Z"
+    },
+    "isExpired": false,
+    "aiValidated": false,
+    "aiConfidenceScore": 20,
+    "aiExtractedMedicines": [
+      {
+        "name": "Cholocalciferol",
+        "dosage": "80000 IU",
+        "quantity": "Weekly"
+      }
+    ],
+    "aiRejectionReason": "No doctor name or signature visible, no doctor registration number, no patient name, and handwriting is partially illegible",
+    "aiFlags": [
+      "No doctor signature",
+      "No doctor registration number",
+      "No patient name",
+      "Illegible handwriting",
+      "Potential template prescription",
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-16T08:52:10.640Z"
+    },
+    "status": "ai_rejected",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-16T08:52:10.648Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-16T08:52:10.648Z"
+    },
+    "__v": 0
+  },
+  {
+    "_id": {
+      "$oid": "69b8196453ffa4d1d8ab0f37"
+    },
+    "userId": {
+      "$oid": "69b46b56309158ee695074aa"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773672796765-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "doctorRegistration": "MMC 2018 - 411000",
+    "issueDate": {
+      "$date": "2023-08-29T18:30:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-02-29T18:30:00Z"
+    },
+    "isExpired": false,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "TAB. ABCIXIMAB",
+        "dosage": "1 Morning",
+        "quantity": "8 Tab"
+      },
+      {
+        "name": "TAB. VOMILAST",
+        "dosage": "1 Morning, 1 Night",
+        "quantity": "16 Tab"
+      },
+      {
+        "name": "CAP. ZOCLAR 500",
+        "dosage": "1 Morning",
+        "quantity": "3 Cap"
+      },
+      {
+        "name": "TAB. GESTAKIND 10/SR",
+        "dosage": "1 Night",
+        "quantity": "4 Tab"
+      }
+    ],
+    "aiRejectionReason": null,
+    "aiFlags": [
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-16T14:53:24.060Z"
+    },
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-16T14:53:24.075Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-17T08:04:28.597Z"
+    },
+    "__v": 0,
+    "approvedAt": {
+      "$date": "2026-03-17T08:04:28.595Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69b530c7b72b12cff85600ed"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69b85092e6326cbf52d17195"
+    },
+    "userId": {
+      "$oid": "69b46b56309158ee695074aa"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773686923044-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "doctorRegistration": "MMC 2018 - 411000",
+    "issueDate": {
+      "$date": "2023-08-29T18:30:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-02-29T18:30:00Z"
+    },
+    "isExpired": false,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "TAB. ABCIXIMAB",
+        "dosage": "1 Morning",
+        "quantity": "8 Tab"
+      },
+      {
+        "name": "TAB. VOMILAST",
+        "dosage": "1 Morning, 1 Night",
+        "quantity": "16 Tab"
+      },
+      {
+        "name": "CAP. ZOCLAR 500",
+        "dosage": "1 Morning",
+        "quantity": "3 Cap"
+      },
+      {
+        "name": "TAB. GESTAKIND 10/SR",
+        "dosage": "1 Night",
+        "quantity": "4 Tab"
+      }
+    ],
+    "aiRejectionReason": null,
+    "aiFlags": [
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-16T18:48:50.804Z"
+    },
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-16T18:48:50.854Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-17T10:05:58.343Z"
+    },
+    "__v": 0,
+    "approvedAt": {
+      "$date": "2026-03-17T10:05:58.341Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69b530c7b72b12cff85600ed"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69b853cee6326cbf52d1722d"
+    },
+    "userId": {
+      "$oid": "69b46b56309158ee695074aa"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773687752294-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "doctorRegistration": "MMC 2018 - 411000",
+    "issueDate": {
+      "$date": "2023-08-29T18:30:00Z"
+    },
+    "expiryDate": {
+      "$date": "2024-02-29T18:30:00Z"
+    },
+    "isExpired": false,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "TAB. ABCIXIMAB",
+        "dosage": "1 Morning",
+        "quantity": "8 Tab"
+      },
+      {
+        "name": "TAB. VOMILAST",
+        "dosage": "1 Morning, 1 Night",
+        "quantity": "16 Tab"
+      },
+      {
+        "name": "CAP. ZOCLAR 500",
+        "dosage": "1 Morning",
+        "quantity": "3 Cap"
+      },
+      {
+        "name": "TAB. GESTAKIND 10/SR",
+        "dosage": "1 Night",
+        "quantity": "4 Tab"
+      }
+    ],
+    "aiRejectionReason": null,
+    "aiFlags": [
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-16T19:02:38.080Z"
+    },
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-16T19:02:38.093Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-17T10:06:00.620Z"
+    },
+    "__v": 0,
+    "approvedAt": {
+      "$date": "2026-03-17T10:06:00.619Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69b530c7b72b12cff85600ed"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69b90ad70e7caa6bebd56f69"
+    },
+    "userId": {
+      "$oid": "69b46b56309158ee695074aa"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773734602565-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "doctorRegistration": "MMC 2018 - 411000",
+    "issueDate": {
+      "$date": "2023-08-29T18:30:00Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-13T08:03:35.690Z"
+    },
+    "isExpired": false,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "TAB. ABCIXIMAB",
+        "dosage": "1 Morning",
+        "quantity": "8 Tab"
+      },
+      {
+        "name": "TAB. VOMILAST",
+        "dosage": "1 Morning, 1 Night",
+        "quantity": "16 Tab"
+      },
+      {
+        "name": "CAP. ZOCLAR 500",
+        "dosage": "1 Morning",
+        "quantity": "3 Cap"
+      },
+      {
+        "name": "TAB. GESTAKIND 10/SR",
+        "dosage": "1 Night",
+        "quantity": "4 Tab"
+      }
+    ],
+    "aiRejectionReason": null,
+    "aiFlags": [
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-17T08:03:35.691Z"
+    },
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-17T08:03:35.755Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-17T10:06:03.057Z"
+    },
+    "__v": 0,
+    "approvedAt": {
+      "$date": "2026-03-17T10:06:03.057Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69b530c7b72b12cff85600ed"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69badf69ddb106cd0ba92728"
+    },
+    "userId": {
+      "$oid": "69b46b56309158ee695074aa"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1773854554808-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "doctorRegistration": "MMC 2018 - 411000",
+    "issueDate": {
+      "$date": "2023-08-29T18:30:00Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-14T17:22:49.106Z"
+    },
+    "isExpired": false,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "TAB. ABCIXIMAB",
+        "dosage": "1 Morning",
+        "quantity": "8 Days (Tot:8 Tab)"
+      },
+      {
+        "name": "TAB. VOMILAST",
+        "dosage": "1 Morning, 1 Night",
+        "quantity": "8 Days (Tot: 16 Tab)"
+      },
+      {
+        "name": "CAP. ZOCLAR 500",
+        "dosage": "1 Morning",
+        "quantity": "3 Days (Tot:3 Cap)"
+      },
+      {
+        "name": "TAB. GESTAKIND 10/SR",
+        "dosage": "1 Night",
+        "quantity": "4 Days (Tot:4 Tab)"
+      }
+    ],
+    "aiRejectionReason": null,
+    "aiFlags": [
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-18T17:22:49.108Z"
+    },
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-18T17:22:49.138Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-18T17:30:27.713Z"
+    },
+    "__v": 0,
+    "approvedAt": {
+      "$date": "2026-03-18T17:30:27.710Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69b530c7b72b12cff85600ed"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69c3a742e9e6c9c6508a073f"
+    },
+    "userId": {
+      "$oid": "69c3a500e9e6c9c6508a069a"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1774430012895-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "doctorRegistration": "MMC 2018 - 411000",
+    "issueDate": {
+      "$date": "2023-08-29T18:30:00Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-21T09:13:38.752Z"
+    },
+    "isExpired": false,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "TAB. ABCIXIMAB",
+        "dosage": "1 Morning",
+        "quantity": "8 Tab"
+      },
+      {
+        "name": "TAB. VOMILAST",
+        "dosage": "1 Morning, 1 Night",
+        "quantity": "16 Tab"
+      },
+      {
+        "name": "CAP. ZOCLAR 500",
+        "dosage": "1 Morning",
+        "quantity": "3 Cap"
+      },
+      {
+        "name": "TAB. GESTAKIND 10/SR",
+        "dosage": "1 Night",
+        "quantity": "4 Tab"
+      }
+    ],
+    "aiRejectionReason": null,
+    "aiFlags": [
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-25T09:13:38.753Z"
+    },
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-25T09:13:38.775Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-25T09:13:54.378Z"
+    },
+    "__v": 0,
+    "approvedAt": {
+      "$date": "2026-03-25T09:13:54.377Z"
+    },
+    "pharmacistNotes": "ALL GOOD",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69b530c7b72b12cff85600ed"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69c3ab73e9e6c9c6508a08e7"
+    },
+    "userId": {
+      "$oid": "69648fbe0c4fd1ebad57bc76"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1774431087642-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "doctorRegistration": "MMC 2018 - 411000",
+    "issueDate": {
+      "$date": "2023-08-29T18:30:00Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-21T09:31:31.545Z"
+    },
+    "isExpired": false,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "TAB. ABCIXIMAB",
+        "dosage": "1 Morning",
+        "quantity": "8 Tab"
+      },
+      {
+        "name": "TAB. VOMILAST",
+        "dosage": "1 Morning, 1 Night",
+        "quantity": "16 Tab"
+      },
+      {
+        "name": "CAP. ZOCLAR 500",
+        "dosage": "1 Morning",
+        "quantity": "3 Cap"
+      },
+      {
+        "name": "TAB. GESTAKIND 10/SR",
+        "dosage": "1 Night",
+        "quantity": "4 Tab"
+      }
+    ],
+    "aiRejectionReason": null,
+    "aiFlags": [
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-25T09:31:31.545Z"
+    },
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-25T09:31:31.548Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-25T09:32:17.020Z"
+    },
+    "__v": 0,
+    "approvedAt": {
+      "$date": "2026-03-25T09:32:17.019Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69b530c7b72b12cff85600ed"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "69c3ae46e9e6c9c6508a0a67"
+    },
+    "userId": {
+      "$oid": "69648fbe0c4fd1ebad57bc76"
+    },
+    "images": [
+      "/uploads/prescriptions/ai-scan-1774431809058-prec2.png"
+    ],
+    "ocrText": ".\nDr. Akshara ARR SMS hospital\nMS. B/503, Business Center, MG Road, Pune\nReg. No: MMC 2018 - 411000.\nPh: 5465647658, Timing: 09:00 AM -\n01:00 PM, 06:00 PM - 08:00 PM |\nClosed: Sunday\nDate: 30-Aug-2023\n1D: 11 - OPD6 PATIENT (M) /13Y Mob. No.: 9423380390\nΓÇÿAddress: PUNE\nWeight (Kg): 80, Height (Cm): 200 (B.M.L. = 20.00), BP: 120/80 mmHg\nChief Complaints Clinical Findings\n* FEVER WITH CHILLS (4 DAYS) * THESE ARE TEST FINDINGS FOR A TEST\n* HEADACHE (2 DAYS) PATIENT\nENTERING SAMPLE DIAGNOSIS AND SAMPLE\nPRESCRIPTION\nDiagnosis:\n+ MALARIA\ne________ 0000000000000\nMedicine Name Dosage Duration\n1) TAB. ABCIXIMAB 1 Morning 8 Days\n(Tot:8 Tab)\n2) TAB. VOMILAST 1 Morning, 1 Night 8 Days\n(After Food) (Tot: 16 Tab)\nOOXYLAMINE L01G + PYRIDOXINE 10 MG +\nFOUEACID 2.5 mE\n3) CAP. ZOCLAR 500 1 Morning 3 Days\n(Tot:3 Cap)\ncurmiromn 1 soom\n4) TAB. GESTAKIND 10/SR 1 Night 4 Days\n(Tot:4 Tab)\nsoxsuPRINE 10 MG\nAdvice:\n* TAKE BED REST\n+ DO NOT EAT OUTSIDE FOOD\n* EAT EASY TO DIGEST FOOD LIKE BOILED RICE WITH DAAL\nFollow Up: 04-09-2023\nSusbtitut with equivalent Generics as required\n",
+    "doctorName": "Dr. Akshara ARR",
+    "doctorRegistration": "MMC 2018 - 411000",
+    "issueDate": {
+      "$date": "2023-08-29T18:30:00Z"
+    },
+    "expiryDate": {
+      "$date": "2026-09-21T09:43:34.276Z"
+    },
+    "isExpired": false,
+    "aiValidated": true,
+    "aiConfidenceScore": 95,
+    "aiExtractedMedicines": [
+      {
+        "name": "TAB. ABCIXIMAB",
+        "dosage": "1 Morning",
+        "quantity": "8 Tab"
+      },
+      {
+        "name": "TAB. VOMILAST",
+        "dosage": "1 Morning, 1 Night",
+        "quantity": "16 Tab"
+      },
+      {
+        "name": "CAP. ZOCLAR 500",
+        "dosage": "1 Morning",
+        "quantity": "3 Cap"
+      },
+      {
+        "name": "TAB. GESTAKIND 10/SR",
+        "dosage": "1 Night",
+        "quantity": "4 Tab"
+      }
+    ],
+    "aiRejectionReason": null,
+    "aiFlags": [
+      "validator_provider_groq"
+    ],
+    "verificationAttempts": 1,
+    "lastVerificationAt": {
+      "$date": "2026-03-25T09:43:34.276Z"
+    },
+    "status": "approved",
+    "medicines": [],
+    "createdAt": {
+      "$date": "2026-03-25T09:43:34.290Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-25T09:43:55.404Z"
+    },
+    "__v": 0,
+    "approvedAt": {
+      "$date": "2026-03-25T09:43:55.404Z"
+    },
+    "pharmacistNotes": "",
+    "rejectedAt": null,
+    "reviewedBy": {
+      "$oid": "69b530c7b72b12cff85600ed"
+    }
+  }
+]

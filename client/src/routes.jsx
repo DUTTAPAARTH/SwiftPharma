@@ -6,18 +6,26 @@ import CategoryDetail from "./pages/CategoryDetail";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
-import Orders from "./pages/Orders";
+import OrderHistoryPage from "./pages/Orders/OrderHistoryPage";
 import OrderTracking from "./pages/OrderTracking";
 import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
-import Dashboard from "./pages/Dashboard";
 import AIPrescriptionScanner from "./pages/AIPrescriptionScanner";
 import PrescriptionStatus from "./pages/PrescriptionStatus";
-import AIHealthAssistant from "./pages/AIHealthAssistant";
+import ChatPage from "./components/ChatPage";
+import HealthCompanionDock from "./components/HealthCompanionDock";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
 import MySubscriptions from "./pages/MySubscriptions";
 import MedicineReminders from "./pages/MedicineReminders";
+import SOSPage from "./pages/Emergency/SOSPage";
+import TrackRelayPage from "./pages/Emergency/TrackRelayPage";
+import VaultPage from "./pages/Vault/VaultPage";
 import Auth from "./pages/Auth";
+import CaregiverSetupPage from "./pages/Caregiver/CaregiverSetupPage";
+import CaregiverDashboardPage from "./pages/Caregiver/CaregiverDashboardPage";
+import PatientDetailPage from "./pages/Caregiver/PatientDetailPage";
+import AcceptInvitePage from "./pages/Caregiver/AcceptInvitePage";
+import DoseHistoryPage from "./pages/Reminders/DoseHistoryPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
@@ -27,6 +35,8 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminEmergencyOps from "./pages/admin/AdminEmergencyOps";
+import EmergencyHistoryPage from "./pages/Emergency/EmergencyHistoryPage";
 
 import Legal from "./pages/Legal";
 
@@ -58,9 +68,10 @@ const RoutesConfig = () => (
       <Route path="/terms" element={<Legal />} />
       <Route path="/safety" element={<Legal />} />
       <Route path="/help" element={<Legal />} />
+      <Route path="/track/:token" element={<TrackRelayPage />} />
 
       {/* Customer protected routes */}
-      <Route path="/dashboard" element={withProtectedBoundary(<Dashboard />)} />
+      <Route path="/dashboard" element={<Navigate to="/home" replace />} />
       <Route path="/home" element={withProtectedBoundary(<Home />)} />
       <Route
         path="/categories"
@@ -76,7 +87,14 @@ const RoutesConfig = () => (
       />
       <Route path="/cart" element={withProtectedBoundary(<Cart />)} />
       <Route path="/checkout" element={withProtectedBoundary(<Checkout />)} />
-      <Route path="/orders" element={withProtectedBoundary(<Orders />)} />
+      <Route
+        path="/orders"
+        element={withProtectedBoundary(<OrderHistoryPage />)}
+      />
+      <Route
+        path="/orders/:orderId"
+        element={withProtectedBoundary(<OrderTracking />)}
+      />
       <Route
         path="/orders/:orderId/track"
         element={withProtectedBoundary(<OrderTracking />)}
@@ -88,6 +106,29 @@ const RoutesConfig = () => (
       <Route
         path="/reminders"
         element={withProtectedBoundary(<MedicineReminders />)}
+      />
+      <Route path="/emergency" element={withProtectedBoundary(<SOSPage />)} />
+      <Route path="/vault" element={withProtectedBoundary(<VaultPage />)} />
+      <Route
+        path="/emergency/history"
+        element={withProtectedBoundary(<EmergencyHistoryPage />)}
+      />
+      <Route
+        path="/caregiver"
+        element={withProtectedBoundary(<CaregiverSetupPage />)}
+      />
+      <Route
+        path="/caregiver/dashboard"
+        element={withProtectedBoundary(<CaregiverDashboardPage />)}
+      />
+      <Route
+        path="/caregiver/patients/:patientId"
+        element={withProtectedBoundary(<PatientDetailPage />)}
+      />
+      <Route path="/caregiver/accept/:token" element={<AcceptInvitePage />} />
+      <Route
+        path="/dose-history"
+        element={withProtectedBoundary(<DoseHistoryPage />)}
       />
       <Route path="/wishlist" element={withProtectedBoundary(<Wishlist />)} />
       <Route path="/profile" element={withProtectedBoundary(<Profile />)} />
@@ -108,8 +149,8 @@ const RoutesConfig = () => (
         element={withProtectedBoundary(<PrescriptionStatus />)}
       />
       <Route
-        path="/ai-assistant"
-        element={withProtectedBoundary(<AIHealthAssistant />)}
+        path="/health-companion"
+        element={withProtectedBoundary(<ChatPage />)}
       />
 
       {/* Admin protected routes */}
@@ -131,6 +172,10 @@ const RoutesConfig = () => (
         path="/admin/analytics"
         element={withAdminBoundary(<AdminAnalytics />)}
       />
+      <Route
+        path="/admin/emergency"
+        element={withAdminBoundary(<AdminEmergencyOps />)}
+      />
 
       <Route
         path="/delivery"
@@ -140,6 +185,8 @@ const RoutesConfig = () => (
       {/* Catch-all - redirect to login for security */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
+
+    <HealthCompanionDock />
   </BrowserRouter>
 );
 

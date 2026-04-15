@@ -11,6 +11,7 @@ import {
 } from "../services/productService";
 import SubstituteModal from "../components/modals/SubstituteModal";
 import { ensureAuthenticated } from "../utils/auth";
+import { useHealthCompanion } from "../context/HealthCompanionContext";
 
 const SkeletonCard = () => (
   <div className="bg-white dark:bg-slate-800 rounded-[32px] border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col h-[400px] animate-pulse">
@@ -35,6 +36,7 @@ const CategoryDetail = () => {
   const navigate = useNavigate();
   const { addItem, items, replaceItem } = useCart();
   const { toggle, isSaved } = useWishlist();
+  const { openWithMessage } = useHealthCompanion();
 
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState(null);
@@ -291,11 +293,17 @@ const CategoryDetail = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/ai-assistant">
-              <button className="h-14 px-10 rounded-full bg-white dark:bg-slate-800 border border-primary/20 text-primary font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-sm">
-                Ask AI assistant
-              </button>
-            </Link>
+            <button
+              type="button"
+              onClick={() =>
+                openWithMessage(
+                  `Help me choose the right medicine from ${category?.name || "this category"}.`,
+                )
+              }
+              className="h-14 px-10 rounded-full bg-white dark:bg-slate-800 border border-primary/20 text-primary font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-sm"
+            >
+              Ask Health Companion
+            </button>
             <Link to="/prescriptions">
               <button className="h-14 px-10 rounded-full bg-slate-900 dark:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-all shadow-xl">
                 Upload prescription

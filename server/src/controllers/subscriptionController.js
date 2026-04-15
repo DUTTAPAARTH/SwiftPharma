@@ -2,6 +2,7 @@ import Subscription from "../models/Subscription.js";
 import Product from "../models/Product.js";
 import Prescription from "../models/Prescription.js";
 import { createAutoRefillOrder } from "./orderController.js";
+import { emitPrescriptionUpdate } from "../services/prescriptionEvents.js";
 
 const hasApprovedPrescription = async (userId) => {
   const rx = await Prescription.findOne({
@@ -359,6 +360,16 @@ export const processRefill = async (subscriptionInput) => {
     subscription.totalRefills = Number(subscription.totalRefills || 0) + 1;
     subscription.nextRefillDate = subscription.calculateNextRefillDate();
     await subscription.save();
+
+    await emitPrescriptionUpdate({
+      userId: subscription.userId,
+      reason: "refill",
+      payload: {
+        subscriptionId: subscription._id,
+        orderId: order._id,
+        totalRefills: subscription.totalRefills,
+      },
+    });
 
     return {
       success: true,

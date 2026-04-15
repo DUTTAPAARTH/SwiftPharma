@@ -5,6 +5,68 @@ import Category from "../models/Category.js";
 const PRODUCT_PLACEHOLDER_URL =
   "https://via.placeholder.com/200x200/0a0f1e/00bcd4?text=%F0%9F%92%8A";
 
+const OCR_NOISE_WORDS = new Set([
+  "tab",
+  "tablet",
+  "cap",
+  "capsule",
+  "inj",
+  "injection",
+  "syp",
+  "syrup",
+  "morning",
+  "night",
+  "afternoon",
+  "evening",
+  "day",
+  "days",
+  "food",
+  "after",
+  "before",
+  "tot",
+  "mg",
+]);
+
+const escapeRegex = (value) =>
+  String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const buildProductSearchOr = (searchText) => {
+  const raw = String(searchText || "").trim();
+  if (!raw) return [];
+
+  const normalized = raw
+    .toLowerCase()
+    .replace(/\b(tab|tablet|cap|capsule|inj|injection|syp|syrup)\.?\b/g, " ")
+    .replace(/[^a-z0-9/]+/g, " ")
+    .trim();
+
+  const tokens = normalized
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .filter((token) => !OCR_NOISE_WORDS.has(token))
+    .filter((token) => /[a-z]/i.test(token))
+    .slice(0, 6);
+
+  const terms = Array.from(
+    new Set([
+      raw,
+      normalized,
+      ...tokens,
+      tokens.length ? tokens.join(" ") : "",
+    ].filter((term) => String(term || "").trim().length >= 2)),
+  );
+
+  return terms.flatMap((term) => {
+    const safe = escapeRegex(term);
+    return [
+      { name: { $regex: safe, $options: "i" } },
+      { composition: { $regex: safe, $options: "i" } },
+      { manufacturer: { $regex: safe, $options: "i" } },
+    ];
+  });
+};
+
 const parseBoolean = (value) => {
   if (typeof value === "boolean") return value;
   if (typeof value !== "string") return false;
@@ -45,7 +107,7 @@ const resolveCategoryId = async (categoryValue) => {
 
 export const listProducts = async (req, res) => {
   try {
-    const { limit = 20, skip = 0, category, search } = req.query;
+    const { limit = 20, skip = 0, category, search, q } = req.query;
 
     let query = {};
 
@@ -59,12 +121,13 @@ export const listProducts = async (req, res) => {
       }
     }
 
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { composition: { $regex: search, $options: "i" } },
-        { manufacturer: { $regex: search, $options: "i" } },
-      ];
+    const searchText = search || q;
+
+    if (searchText) {
+      const searchOr = buildProductSearchOr(searchText);
+      if (searchOr.length) {
+        query.$or = searchOr;
+      }
     }
 
     const products = await Product.find(query)
@@ -126,13 +189,10 @@ export const searchProducts = async (req, res) => {
   try {
     const { q = "", limit = 20, skip = 0 } = req.query;
 
-    const products = await Product.find({
-      $or: [
-        { name: { $regex: q, $options: "i" } },
-        { composition: { $regex: q, $options: "i" } },
-        { manufacturer: { $regex: q, $options: "i" } },
-      ],
-    })
+    const searchOr = buildProductSearchOr(q);
+    const query = searchOr.length ? { $or: searchOr } : {};
+
+    const products = await Product.find(query)
       .populate("category")
       .limit(parseInt(limit))
       .skip(parseInt(skip));

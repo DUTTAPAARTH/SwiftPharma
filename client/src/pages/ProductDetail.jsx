@@ -6,11 +6,13 @@ import { useCart } from "../hooks/useCart";
 import { fetchProductById, fetchProducts } from "../services/productService";
 import { fetchDrugInfo } from "../services/drugInfoService";
 import { createSubscription } from "../services/subscriptionService";
+import { addVaultItem, getVault } from "../services/vaultService";
 import { useWishlist } from "../hooks/useWishlist";
 import SubstituteModal from "../components/modals/SubstituteModal";
 import { ensureAuthenticated } from "../utils/auth";
 import ProductCard from "../components/cards/ProductCard";
 import { AuthContext } from "../context/AuthContext";
+import { useHealthCompanion } from "../context/HealthCompanionContext";
 
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/200x200/0a0f1e/00bcd4?text=%F0%9F%92%8A";
@@ -135,6 +137,7 @@ const ProductDetail = () => {
   const { user } = useContext(AuthContext);
   const { addItem, items, replaceItem } = useCart();
   const { toggle, isSaved } = useWishlist();
+  const { openWithMessage } = useHealthCompanion();
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -154,6 +157,15 @@ const ProductDetail = () => {
   const [subscribeOpen, setSubscribeOpen] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
   const [subscribeToast, setSubscribeToast] = useState("");
+  const [vaultToast, setVaultToast] = useState("");
+  const [vaultOpen, setVaultOpen] = useState(false);
+  const [vaultSaving, setVaultSaving] = useState(false);
+  const [alreadyInVault, setAlreadyInVault] = useState(false);
+  const [vaultDraft, setVaultDraft] = useState({
+    quantity: 1,
+    expiryDate: "",
+    criticalLevel: "medium",
+  });
   const [subscriptionForm, setSubscriptionForm] = useState({
     frequency: "monthly",
     quantity: 1,
@@ -196,6 +208,36 @@ const ProductDetail = () => {
     };
     loadProduct();
   }, [id]);
+
+  useEffect(() => {
+    const isCustomer = String(user?.role || "").toLowerCase() === "customer";
+    if (!isCustomer || !product?._id) {
+      setAlreadyInVault(false);
+      return;
+    }
+
+    let active = true;
+    const checkVault = async () => {
+      try {
+        const { data } = await getVault();
+        if (!active) return;
+        const list = Array.isArray(data?.items) ? data.items : [];
+        setAlreadyInVault(
+          list.some(
+            (item) => String(item.productId || "") === String(product._id),
+          ),
+        );
+      } catch {
+        if (!active) return;
+        setAlreadyInVault(false);
+      }
+    };
+
+    checkVault();
+    return () => {
+      active = false;
+    };
+  }, [user?.role, product?._id]);
 
   useEffect(() => {
     const loadSubstitutes = async () => {
@@ -317,6 +359,36 @@ const ProductDetail = () => {
       setTimeout(() => setSubscribeToast(""), 4500);
     } finally {
       setSubscribing(false);
+    }
+  };
+
+  const handleAddToVault = async () => {
+    if (!product || !ensureAuthenticated(navigate)) return;
+    if (!vaultDraft.expiryDate) {
+      setVaultToast("Please select expiry date");
+      setTimeout(() => setVaultToast(""), 3000);
+      return;
+    }
+
+    setVaultSaving(true);
+    try {
+      await addVaultItem({
+        productId: product._id,
+        productName: product.name,
+        quantity: Math.max(0, Number(vaultDraft.quantity || 0)),
+        unit: "units",
+        expiryDate: vaultDraft.expiryDate,
+        criticalLevel: vaultDraft.criticalLevel,
+      });
+      setAlreadyInVault(true);
+      setVaultOpen(false);
+      setVaultToast("Added to your vault");
+      setTimeout(() => setVaultToast(""), 3000);
+    } catch (error) {
+      setVaultToast(error?.response?.data?.message || "Failed to add to vault");
+      setTimeout(() => setVaultToast(""), 3500);
+    } finally {
+      setVaultSaving(false);
     }
   };
 
@@ -687,12 +759,41 @@ const ProductDetail = () => {
               Subscribe & Save - Auto-refill monthly
             </button>
 
+            {alreadyInVault ? (
+              <p className="w-full rounded-2xl border border-border-subtle bg-background-light px-4 py-3 text-sm font-semibold text-ink-soft text-center">
+                In your vault ✓
+              </p>
+            ) : (
+              <button
+                onClick={() => {
+                  if (!ensureAuthenticated(navigate)) return;
+                  setVaultOpen(true);
+                }}
+                className="w-full h-14 rounded-3xl border-2 border-primary/30 text-primary font-black text-[10px] uppercase tracking-widest hover:bg-primary/10 transition-all flex items-center justify-center gap-3"
+              >
+                + Add to emergency vault
+              </button>
+            )}
+
             <button
               onClick={() => setSubstituteOpen(true)}
               className="w-full h-14 rounded-3xl border-2 border-slate-200 dark:border-slate-800 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-3"
             >
               <span className="material-symbols-outlined text-lg">cyclone</span>
               Find substitutes
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                openWithMessage(
+                  `I am viewing ${product?.name || "this medicine"}. Please explain usage, interactions, and precautions for me.`,
+                )
+              }
+              className="w-full h-14 rounded-3xl border-2 border-teal-300/40 text-teal-700 font-black text-[10px] uppercase tracking-widest hover:bg-teal-50 transition-all flex items-center justify-center gap-3"
+            >
+              <span className="material-symbols-outlined text-lg">health_and_safety</span>
+              Ask health companion
             </button>
           </div>
         </div>
@@ -815,6 +916,12 @@ const ProductDetail = () => {
       {subscribeToast && (
         <div className="fixed top-5 right-5 z-[140] rounded-xl border border-cyan-400/35 bg-[#0a0f1e] px-4 py-3 text-sm text-cyan-200 shadow-[0_18px_40px_rgba(0,0,0,0.45)]">
           {subscribeToast}
+        </div>
+      )}
+
+      {vaultToast && (
+        <div className="fixed top-20 right-5 z-[140] rounded-xl border border-primary/35 bg-white px-4 py-3 text-sm text-primary shadow-soft">
+          {vaultToast}
         </div>
       )}
 
@@ -1033,6 +1140,109 @@ const ProductDetail = () => {
                 className="flex-1 min-w-[180px] rounded-xl border border-slate-700 bg-[#12192b] text-slate-200 font-bold py-3"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {vaultOpen && (
+        <div
+          className="fixed inset-0 z-[130] bg-black/60 backdrop-blur-sm px-4 py-6 overflow-y-auto"
+          onClick={() => setVaultOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="max-w-xl mx-auto rounded-3xl border border-border-subtle bg-white p-6 md:p-8 space-y-5"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-black text-ink">
+                  Add to emergency vault
+                </h2>
+                <p className="text-ink-soft mt-1">{product?.name}</p>
+              </div>
+              <button
+                onClick={() => setVaultOpen(false)}
+                className="size-10 rounded-xl border border-border-subtle text-ink-soft hover:text-ink"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="text-xs font-black uppercase tracking-[0.14em] text-ink-soft">
+                  Quantity
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={vaultDraft.quantity}
+                  onChange={(e) =>
+                    setVaultDraft((prev) => ({
+                      ...prev,
+                      quantity: Number(e.target.value),
+                    }))
+                  }
+                  className="mt-1 w-full rounded-xl border border-border-subtle px-3 py-2 text-sm text-ink"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-black uppercase tracking-[0.14em] text-ink-soft">
+                  Expiry date
+                </label>
+                <input
+                  type="date"
+                  min={new Date().toISOString().slice(0, 10)}
+                  value={vaultDraft.expiryDate}
+                  onChange={(e) =>
+                    setVaultDraft((prev) => ({
+                      ...prev,
+                      expiryDate: e.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-xl border border-border-subtle px-3 py-2 text-sm text-ink"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-black uppercase tracking-[0.14em] text-ink-soft">
+                  Critical
+                </label>
+                <select
+                  value={vaultDraft.criticalLevel}
+                  onChange={(e) =>
+                    setVaultDraft((prev) => ({
+                      ...prev,
+                      criticalLevel: e.target.value,
+                    }))
+                  }
+                  className="mt-1 w-full rounded-xl border border-border-subtle px-3 py-2 text-sm text-ink"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                className="rounded-xl border border-border-subtle px-4 py-2 text-sm font-semibold text-ink-soft"
+                onClick={() => setVaultOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+                onClick={handleAddToVault}
+                disabled={vaultSaving}
+              >
+                {vaultSaving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

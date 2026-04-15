@@ -4,14 +4,69 @@ import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { useCart } from "../hooks/useCart";
 import { createOrder } from "../services/orderService";
+import { fetchProducts } from "../services/productService";
+
+const isMongoObjectId = (value) => /^[a-fA-F0-9]{24}$/.test(String(value || "").trim());
+
+const normalizeMedicineName = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/\b(tab|tablet|cap|capsule|inj|injection|syp|syrup)\.?\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const pickBestCatalogMatch = (sourceName, candidates = []) => {
+  if (!Array.isArray(candidates) || candidates.length === 0) return null;
+
+  const normalizedSource = normalizeMedicineName(sourceName);
+  if (!normalizedSource) return candidates[0] || null;
+
+  const exact = candidates.find(
+    (candidate) => normalizeMedicineName(candidate?.name) === normalizedSource,
+  );
+  if (exact) return exact;
+
+  const includesMatch = candidates.find((candidate) => {
+    const target = normalizeMedicineName(candidate?.name);
+    return target.includes(normalizedSource) || normalizedSource.includes(target);
+  });
+  if (includesMatch) return includesMatch;
+
+  return candidates[0] || null;
+};
+
+const getCurrentLocation = () =>
+  new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation not supported"));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = Number(position?.coords?.latitude);
+        const lng = Number(position?.coords?.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          reject(new Error("Invalid location coordinates"));
+          return;
+        }
+        resolve({ lat, lng });
+      },
+      () => {
+        reject(new Error("Location permission denied"));
+      },
+      { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 },
+    );
+  });
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { items, total, clear } = useCart();
+  const { items, total, clear, replaceItem } = useCart();
 
   const [step, setStep] = useState(1); // 1: Address, 2: Payment, 3: Review
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [deliveryLocation, setDeliveryLocation] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -49,19 +104,93 @@ const Checkout = () => {
     setError("");
     setSubmitting(true);
     try {
+      let location = deliveryLocation;
+      if (!location) {
+        try {
+          location = await getCurrentLocation();
+          setDeliveryLocation(location);
+        } catch {
+          // Non-blocking fallback: order can still proceed with typed address.
+        }
+      }
+
+      let checkoutItems = [...items];
+
+      const invalidItems = checkoutItems.filter(
+        (item) => !isMongoObjectId(item?.productId || item?.id),
+      );
+
+      // Try to repair stale cart entries by matching medicine names to real catalog products.
+      for (const invalidItem of invalidItems) {
+        try {
+          const products = await fetchProducts({
+            search: invalidItem?.name || "",
+            limit: 20,
+          });
+          const match = pickBestCatalogMatch(invalidItem?.name, products);
+          if (!match?._id || !isMongoObjectId(match._id)) {
+            continue;
+          }
+
+          const patchedItem = {
+            ...invalidItem,
+            id: String(match._id),
+            productId: String(match._id),
+            name: match.name || invalidItem.name,
+            price: Number(match.price || invalidItem.price || 0),
+            mrp: Number(match.mrp || match.price || invalidItem.mrp || invalidItem.price || 0),
+            image: match.image || invalidItem.image,
+            manufacturer: match.manufacturer || invalidItem.manufacturer,
+            composition: match.composition || invalidItem.composition,
+            strength: match.strength || invalidItem.strength,
+          };
+
+          replaceItem(invalidItem.id, patchedItem, invalidItem.quantity || 1);
+          checkoutItems = checkoutItems.map((entry) =>
+            entry.id === invalidItem.id || entry.productId === invalidItem.productId
+              ? patchedItem
+              : entry,
+          );
+        } catch {
+          // Keep original item if remap fails.
+        }
+      }
+
+      const unresolvedItems = checkoutItems.filter(
+        (item) => !isMongoObjectId(item?.productId || item?.id),
+      );
+
+      if (unresolvedItems.length > 0) {
+        const names = unresolvedItems
+          .map((item) => item?.name)
+          .filter(Boolean)
+          .join(", ");
+        setError(
+          names
+            ? `Some medicines are not linked to our catalog yet: ${names}. Please remove them from cart and add catalog alternatives before checkout.`
+            : "Some medicines are not linked to our catalog yet. Please remove them from cart and add catalog alternatives before checkout.",
+        );
+        return;
+      }
+
       await createOrder({
-        items: items.map((i) => ({
-          product: i.id,
+        items: checkoutItems.map((i) => ({
+          product: i.productId || i.id,
+          name: i.name,
           quantity: i.quantity,
           price: i.price,
         })),
         address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
+        deliveryLocation: location || undefined,
         payment: { method: formData.paymentMethod, amount: total },
       });
       clear();
       navigate("/orders", { state: { orderPlaced: true } });
     } catch (err) {
-      setError("We couldn't place your order. Please try again.");
+      setError(
+        err?.response?.data?.message ||
+          "We couldn't place your order. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }

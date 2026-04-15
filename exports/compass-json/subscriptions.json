@@ -1,0 +1,43 @@
+﻿[
+  {
+    "_id": {
+      "$oid": "69b7a1039c500e162477b48f"
+    },
+    "userId": {
+      "$oid": "69648fbe0c4fd1ebad57bc73"
+    },
+    "product": {
+      "productId": {
+        "$oid": "698757f0ed80db2dd2adac12"
+      },
+      "name": "Augmentin 625 Duo Tablet",
+      "price": 179,
+      "quantity": 1,
+      "isRx": false
+    },
+    "frequency": "monthly",
+    "status": "active",
+    "deliveryAddress": {
+      "street": "221B Test Street",
+      "city": "Kolkata",
+      "state": "WB",
+      "pincode": "700001"
+    },
+    "totalRefills": 0,
+    "reminderDaysBefore": 2,
+    "notes": "",
+    "startDate": {
+      "$date": "2026-03-16T06:19:47.897Z"
+    },
+    "nextRefillDate": {
+      "$date": "2026-04-16T06:19:47.897Z"
+    },
+    "createdAt": {
+      "$date": "2026-03-16T06:19:47.904Z"
+    },
+    "updatedAt": {
+      "$date": "2026-03-16T06:19:47.904Z"
+    },
+    "__v": 0
+  }
+]

@@ -248,7 +248,7 @@ const ProductCard = (props) => {
             >
               bolt
             </span>
-            2-hour delivery
+            20 mins delivery
           </div>
         )}
 

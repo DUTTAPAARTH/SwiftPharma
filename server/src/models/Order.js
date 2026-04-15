@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { ORDER_STATUS } from "../utils/constants.js";
 
 const orderItemSchema = new mongoose.Schema({
+  name: { type: String, trim: true, default: "" },
   product: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
@@ -42,8 +43,13 @@ const orderSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     items: [orderItemSchema],
-    status: { type: String, enum: ORDER_STATUS, default: "Placed" },
+    status: {
+      type: String,
+      enum: [...ORDER_STATUS, "pending", "confirmed", "out_for_delivery", "delivered", "cancelled"],
+      default: "Placed",
+    },
     address: { type: String, required: true },
+    totalAmount: { type: Number, default: 0 },
     prescriptionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Prescription",
@@ -61,6 +67,15 @@ const orderSchema = new mongoose.Schema(
     deliveryAgent: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "DeliveryAgent",
+    },
+    assignedAgent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    trackingStartedAt: {
+      type: Date,
+      default: null,
     },
     tracking: {
       deliveryAgentName: { type: String, trim: true },
@@ -82,5 +97,12 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+orderSchema.virtual("userId").get(function getUserIdAlias() {
+  return this.user;
+});
+
+orderSchema.set("toJSON", { virtuals: true });
+orderSchema.set("toObject", { virtuals: true });
 
 export default mongoose.model("Order", orderSchema);

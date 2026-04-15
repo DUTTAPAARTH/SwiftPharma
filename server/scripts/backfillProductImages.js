@@ -25,9 +25,7 @@ const getPrimaryImage = (product) => {
 };
 
 async function backfillProductImages() {
-  await mongoose.connect(
-    process.env.MONGO_URI || "mongodb://127.0.0.1:27017/swiftpharma",
-  );
+  await mongoose.connect(process.env.MONGO_URI);
   console.log("Connected to MongoDB");
 
   const cursor = Product.find(

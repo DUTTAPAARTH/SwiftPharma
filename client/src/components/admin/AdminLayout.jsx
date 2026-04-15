@@ -14,6 +14,7 @@ const navItems = [
   { label: "Products", icon: "medication", path: "/admin/products" },
   { label: "Users", icon: "group", path: "/admin/users" },
   { label: "Analytics", icon: "bar_chart", path: "/admin/analytics" },
+  { label: "Emergency Ops", icon: "emergency", path: "/admin/emergency" },
 ];
 
 const formatDateTime = (date) =>

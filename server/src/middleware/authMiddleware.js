@@ -52,6 +52,29 @@ export const authenticate = (req, res, next) => {
 // Legacy export for backward compatibility
 export const authMiddleware = authenticate;
 
+export const optionalAuthenticate = (req, _res, next) => {
+  try {
+    const token =
+      req.headers.authorization?.split(" ")[1] || req.cookies?.token;
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = verifyToken(token);
+    if (decoded?._id || decoded?.id) {
+      req.user = {
+        ...decoded,
+        id: decoded._id || decoded.id,
+        _id: decoded._id || decoded.id,
+      };
+    }
+  } catch {
+    // Optional auth should never block public routes.
+  }
+  return next();
+};
+
 export const requireAdmin = (req, res, next) => {
   authenticate(req, res, () => {
     if (!["admin", "pharmacist"].includes(req.user?.role)) {

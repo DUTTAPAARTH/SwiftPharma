@@ -30,6 +30,12 @@ import {
   updateAdminUserRole,
   toggleAdminUserSuspend,
 } from "../controllers/adminController.js";
+import {
+  adminCancelRelay,
+  adminReassignRelay,
+  getAllRelays,
+  getRelayStats,
+} from "../controllers/admin/emergencyAdminController.js";
 import { requireAdmin } from "../middleware/authMiddleware.js";
 import { uploadProductImage } from "../middleware/uploadMiddleware.js";
 
@@ -79,5 +85,11 @@ router.get("/users", getAdminUsers);
 router.get("/users/:id", getAdminUserById);
 router.patch("/users/:id/role", updateAdminUserRole);
 router.patch("/users/:id/suspend", toggleAdminUserSuspend);
+
+// Emergency Ops
+router.get("/emergency/relays", getAllRelays);
+router.get("/emergency/stats", getRelayStats);
+router.patch("/emergency/:relayId/cancel", adminCancelRelay);
+router.patch("/emergency/:relayId/reassign", adminReassignRelay);
 
 export default router;

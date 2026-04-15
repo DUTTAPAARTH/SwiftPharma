@@ -1,16 +1,84 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import Hero from "../components/Hero";
 import ProductCard from "../components/cards/ProductCard";
 import { fetchProducts, fetchCategories } from "../services/productService";
+import { AuthContext } from "../context/AuthContext";
+import { getReadiness as getVaultReadiness } from "../services/vaultService";
+import { getTodayReminders } from "../services/reminderService";
+import { getPendingAlerts } from "../services/caregiverService";
+import LiveTrackingCard from "../components/LiveTrackingCard";
+import { useOrderTracking } from "../hooks/useOrderTracking";
+import { useHealthCompanion } from "../context/HealthCompanionContext";
+
+const normalizeStatus = (value) =>
+  String(value || "pending")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+const formatTimeLabel = (value) => {
+  if (!value) return "";
+  const [hours, minutes] = String(value).split(":").map(Number);
+  const date = new Date();
+  date.setHours(hours || 0, minutes || 0, 0, 0);
+  return date.toLocaleTimeString("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
 
 const Home = () => {
+  const navigate = useNavigate();
+  const { openWithMessage } = useHealthCompanion();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [vaultReadiness, setVaultReadiness] = useState(null);
+  const [pendingAlerts, setPendingAlerts] = useState([]);
+  const [todaySchedule, setTodaySchedule] = useState([]);
+  const { user } = useContext(AuthContext);
+  const {
+    hasActiveTracking,
+    order,
+    agentLocation,
+    estimatedArrival,
+    loading: trackingLoading,
+  } = useOrderTracking();
+
+  const quickActions = [
+    {
+      title: "Browse medicines",
+      description: "Explore categories and products",
+      icon: "storefront",
+      action: () => navigate("/categories"),
+      theme: "bg-blue-500",
+    },
+    {
+      title: "Upload prescription",
+      description: "Scan and verify your prescription",
+      icon: "upload_file",
+      action: () => navigate("/prescriptions"),
+      theme: "bg-emerald-500",
+    },
+    {
+      title: "Track orders",
+      description: "See order and delivery updates",
+      icon: "package_2",
+      action: () => navigate("/orders"),
+      theme: "bg-purple-500",
+    },
+    {
+      title: "Your cart",
+      description: "Review items before checkout",
+      icon: "shopping_cart",
+      action: () => navigate("/cart"),
+      theme: "bg-orange-500",
+    },
+  ];
 
   const categoryIcons = {
     Antibiotics: "pill",
@@ -25,6 +93,33 @@ const Home = () => {
     Respiratory: "airvent",
     "General Medicine": "medical_services",
   };
+
+  useEffect(() => {
+    const isCustomer = String(user?.role || "").toLowerCase() === "customer";
+    if (!isCustomer) {
+      setPendingAlerts([]);
+      return;
+    }
+
+    let active = true;
+    const loadAlerts = async () => {
+      try {
+        const { data } = await getPendingAlerts();
+        if (active) {
+          setPendingAlerts(Array.isArray(data?.alerts) ? data.alerts : []);
+        }
+      } catch {
+        setPendingAlerts([]);
+      }
+    };
+
+    loadAlerts();
+    const interval = setInterval(loadAlerts, 60 * 1000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [user?.role]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -47,6 +142,65 @@ const Home = () => {
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    const isCustomer = String(user?.role || "").toLowerCase() === "customer";
+    if (!isCustomer) {
+      setVaultReadiness(null);
+      return;
+    }
+
+    let active = true;
+    const loadReadiness = async () => {
+      try {
+        const { data } = await getVaultReadiness();
+        if (!active) return;
+        setVaultReadiness(data || null);
+      } catch {
+        if (!active) return;
+        setVaultReadiness(null);
+      }
+    };
+
+    loadReadiness();
+    return () => {
+      active = false;
+    };
+  }, [user?.role]);
+
+  useEffect(() => {
+    const isCustomer = String(user?.role || "").toLowerCase() === "customer";
+    if (!isCustomer) {
+      setTodaySchedule([]);
+      return;
+    }
+
+    let active = true;
+    const loadTodaySchedule = async () => {
+      try {
+        const { data } = await getTodayReminders();
+        if (!active) return;
+        setTodaySchedule(Array.isArray(data?.schedule) ? data.schedule : []);
+      } catch {
+        if (!active) return;
+        setTodaySchedule([]);
+      }
+    };
+
+    loadTodaySchedule();
+    return () => {
+      active = false;
+    };
+  }, [user?.role]);
+
+  const upcomingDoses = useMemo(
+    () => todaySchedule.slice(0, 3),
+    [todaySchedule],
+  );
+
+  const allTaken =
+    todaySchedule.length > 0 &&
+    todaySchedule.every((entry) => normalizeStatus(entry.status) === "taken");
 
   const displayCategories =
     categories.length > 0
@@ -91,7 +245,159 @@ const Home = () => {
       <Navbar />
 
       <main className="pb-32">
-        <Hero categories={displayCategories} />
+        {!trackingLoading && hasActiveTracking ? (
+          <div className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-24">
+            <LiveTrackingCard
+              order={order}
+              agentLocation={agentLocation}
+              estimatedArrival={estimatedArrival}
+            />
+          </div>
+        ) : null}
+
+        <Hero
+          categories={displayCategories}
+          hasActiveTracking={hasActiveTracking}
+          agentLocation={agentLocation}
+        />
+
+        {todaySchedule.length > 0 ? (
+          <div className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-10">
+            <div className="rounded-[40px] border border-slate-800 bg-[#08111d] p-6 md:p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300">
+                    Today's Medicines
+                  </p>
+                  <h2 className="mt-3 text-3xl font-black text-white">
+                    Keep your day on schedule
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-400">
+                    Your next doses are listed here for quick reference.
+                  </p>
+                </div>
+
+                <Link
+                  to="/reminders"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-100"
+                >
+                  View all reminders
+                  <span className="material-symbols-outlined text-base">
+                    arrow_forward
+                  </span>
+                </Link>
+              </div>
+
+              {allTaken ? (
+                <div className="mt-6 rounded-[28px] border border-emerald-500/30 bg-emerald-500/10 p-5 text-emerald-100">
+                  <p className="text-lg font-black">All done!</p>
+                  <p className="mt-2 text-sm text-emerald-200/80">
+                    Every scheduled medicine has been marked as taken today.
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                {upcomingDoses.map((dose) => {
+                  const status = normalizeStatus(dose.status);
+                  const badge =
+                    status === "taken"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                      : "border-[#234861] bg-[#0d1424] text-slate-300";
+
+                  return (
+                    <div
+                      key={`${dose.reminderId}-${dose.time}`}
+                      className="rounded-[28px] border border-[#17334c] bg-[#0d1424] p-5"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-lg font-black text-white">
+                          {dose.medicineName}
+                        </p>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-widest ${badge}`}
+                        >
+                          {status}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-sm text-slate-400">
+                        {formatTimeLabel(dose.time)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Dose Alerts Card */}
+        {pendingAlerts.length > 0 && (
+          <div className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-10">
+            <div className="rounded-[40px] border-l-4 border-l-danger border border-slate-100 dark:border-danger/20 bg-white dark:bg-slate-900 p-6 md:p-8">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-danger">
+                    ⚠️ Action Required
+                  </p>
+                  <p className="mt-2 text-lg font-black text-slate-900 dark:text-white">
+                    {pendingAlerts.length} critical dose
+                    {pendingAlerts.length !== 1 ? "s" : ""} need
+                    {pendingAlerts.length !== 1 ? "" : "s"} response
+                  </p>
+                </div>
+                <Link
+                  to="/dose-history"
+                  className="px-6 py-3 rounded-2xl bg-danger text-white font-black hover:bg-danger-dark transition-colors"
+                >
+                  Respond now
+                </Link>
+                <button
+                  type="button"
+                  onClick={() =>
+                    openWithMessage(
+                      `I have ${pendingAlerts.length} pending dose alerts. Help me prioritize what to do now.`,
+                    )
+                  }
+                  className="px-6 py-3 rounded-2xl border border-danger/30 bg-danger/10 text-danger font-black hover:bg-danger/20 transition-colors"
+                >
+                  Ask companion
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Adherence Today Stats */}
+        {todaySchedule.length > 0 && (
+          <div className="max-w-[1440px] mx-auto px-6 lg:px-12 mt-10">
+            <div className="rounded-[40px] border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+              {(() => {
+                const takenCount = todaySchedule.filter(
+                  (d) => normalizeStatus(d.status) === "taken",
+                ).length;
+                const totalCount = todaySchedule.length;
+                const percentage = Math.round((takenCount / totalCount) * 100);
+                const color =
+                  percentage === 100
+                    ? "text-success"
+                    : percentage >= 50
+                      ? "text-amber-500"
+                      : "text-danger";
+                return (
+                  <Link to="/dose-history" className="block">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+                      Adherence Today
+                    </p>
+                    <p className={`mt-2 text-2xl font-black ${color}`}>
+                      {takenCount} / {totalCount} doses taken
+                    </p>
+                  </Link>
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* Trust Strip */}
         <div className="bg-white dark:bg-slate-900 border-y border-slate-100 dark:border-slate-800 py-10 overflow-hidden relative group">
@@ -144,6 +450,98 @@ const Home = () => {
         </div>
 
         <div className="max-w-[1440px] mx-auto px-6 lg:px-12 space-y-32 mt-24">
+          <section>
+            <div className="flex items-center justify-between mb-16 px-4">
+              <div className="space-y-2">
+                <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Quick Actions
+                </h2>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Jump to what you need most
+                </p>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {quickActions.map((action, index) => (
+                <button
+                  key={index}
+                  onClick={action.action}
+                  className="group relative overflow-hidden rounded-[48px] bg-white dark:bg-slate-900 p-10 border border-slate-100 dark:border-slate-800 shadow-soft hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 text-left flex flex-col gap-10 h-full w-full"
+                >
+                  <div
+                    className={`size-20 rounded-[28px] ${action.theme} flex items-center justify-center text-white shadow-xl transition-all group-hover:scale-110 group-hover:rotate-6`}
+                  >
+                    <span className="material-symbols-outlined text-4xl font-black">
+                      {action.icon}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                      {action.title}
+                    </h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed">
+                      {action.description}
+                    </p>
+                  </div>
+                  <div className="mt-auto pt-6 flex items-center justify-between text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      Open section
+                    </span>
+                    <span className="material-symbols-outlined text-sm">
+                      arrow_forward
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {String(user?.role || "").toLowerCase() === "customer" &&
+          vaultReadiness ? (
+            <section className="panel-soft rounded-[40px] p-6 md:p-8">
+              <Link
+                to="/vault"
+                className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.22em] text-ink-soft">
+                    Medicine Vault
+                  </p>
+                  <h2 className="mt-2 text-3xl font-black text-slate-900 dark:text-white">
+                    Vault readiness
+                  </h2>
+                  {vaultReadiness.status !== "green" ? (
+                    <p className="mt-2 text-sm text-warning font-semibold">
+                      {Number(vaultReadiness.expiredItems || 0) +
+                        Number(vaultReadiness.expiringSoon || 0) +
+                        Number(vaultReadiness.outOfStock || 0)}{" "}
+                      item(s) need attention
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="inline-flex items-center gap-3 rounded-2xl border border-border-subtle bg-white/80 px-4 py-3">
+                  <span
+                    className={`inline-block size-3 rounded-full ${
+                      vaultReadiness.status === "green"
+                        ? "bg-success"
+                        : vaultReadiness.status === "yellow"
+                          ? "bg-warning"
+                          : "bg-danger"
+                    }`}
+                  ></span>
+                  <span className="text-2xl font-black text-ink">
+                    {vaultReadiness.score}
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-[0.14em] text-ink-soft">
+                    {vaultReadiness.status}
+                  </span>
+                </div>
+              </Link>
+            </section>
+          ) : null}
+
           {/* How It Works */}
           <section className="relative">
             <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-20">
@@ -325,27 +723,24 @@ const Home = () => {
         </div>
       </main>
 
-      {/* Emergency Helpline FAB */}
-      <div className="fixed bottom-8 right-8 z-[100] group">
-        <button className="h-16 pl-5 pr-6 rounded-2xl bg-red-600 text-white shadow-lg shadow-red-600/30 flex items-center gap-3 hover:bg-red-700 transition-all duration-200 hover:shadow-xl hover:shadow-red-600/40 active:scale-95">
-          <div className="relative flex-shrink-0">
-            <span
-              className="material-symbols-outlined text-2xl"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              local_hospital
-            </span>
-            <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-white animate-ping opacity-75"></span>
-            <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-white"></span>
+      {String(user?.role || "").toLowerCase() === "customer" ? (
+        <Link
+          to="/emergency"
+          className="fixed bottom-8 right-8 z-[100] group uiverse-emergency-launcher"
+          aria-label="Emergency medicine relay"
+        >
+          <span className="pointer-events-none absolute -top-10 right-0 hidden whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1 text-[11px] font-bold text-white shadow-lg group-hover:block group-focus-visible:block">
+            Emergency medicine relay
+          </span>
+          <div className="background-button" aria-hidden="true">
+            <span className="button">SOS</span>
           </div>
-          <div className="text-left">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-red-200 leading-none mb-0.5">
-              24/7 Helpline
-            </p>
-            <p className="font-black text-sm leading-none">Emergency</p>
+          <div className="emergency">
+            <p className="uiverse-emergency-kicker">24/7 Helpline</p>
+            <p className="uiverse-emergency-label">Emergency</p>
           </div>
-        </button>
-      </div>
+        </Link>
+      ) : null}
 
       <Footer />
     </div>

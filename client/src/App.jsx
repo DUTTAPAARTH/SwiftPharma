@@ -4,6 +4,8 @@ import { CartProvider } from "./context/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { PrescriptionProvider } from "./context/PrescriptionContext";
 import { WishlistProvider } from "./context/WishlistContext";
+import { HealthCompanionProvider } from "./context/HealthCompanionContext";
+import DoseAlertBanner from "./components/DoseAlertBanner";
 
 const App = () => {
   return (
@@ -12,7 +14,10 @@ const App = () => {
         <CartProvider>
           <WishlistProvider>
             <ThemeProvider>
-              <RoutesConfig />
+              <HealthCompanionProvider>
+                <DoseAlertBanner />
+                <RoutesConfig />
+              </HealthCompanionProvider>
             </ThemeProvider>
           </WishlistProvider>
         </CartProvider>

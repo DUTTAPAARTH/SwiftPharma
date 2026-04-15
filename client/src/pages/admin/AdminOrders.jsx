@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import AdminLayout from "../../components/admin/AdminLayout";
 import apiClient from "../../services/apiClient";
-import { assignOrderDeliveryAgent } from "../../services/trackingService";
 
 const ORDER_FLOW = [
   "pending",
@@ -58,6 +57,18 @@ const timeAgo = (value) => {
 
 const statusLabel = (status) => STATUS_META[status]?.label || status;
 
+const formatDynamicEta = (etaValue, nowMs) => {
+  if (!etaValue) return "ETA unavailable";
+  const etaMs = new Date(etaValue).getTime();
+  if (Number.isNaN(etaMs)) return "ETA unavailable";
+
+  const diffMs = etaMs - nowMs;
+  if (diffMs <= 0) return "Arriving shortly";
+
+  const mins = Math.max(1, Math.ceil(diffMs / 60000));
+  return `ETA ~${mins} min`;
+};
+
 const showToast = (message, type = "success") => {
   const existing = document.getElementById("admin-orders-toast");
   if (existing) existing.remove();
@@ -106,77 +117,6 @@ const StatusBadge = ({ status }) => {
     >
       {meta.label}
     </span>
-  );
-};
-
-const AgentAssignModal = ({
-  open,
-  orderId,
-  onClose,
-  onSubmit,
-  loading,
-  initialAgent,
-}) => {
-  const [agentName, setAgentName] = useState(initialAgent || "");
-
-  useEffect(() => {
-    setAgentName(initialAgent || "");
-  }, [initialAgent, open]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-[100] grid place-items-center bg-black/70 px-4"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl border border-[#1a2540] bg-[#0d1424] p-5"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <p className="text-xs uppercase tracking-widest text-cyan-300">
-          Dispatch Setup
-        </p>
-        <h3 className="mt-1 text-xl font-black text-white">
-          Assign Delivery Agent
-        </h3>
-        <p className="mt-1 text-sm text-slate-400">
-          Order #
-          {String(orderId || "")
-            .slice(0, 8)
-            .toUpperCase()}
-        </p>
-
-        <label className="mt-4 block text-xs font-bold uppercase tracking-widest text-slate-400">
-          Agent Name
-        </label>
-        <input
-          autoFocus
-          value={agentName}
-          onChange={(event) => setAgentName(event.target.value)}
-          placeholder="e.g. Ravi Kumar"
-          className="mt-2 w-full rounded-xl border border-[#1a2540] bg-[#0a0f1e] px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none focus:border-cyan-400/60"
-        />
-
-        <div className="mt-5 flex items-center justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-[#1a2540] px-3 py-2 text-sm font-semibold text-slate-300"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onSubmit(agentName)}
-            disabled={loading || !agentName.trim()}
-            className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-black text-[#001317] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading ? "Assigning..." : "Assign & Start Tracking"}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 };
 
@@ -425,13 +365,7 @@ const AdminOrders = () => {
   const [activeOrder, setActiveOrder] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [busyRowId, setBusyRowId] = useState(null);
-  const [agentModal, setAgentModal] = useState({
-    open: false,
-    orderId: "",
-    note: "",
-  });
-  const [assigningAgent, setAssigningAgent] = useState(false);
-  const [prefillAgent, setPrefillAgent] = useState("");
+  const [nowTick, setNowTick] = useState(Date.now());
 
   const statusTabs = useMemo(
     () => [
@@ -474,6 +408,14 @@ const AdminOrders = () => {
     loadOrders();
   }, [loadOrders]);
 
+  useEffect(() => {
+    const tickId = window.setInterval(() => {
+      setNowTick(Date.now());
+    }, 15000);
+
+    return () => window.clearInterval(tickId);
+  }, []);
+
   const openDetail = async (orderId) => {
     setDetailLoading(true);
     try {
@@ -492,62 +434,51 @@ const AdminOrders = () => {
   }, []);
 
   const applyStatusUpdate = async (orderId, status, note = "") => {
-    if (status === "out_for_delivery") {
-      setAgentModal({ open: true, orderId, note });
-      const found = orders.find((entry) => entry._id === orderId);
-      setPrefillAgent(found?.tracking?.deliveryAgentName || "");
-      return;
+    const { data } = await apiClient.patch(`/admin/orders/${orderId}/status`, {
+      status,
+      note,
+    });
+
+    if (status === "out_for_delivery" && data?.autoAssignment?.assigned) {
+      const agentName = data?.autoAssignment?.agent?.name || "Delivery Agent";
+      const etaMinutes = Number(data?.autoAssignment?.agent?.etaMinutes || 0);
+      showToast(
+        `Out for delivery: ${agentName} assigned${etaMinutes ? `, ETA ~${etaMinutes} min` : ""}`,
+      );
+    } else {
+      showToast(`Order moved to ${statusLabel(status)}`);
     }
 
-    await apiClient.patch(`/admin/orders/${orderId}/status`, { status, note });
-    showToast(`Order moved to ${statusLabel(status)}`);
     await Promise.all([loadOrders(), refreshOrderDetail(orderId)]);
   };
 
   const updateInline = async (order, nextStatus) => {
     if (!allowedNextStatuses(order.status).includes(nextStatus)) return;
 
-    if (nextStatus === "out_for_delivery") {
-      setAgentModal({ open: true, orderId: order._id, note: "" });
-      setPrefillAgent(order?.tracking?.deliveryAgentName || "");
-      return;
-    }
-
     setBusyRowId(order._id);
     try {
-      await apiClient.patch(`/admin/orders/${order._id}/status`, {
+      const { data } = await apiClient.patch(`/admin/orders/${order._id}/status`, {
         status: nextStatus,
         note: "",
       });
-      showToast(`Order moved to ${statusLabel(nextStatus)}`);
+
+      if (nextStatus === "out_for_delivery" && data?.autoAssignment?.assigned) {
+        const agentName = data?.autoAssignment?.agent?.name || "Delivery Agent";
+        const etaMinutes = Number(data?.autoAssignment?.agent?.etaMinutes || 0);
+        showToast(
+          `Out for delivery: ${agentName} assigned${etaMinutes ? `, ETA ~${etaMinutes} min` : ""}`,
+        );
+      } else {
+        showToast(`Order moved to ${statusLabel(nextStatus)}`);
+      }
+
       await loadOrders();
-    } catch {
-      showToast("Status update failed", "error");
+    } catch (error) {
+      showToast(
+        error?.response?.data?.message || "Status update failed",
+        "error",
+      );
     } finally {
-      setBusyRowId(null);
-    }
-  };
-
-  const submitAgentAssignment = async (agentName) => {
-    const trimmed = String(agentName || "").trim();
-    if (!trimmed || !agentModal.orderId) return;
-
-    setAssigningAgent(true);
-    setBusyRowId(agentModal.orderId);
-    try {
-      await apiClient.patch(`/admin/orders/${agentModal.orderId}/status`, {
-        status: "out_for_delivery",
-        note: agentModal.note || `Assigned to ${trimmed}`,
-      });
-      await assignOrderDeliveryAgent(agentModal.orderId, trimmed);
-      showToast(`Assigned ${trimmed} and started live tracking`);
-      await Promise.all([loadOrders(), refreshOrderDetail(agentModal.orderId)]);
-      setAgentModal({ open: false, orderId: "", note: "" });
-      setPrefillAgent("");
-    } catch {
-      showToast("Failed to assign delivery agent", "error");
-    } finally {
-      setAssigningAgent(false);
       setBusyRowId(null);
     }
   };
@@ -662,6 +593,21 @@ const AdminOrders = () => {
                         </td>
                         <td className="px-4 py-3">
                           <StatusBadge status={order.status} />
+                          {order.status === "out_for_delivery" ? (
+                            <div className="mt-1.5 space-y-0.5 text-[11px] leading-tight">
+                              <p className="text-cyan-200 font-semibold">
+                                {order?.tracking?.deliveryAgentName
+                                  ? `Agent: ${order.tracking.deliveryAgentName}`
+                                  : "Agent auto-assigned"}
+                              </p>
+                              <p className="text-amber-200 font-bold">
+                                {formatDynamicEta(
+                                  order?.tracking?.estimatedDeliveryTime,
+                                  nowTick,
+                                )}
+                              </p>
+                            </div>
+                          ) : null}
                         </td>
                         <td className="px-4 py-3 text-xs text-slate-400">
                           {timeAgo(order.createdAt)}
@@ -701,22 +647,6 @@ const AdminOrders = () => {
                               >
                                 Live Map
                               </Link>
-                            ) : order.status === "processing" ? (
-                              <button
-                                onClick={() => {
-                                  setAgentModal({
-                                    open: true,
-                                    orderId: order._id,
-                                    note: "",
-                                  });
-                                  setPrefillAgent(
-                                    order?.tracking?.deliveryAgentName || "",
-                                  );
-                                }}
-                                className="rounded-lg border border-amber-400/40 bg-amber-500/15 px-2.5 py-1.5 text-xs font-bold text-amber-200 hover:bg-amber-500/25"
-                              >
-                                Assign Agent
-                              </button>
                             ) : null}
                           </div>
                         </td>
@@ -766,19 +696,6 @@ const AdminOrders = () => {
             onUpdate={applyStatusUpdate}
           />
         ) : null}
-
-        <AgentAssignModal
-          open={agentModal.open}
-          orderId={agentModal.orderId}
-          loading={assigningAgent}
-          initialAgent={prefillAgent}
-          onClose={() => {
-            if (assigningAgent) return;
-            setAgentModal({ open: false, orderId: "", note: "" });
-            setPrefillAgent("");
-          }}
-          onSubmit={submitAgentAssignment}
-        />
       </div>
     </AdminLayout>
   );

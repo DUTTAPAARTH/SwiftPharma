@@ -59,6 +59,8 @@ const createDefaultForm = () => ({
   withFood: false,
   currentStock: 0,
   refillReminderAt: 5,
+  isCritical: false,
+  escalationWindowMinutes: 30,
 });
 
 const normalizeStatus = (value) =>
@@ -166,6 +168,8 @@ const toFormState = (reminder) => ({
   withFood: Boolean(reminder?.withFood),
   currentStock: Number(reminder?.currentStock || 0),
   refillReminderAt: Number(reminder?.refillReminderAt || 5),
+  isCritical: Boolean(reminder?.isCritical),
+  escalationWindowMinutes: Number(reminder?.escalationWindowMinutes || 30),
 });
 
 const buildPayload = (form) => ({
@@ -182,6 +186,11 @@ const buildPayload = (form) => ({
   startDate: form.startDate,
   endDate: form.noEndDate ? null : form.endDate || null,
   withFood: form.withFood,
+  isCritical: Boolean(form.isCritical),
+  escalationWindowMinutes: Math.max(
+    5,
+    Math.min(180, Number(form.escalationWindowMinutes || 30)),
+  ),
   currentStock: Math.max(0, Number(form.currentStock || 0)),
   refillReminderAt: Math.max(0, Number(form.refillReminderAt || 0)),
 });
@@ -520,6 +529,42 @@ const ReminderModal = ({
               <label className="space-y-2">
                 <span className="text-sm font-semibold text-slate-200">
                   Start date
+                  <label className="flex items-center justify-between rounded-2xl border border-red-900/30 bg-red-500/10 px-4 py-3 md:col-span-2">
+                    <span className="text-sm font-semibold text-red-200">
+                      🔴 Critical dose alert
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={form.isCritical || false}
+                      onChange={(event) =>
+                        onChange("isCritical", event.target.checked)
+                      }
+                      className="size-5 accent-red-500"
+                    />
+                  </label>
+                  {form.isCritical && (
+                    <>
+                      <label className="space-y-2 md:col-span-2">
+                        <span className="text-sm font-semibold text-slate-200">
+                          Escalation window (minutes)
+                        </span>
+                        <select
+                          value={form.escalationWindowMinutes || 30}
+                          onChange={(event) =>
+                            onChange(
+                              "escalationWindowMinutes",
+                              Number(event.target.value),
+                            )
+                          }
+                          className="w-full rounded-2xl border border-[#1b3952] bg-[#08111d] px-4 py-3 text-white outline-none focus:border-cyan-400"
+                        >
+                          <option value={15}>15 minutes</option>
+                          <option value={30}>30 minutes</option>
+                          <option value={60}>60 minutes</option>
+                        </select>
+                      </label>
+                    </>
+                  )}
                 </span>
                 <input
                   type="date"
@@ -1152,6 +1197,11 @@ const MedicineReminders = () => {
                         {reminder.withFood ? (
                           <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-amber-200">
                             With food
+                          </span>
+                        ) : null}
+                        {reminder.isCritical ? (
+                          <span className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-red-200 flex items-center gap-1">
+                            🔴 Critical
                           </span>
                         ) : null}
                       </div>

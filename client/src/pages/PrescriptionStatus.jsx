@@ -4,6 +4,8 @@ import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { fetchUserPrescriptions } from "../services/prescriptionService";
 import { getPrescriptionDisplayState } from "../utils/prescriptionLifecycle";
+import { useEmergencySocket } from "../hooks/useEmergencySocket";
+import { useHealthCompanion } from "../context/HealthCompanionContext";
 
 const STATUS_STYLES = {
   pending: "bg-slate-500/20 text-slate-200 border-slate-400/40",
@@ -32,12 +34,21 @@ const toPercent = (value) => {
 };
 
 const PrescriptionStatus = () => {
+  const { openWithMessage } = useHealthCompanion();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [prescriptions, setPrescriptions] = useState([]);
+  const [socketRefreshTick, setSocketRefreshTick] = useState(0);
+
+  useEmergencySocket({
+    onPrescriptionUpdate: () => {
+      setSocketRefreshTick((value) => value + 1);
+    },
+  });
 
   useEffect(() => {
     let active = true;
+    let interval;
 
     const load = async () => {
       setLoading(true);
@@ -56,10 +67,13 @@ const PrescriptionStatus = () => {
 
     load();
 
+    interval = setInterval(load, 10000);
+
     return () => {
       active = false;
+      clearInterval(interval);
     };
-  }, []);
+  }, [socketRefreshTick]);
 
   return (
     <div className="min-h-screen bg-[#081123] text-slate-100">
@@ -231,6 +245,18 @@ const PrescriptionStatus = () => {
                     Expiry: {lifecycle.expiryDate.toLocaleDateString()}
                   </p>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    openWithMessage(
+                      `Help me understand my prescription status: ${STATUS_LABELS[lifecycle.status] || "Pending Review"}.`,
+                    )
+                  }
+                  className="mt-1 w-full rounded-xl border border-teal-400/40 bg-teal-500/10 px-4 py-2.5 text-xs font-black uppercase tracking-[0.14em] text-teal-200 hover:bg-teal-500/20"
+                >
+                  Ask health companion
+                </button>
               </article>
             );
           })}

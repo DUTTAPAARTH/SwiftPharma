@@ -91,7 +91,7 @@ export default function AuthForm({ mode = "login" }) {
             String(response?.user?.role || "").toLowerCase(),
           )
             ? "/admin"
-            : "/dashboard";
+            : "/home";
 
           if (rememberMe) {
             localStorage.setItem(
@@ -132,7 +132,7 @@ export default function AuthForm({ mode = "login" }) {
 
           setAuthUser(response.user, authToken);
           setSuccess(true);
-          setTimeout(() => navigate("/dashboard"), 900);
+          setTimeout(() => navigate("/home"), 900);
         } else {
           setError(response.message || "Signup failed. Please try again.");
         }

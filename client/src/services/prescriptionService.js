@@ -20,6 +20,9 @@ export const fetchUserPrescriptions = () =>
 export const fetchLatestPrescriptionStatus = () =>
   apiClient.get(`/prescriptions/my-latest`);
 
+export const fetchPrescriptionStatusById = (id) =>
+  apiClient.get(`/prescriptions/${id}/status`);
+
 export const downloadPrescription = (id) =>
   apiClient.get(`/prescriptions/${id}/download`, { responseType: "blob" });
 

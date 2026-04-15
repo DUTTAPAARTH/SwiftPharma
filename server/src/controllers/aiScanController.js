@@ -1,15 +1,19 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import sharp from "sharp";
 import fetch from "node-fetch";
 import Groq from "groq-sdk";
 import Prescription from "../models/Prescription.js";
+import DoctorProfile from "../models/DoctorProfile.js";
 import {
   runOcr as sharedRunOcr,
   parseMedicines as sharedParseMedicines,
 } from "./prescriptionController.js";
+import { callAI } from "../services/aiService.js";
 import { parseWithGemini } from "../services/geminiService.js";
 import parsePrescriptionOCR from "../services/prescriptionParser.js";
+import { emitPrescriptionUpdate } from "../services/prescriptionEvents.js";
 
 const uploadsDir = path.resolve(process.cwd(), "uploads", "prescriptions");
 
@@ -287,6 +291,227 @@ Confidence score guide:
   };
 };
 
+const parseMaybeJson = (value) => {
+  if (!value || typeof value !== "string") return value;
+  const trimmed = value.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const start = trimmed.indexOf("[");
+    const end = trimmed.lastIndexOf("]");
+    if (start !== -1 && end !== -1 && end > start) {
+      try {
+        return JSON.parse(trimmed.slice(start, end + 1));
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+};
+
+const normalizeDoctorName = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const buildHandwritingPatternHash = (text) => {
+  const normalized = String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500);
+  if (!normalized) return "";
+  return crypto.createHash("sha256").update(normalized).digest("hex");
+};
+
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const parseLocation = (rawValue, rawLat, rawLng, rawAddress) => {
+  let location = rawValue;
+  if (typeof rawValue === "string") {
+    const trimmed = rawValue.trim();
+    if (trimmed.startsWith("{")) {
+      try {
+        location = JSON.parse(trimmed);
+      } catch {
+        location = {};
+      }
+    }
+  }
+
+  const lat =
+    toNumber(location?.lat) ??
+    toNumber(location?.latitude) ??
+    toNumber(rawLat) ??
+    null;
+  const lng =
+    toNumber(location?.lng) ??
+    toNumber(location?.longitude) ??
+    toNumber(rawLng) ??
+    null;
+  const address = String(location?.address || rawAddress || "").trim();
+
+  return { lat, lng, address };
+};
+
+const haversineDistanceKm = (from, to) => {
+  if (
+    from?.lat == null ||
+    from?.lng == null ||
+    to?.lat == null ||
+    to?.lng == null
+  ) {
+    return null;
+  }
+
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(to.lat - from.lat);
+  const dLon = toRad(to.lng - from.lng);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(from.lat)) *
+      Math.cos(toRad(to.lat)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  return Number((R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))).toFixed(1));
+};
+
+const buildProcessingStages = ({ now, aiCompleted }) => [
+  {
+    stage: "uploaded",
+    status: "completed",
+    completedAt: now,
+    note: "Prescription image uploaded",
+  },
+  {
+    stage: "ocr",
+    status: "completed",
+    completedAt: now,
+    note: "OCR extraction completed",
+  },
+  {
+    stage: "ai",
+    status: aiCompleted ? "completed" : "pending",
+    completedAt: aiCompleted ? now : null,
+    note: aiCompleted ? "AI validation completed" : "AI validation pending",
+  },
+  {
+    stage: "pharmacist",
+    status: "pending",
+    completedAt: null,
+    note: "Queued for pharmacist review",
+  },
+  {
+    stage: "approved",
+    status: "pending",
+    completedAt: null,
+    note: "Awaiting final approval",
+  },
+];
+
+const updateDoctorTrustProfile = async ({
+  doctorName,
+  registrationNumber,
+  handwritingPatternHash,
+}) => {
+  const normalizedDoctorName = normalizeDoctorName(doctorName);
+  const registration = String(registrationNumber || "").trim();
+  if (!registration && !normalizedDoctorName) {
+    return { trustScore: 50, handwritingMismatch: false };
+  }
+
+  const query = registration
+    ? { registrationNumber: registration }
+    : { doctorNameNormalized: normalizedDoctorName };
+
+  let profile = await DoctorProfile.findOne(query);
+  let handwritingMismatch = false;
+
+  if (!profile) {
+    profile = new DoctorProfile({
+      doctorName: doctorName || "Unknown Doctor",
+      doctorNameNormalized: normalizedDoctorName,
+      registrationNumber: registration || undefined,
+      handwritingPatternHash,
+      trustScore: 65,
+      matchCount: handwritingPatternHash ? 1 : 0,
+      mismatchCount: 0,
+      firstSeenAt: new Date(),
+      lastSeenAt: new Date(),
+    });
+    await profile.save();
+    return { trustScore: profile.trustScore, handwritingMismatch: false };
+  }
+
+  if (
+    profile.handwritingPatternHash &&
+    handwritingPatternHash &&
+    profile.handwritingPatternHash !== handwritingPatternHash
+  ) {
+    handwritingMismatch = true;
+    profile.mismatchCount = Number(profile.mismatchCount || 0) + 1;
+    profile.trustScore = Math.max(0, Number(profile.trustScore || 50) - 12);
+  } else if (handwritingPatternHash) {
+    profile.matchCount = Number(profile.matchCount || 0) + 1;
+    profile.trustScore = Math.min(100, Number(profile.trustScore || 50) + 2);
+  }
+
+  profile.doctorName = doctorName || profile.doctorName;
+  profile.doctorNameNormalized = normalizedDoctorName || profile.doctorNameNormalized;
+  profile.registrationNumber = registration || profile.registrationNumber;
+  profile.handwritingPatternHash = handwritingPatternHash || profile.handwritingPatternHash;
+  profile.lastSeenAt = new Date();
+
+  await profile.save();
+
+  return {
+    trustScore: Number(profile.trustScore || 50),
+    handwritingMismatch,
+  };
+};
+
+export const askAIPrompt = async (req, res) => {
+  try {
+    const prompt = String(req.body?.prompt || "").trim();
+    if (!prompt) {
+      return res
+        .status(400)
+        .json({ success: false, message: "prompt is required" });
+    }
+
+    const ai = await callAI(
+      "You are a medical assistant. Return concise and safe results. If JSON is requested, return valid JSON only.",
+      prompt,
+    );
+
+    if (!ai?.answer) {
+      return res
+        .status(503)
+        .json({ success: false, message: "AI unavailable" });
+    }
+
+    return res.json({
+      success: true,
+      result: parseMaybeJson(ai.answer),
+      provider: ai.provider || "unknown",
+    });
+  } catch (error) {
+    console.error("askAIPrompt error", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to process AI prompt" });
+  }
+};
+
 // Look for frequency patterns after medicine name
 // Extract doctor information
 const extractDoctor = (ocrText) => {
@@ -332,6 +557,15 @@ export const scanPrescription = async (req, res) => {
 
     // Preprocess image
     const processed = await preprocessImage(file.path);
+    const prescriptionDNA = crypto
+      .createHash("sha256")
+      .update(processed.buffer)
+      .digest("hex");
+    const duplicatePrescription = await Prescription.findOne({
+      prescriptionDNA,
+    })
+      .select("_id")
+      .lean();
 
     // Generate local URL for the image instead of Cloudinary
     const imageFilename = `ai-scan-${Date.now()}-${path.basename(
@@ -477,7 +711,48 @@ export const scanPrescription = async (req, res) => {
       combinedFlags.push("low_confidence");
     }
 
+    const isDuplicateImage = Boolean(duplicatePrescription?._id);
+    if (isDuplicateImage && !combinedFlags.includes("duplicate_image_detected")) {
+      combinedFlags.push("duplicate_image_detected");
+    }
+
+    const handwritingPatternHash = buildHandwritingPatternHash(ocrText);
+    const trustEvaluation = await updateDoctorTrustProfile({
+      doctorName: aiValidation.doctorName || doctor.name,
+      registrationNumber: aiValidation.doctorRegistrationNumber || doctor.reg_no,
+      handwritingPatternHash,
+    });
+    const doctorTrustScore = trustEvaluation.trustScore;
+    const handwritingMismatch = trustEvaluation.handwritingMismatch;
+    if (handwritingMismatch && !combinedFlags.includes("handwriting_mismatch")) {
+      combinedFlags.push("handwriting_mismatch");
+    }
+
+    const doctorLocation = parseLocation(
+      req.body.doctorLocation,
+      req.body.doctorLat,
+      req.body.doctorLng,
+      req.body.doctorAddress,
+    );
+    const patientLocation = parseLocation(
+      req.body.patientLocation,
+      req.body.patientLat,
+      req.body.patientLng,
+      req.body.patientAddress,
+    );
+    const geoDistanceKm = haversineDistanceKm(doctorLocation, patientLocation);
+    const geoFlag = geoDistanceKm != null && geoDistanceKm > 500;
+    if (geoFlag && !combinedFlags.includes("geo_distance_outlier")) {
+      combinedFlags.push("geo_distance_outlier");
+    }
+
     const aiMeds = normalizeMedicines(aiValidation.medicines || medicines);
+    const now = new Date();
+    const estimatedCompletionTime = new Date(now.getTime() + 30 * 60 * 1000);
+    const processingStages = buildProcessingStages({
+      now,
+      aiCompleted: true,
+    });
 
     const fallbackExpiryDate = new Date(
       Date.now() + 6 * 30 * 24 * 60 * 60 * 1000,
@@ -510,6 +785,16 @@ export const scanPrescription = async (req, res) => {
       images: [imageUrl],
       ocrText,
       doctorName: doctor.name,
+      doctorTrustScore,
+      handwritingMismatch,
+      prescriptionDNA,
+      isDuplicateImage,
+      duplicateOfPrescriptionId: duplicatePrescription?._id || null,
+      duplicateOf: duplicatePrescription?._id || null,
+      doctorLocation,
+      patientLocation,
+      geoDistanceKm,
+      geoFlag,
       issueDate: issuedDate,
       expiryDate,
       doctorRegistration:
@@ -521,6 +806,8 @@ export const scanPrescription = async (req, res) => {
       aiExtractedMedicines: aiMeds,
       aiRejectionReason: rejectionReason,
       aiFlags: combinedFlags,
+      processingStages,
+      estimatedCompletionTime,
       verificationAttempts: 1,
       lastVerificationAt: new Date(),
       notes: req.body.notes || "",
@@ -537,6 +824,37 @@ export const scanPrescription = async (req, res) => {
 
     // Save prescription record
     const prescription = await Prescription.create(prescriptionPayload);
+
+    const anomalyFlags = [
+      "low_confidence",
+      "duplicate_image_detected",
+      "handwriting_mismatch",
+      "geo_distance_outlier",
+    ];
+    const anomalyList = combinedFlags.filter((flag) => anomalyFlags.includes(flag));
+
+    await emitPrescriptionUpdate({
+      userId: req.user.id,
+      prescriptionId: prescription._id,
+      reason: "upload",
+      payload: {
+        status: prescription.status,
+        doctorTrustScore,
+      },
+    });
+
+    if (anomalyList.length) {
+      await emitPrescriptionUpdate({
+        userId: req.user.id,
+        prescriptionId: prescription._id,
+        reason: "anomaly",
+        payload: {
+          status: prescription.status,
+          flags: anomalyList,
+          geoDistanceKm,
+        },
+      });
+    }
 
     console.log("[AI-SCAN] Prescription created:", prescription._id);
 
@@ -563,6 +881,15 @@ export const scanPrescription = async (req, res) => {
       extractionMethod: extractionMethod,
       safetyFlags: safetyFlags,
       status: prescription.status,
+      doctorTrustScore,
+      handwritingMismatch,
+      prescriptionDNA,
+      isDuplicateImage,
+      duplicateOfPrescriptionId: duplicatePrescription?._id || null,
+      geoDistanceKm,
+      geoFlag,
+      estimatedCompletionTime,
+      processingStages,
       aiValidation: {
         isValidPrescription: aiValidation.isValidPrescription,
         confidenceScore,

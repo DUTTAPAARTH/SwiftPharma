@@ -1,10 +1,67 @@
-import React, { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import Button from "./common/Button";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import L from "leaflet";
 
-const Hero = ({ categories = [] }) => {
+const userIcon = L.divIcon({
+  className: "hero-user-marker-shell",
+  html: '<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:13px;background:#00bcd4;color:#02151a;font-size:12px;font-weight:900;border:2px solid #083244;">YOU</span>',
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
+});
+
+const agentIcon = L.divIcon({
+  className: "hero-agent-marker-shell",
+  html: '<span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:14px;background:#22c55e;color:#052e16;font-size:16px;font-weight:900;border:2px solid #14532d;">🛵</span>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
+
+const MapViewportController = ({ userLocation, agentLocation }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const userPoint =
+      userLocation?.lat != null && userLocation?.lng != null
+        ? [Number(userLocation.lat), Number(userLocation.lng)]
+        : null;
+    const agentPoint =
+      agentLocation?.lat != null && agentLocation?.lng != null
+        ? [Number(agentLocation.lat), Number(agentLocation.lng)]
+        : null;
+
+    if (userPoint && agentPoint) {
+      map.fitBounds([userPoint, agentPoint], {
+        padding: [40, 40],
+        maxZoom: 16,
+      });
+      return;
+    }
+
+    if (userPoint) {
+      map.setView(userPoint, 15, { animate: true });
+      return;
+    }
+
+    if (agentPoint) {
+      map.setView(agentPoint, 14, { animate: true });
+    }
+  }, [
+    map,
+    userLocation?.lat,
+    userLocation?.lng,
+    agentLocation?.lat,
+    agentLocation?.lng,
+  ]);
+
+  return null;
+};
+
+const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("loading");
 
   const handleSearch = (event) => {
     event?.preventDefault?.();
@@ -12,6 +69,42 @@ const Hero = ({ categories = [] }) => {
     if (!term) return;
     navigate(`/categories?search=${encodeURIComponent(term)}`);
   };
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationStatus("unavailable");
+      return undefined;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLocation({
+          lat: Number(position.coords.latitude),
+          lng: Number(position.coords.longitude),
+          accuracy: Number(position.coords.accuracy || 0),
+        });
+        setLocationStatus("ready");
+      },
+      () => {
+        setLocationStatus("denied");
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 15000,
+      },
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  const mapCenter = useMemo(() => {
+    if (userLocation) return [userLocation.lat, userLocation.lng];
+    if (agentLocation?.lat != null && agentLocation?.lng != null) {
+      return [Number(agentLocation.lat), Number(agentLocation.lng)];
+    }
+    return [22.5726, 88.3639];
+  }, [userLocation, agentLocation?.lat, agentLocation?.lng]);
 
   return (
     <section className="relative overflow-hidden bg-white dark:bg-background-dark">
@@ -86,55 +179,70 @@ const Hero = ({ categories = [] }) => {
             </div>
           </div>
 
-          {/* Right Side: Visual */}
+          {/* Right Side: Live Map */}
           <div className="flex-1 w-full relative">
-            <div className="relative w-full aspect-[4/3] lg:aspect-square max-h-[600px] rounded-[32px] overflow-hidden shadow-2xl shadow-slate-900/10 dark:shadow-black/30 group">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-blue-500/10 z-10 pointer-events-none"></div>
-              <img
-                src="https://images.unsplash.com/photo-1576091160550-217359f49f4c?auto=format&fit=crop&q=80&w=1000"
-                alt="Healthcare Professional"
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-              {/* Overlay stat cards */}
-              <div className="absolute top-5 right-5 z-20">
-                <div className="backdrop-blur-xl bg-white/85 dark:bg-slate-900/85 px-4 py-3 rounded-2xl border border-white/30 shadow-lg flex items-center gap-3">
-                  <div className="size-9 rounded-xl bg-emerald-500/15 flex items-center justify-center">
-                    <span
-                      className="material-symbols-outlined text-emerald-500 text-base"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      check_circle
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
-                      Order Status
-                    </p>
-                    <p className="text-sm font-black text-slate-900 dark:text-white">
-                      Out for Delivery
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute bottom-5 left-5 right-5 z-20">
-                <div className="backdrop-blur-xl bg-white/85 dark:bg-slate-900/85 px-5 py-4 rounded-2xl border border-white/30 shadow-lg flex items-center justify-between">
-                  <div>
-                    <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">
-                      Average Delivery
-                    </p>
-                    <p className="text-2xl font-black text-slate-900 dark:text-white">
-                      28 mins
-                    </p>
-                  </div>
-                  <div className="size-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-md shadow-primary/30">
-                    <span
-                      className="material-symbols-outlined text-xl"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      bolt
-                    </span>
-                  </div>
-                </div>
+            <div className="relative w-full aspect-[4/3] lg:aspect-square max-h-[600px] rounded-[32px] overflow-hidden shadow-2xl shadow-slate-900/10 dark:shadow-black/30 border border-slate-100 dark:border-slate-700">
+              <MapContainer
+                center={mapCenter}
+                zoom={13}
+                scrollWheelZoom={false}
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+
+                <MapViewportController
+                  userLocation={userLocation}
+                  agentLocation={
+                    hasActiveTracking
+                      ? {
+                          lat: Number(agentLocation?.lat),
+                          lng: Number(agentLocation?.lng),
+                        }
+                      : null
+                  }
+                />
+
+                {userLocation ? (
+                  <Marker
+                    position={[userLocation.lat, userLocation.lng]}
+                    icon={userIcon}
+                  />
+                ) : null}
+
+                {hasActiveTracking &&
+                agentLocation?.lat != null &&
+                agentLocation?.lng != null ? (
+                  <Marker
+                    position={[
+                      Number(agentLocation.lat),
+                      Number(agentLocation.lng),
+                    ]}
+                    icon={agentIcon}
+                  />
+                ) : null}
+              </MapContainer>
+
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-blue-500/10"></div>
+
+              <div className="absolute bottom-4 left-4 right-4 z-[500] rounded-2xl border border-white/30 bg-white/85 p-3 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/85">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  Live location
+                </p>
+                <p className="mt-1 text-sm font-bold text-slate-900 dark:text-white">
+                  {locationStatus === "ready" && userLocation
+                    ? `${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)}`
+                    : locationStatus === "loading"
+                      ? "Detecting your location..."
+                      : "Location access unavailable"}
+                </p>
+                {locationStatus === "ready" && userLocation ? (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Accuracy approx {Math.round(userLocation.accuracy || 0)} m
+                  </p>
+                ) : null}
               </div>
             </div>
 

@@ -64,6 +64,7 @@ export const signup = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        emergencyContact: user.emergencyContact || { name: "", phone: "" },
       },
       token,
     });
@@ -145,6 +146,7 @@ export const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        emergencyContact: user.emergencyContact || { name: "", phone: "" },
       },
       token,
       rememberMeEnabled: user.rememberMeEnabled,
@@ -188,6 +190,7 @@ export const getCurrentUser = async (req, res) => {
         phone: user.phone,
         role: user.role,
         suspended: user.suspended,
+        emergencyContact: user.emergencyContact || { name: "", phone: "" },
       },
     });
   } catch (error) {

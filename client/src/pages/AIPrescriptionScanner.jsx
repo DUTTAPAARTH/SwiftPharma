@@ -5,7 +5,9 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { scanPrescription } from "../services/aiScanService";
-import { fetchLatestPrescriptionStatus } from "../services/prescriptionService";
+import { fetchPrescriptionStatusById } from "../services/prescriptionService";
+import { fetchProducts } from "../services/productService";
+import { useEmergencySocket } from "../hooks/useEmergencySocket";
 
 const CHECKLIST = [
   "Doctor's name and signature",
@@ -30,6 +32,89 @@ const statusTone = {
   approved: "text-emerald-200 border-emerald-400/30 bg-emerald-500/10",
 };
 
+const toSlug = (value) =>
+  String(value || "medicine")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+const hashString = (value) => {
+  const input = String(value || "");
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return hash;
+};
+
+const deterministicTestPrice = (seed, min = 60, max = 399) => {
+  const range = max - min + 1;
+  const value = hashString(seed) % range;
+  return min + value;
+};
+
+const isMongoObjectId = (value) =>
+  /^[a-fA-F0-9]{24}$/.test(String(value || "").trim());
+
+const normalizeMedicineName = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/\b(tab|tablet|cap|capsule|inj|injection|syp|syrup)\.?\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const pickBestCatalogMatch = (sourceName, candidates = []) => {
+  if (!Array.isArray(candidates) || candidates.length === 0) return null;
+
+  const normalizedSource = normalizeMedicineName(sourceName);
+  if (!normalizedSource) return candidates[0] || null;
+
+  const exact = candidates.find(
+    (candidate) => normalizeMedicineName(candidate?.name) === normalizedSource,
+  );
+  if (exact) return exact;
+
+  const includesMatch = candidates.find((candidate) => {
+    const target = normalizeMedicineName(candidate?.name);
+    return (
+      target.includes(normalizedSource) || normalizedSource.includes(target)
+    );
+  });
+  if (includesMatch) return includesMatch;
+
+  return candidates[0] || null;
+};
+
+const toCartReadyMedicine = (medicine, index) => {
+  const seedBase = [medicine?.name, medicine?.dosage, medicine?.quantity]
+    .filter(Boolean)
+    .join("|") || `medicine-${index}`;
+
+  const existingPrice = Number(medicine?.price || medicine?.mrp || 0);
+  const safePrice = Number.isFinite(existingPrice) && existingPrice > 0
+    ? Math.round(existingPrice)
+    : deterministicTestPrice(seedBase);
+
+  const existingMrp = Number(medicine?.mrp || 0);
+  const safeMrp = Number.isFinite(existingMrp) && existingMrp > 0
+    ? Math.round(existingMrp)
+    : Math.max(safePrice + 10, deterministicTestPrice(`${seedBase}|mrp`, 80, 459));
+
+  const keyBase =
+    String(medicine?.productId || medicine?.id || medicine?._id || "").trim() ||
+    `${toSlug(medicine?.name)}-${index}-${Date.now()}`;
+
+  return {
+    ...medicine,
+    checked: true,
+    productId: keyBase,
+    id: keyBase,
+    price: safePrice,
+    mrp: safeMrp,
+    requiresRx: true,
+    isRx: true,
+  };
+};
 
 const AIPrescriptionScanner = () => {
   const navigate = useNavigate();
@@ -42,9 +127,89 @@ const AIPrescriptionScanner = () => {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [stage, setStage] = useState("upload");
+  const [currentPrescriptionId, setCurrentPrescriptionId] = useState(null);
+  const [socketRefreshTick, setSocketRefreshTick] = useState(0);
   // Confirmation step state
   const [confirming, setConfirming] = useState(false);
   const [selectedMeds, setSelectedMeds] = useState([]);
+  const catalogMatchCacheRef = useRef(new Map());
+
+  const findCatalogProduct = async (medicineName) => {
+    const normalizedKey = normalizeMedicineName(medicineName);
+    if (!normalizedKey) return null;
+
+    if (catalogMatchCacheRef.current.has(normalizedKey)) {
+      return catalogMatchCacheRef.current.get(normalizedKey);
+    }
+
+    try {
+      const products = await fetchProducts({ search: medicineName, limit: 20 });
+      const match = pickBestCatalogMatch(medicineName, products);
+      catalogMatchCacheRef.current.set(normalizedKey, match || null);
+      return match || null;
+    } catch {
+      catalogMatchCacheRef.current.set(normalizedKey, null);
+      return null;
+    }
+  };
+
+  const prepareConfirmedMedicines = async (medicines = []) => {
+    const prepared = await Promise.all(
+      medicines.map(async (medicine, index) => {
+        const cartReady = toCartReadyMedicine(medicine, index);
+        if (isMongoObjectId(cartReady.productId || cartReady.id)) {
+          const validId = String(cartReady.productId || cartReady.id);
+          return {
+            ...cartReady,
+            productId: validId,
+            id: validId,
+            notInCatalog: false,
+          };
+        }
+
+        const match = await findCatalogProduct(medicine?.name || cartReady.name);
+        if (!match?._id) {
+          return {
+            ...cartReady,
+            notInCatalog: true,
+          };
+        }
+
+        const matchedId = String(match._id);
+        const matchedPrice = Number(match.price || 0);
+        const matchedMrp = Number(match.mrp || match.price || 0);
+
+        return {
+          ...cartReady,
+          id: matchedId,
+          productId: matchedId,
+          name: match.name || cartReady.name,
+          price: matchedPrice > 0 ? matchedPrice : cartReady.price,
+          mrp: matchedMrp > 0 ? matchedMrp : cartReady.mrp,
+          image: match.image || cartReady.image,
+          manufacturer: match.manufacturer || cartReady.manufacturer,
+          composition: match.composition || cartReady.composition,
+          strength: match.strength || cartReady.strength,
+          notInCatalog: false,
+        };
+      }),
+    );
+
+    return prepared;
+  };
+
+  const toStageFromStatus = (status) => {
+    const normalized = String(status || "")
+      .trim()
+      .toLowerCase();
+    if (normalized === "ai_reviewing") return "reviewing";
+    if (normalized === "awaiting_pharmacist") return "awaiting_pharmacist";
+    if (normalized === "ai_rejected") return "ai_rejected";
+    if (normalized === "rejected") return "rejected";
+    if (normalized === "expired") return "expired";
+    if (normalized === "approved") return "approved";
+    return "upload";
+  };
 
   const stageLabel = useMemo(() => {
     if (stage === "upload") return "Stage 1: Upload";
@@ -57,27 +222,59 @@ const AIPrescriptionScanner = () => {
     return "Prescription Verification";
   }, [stage]);
 
+  useEmergencySocket({
+    onPrescriptionUpdate: (payload) => {
+      if (!currentPrescriptionId) return;
+      const payloadPrescriptionId = payload?.prescriptionId;
+      if (
+        payloadPrescriptionId &&
+        String(payloadPrescriptionId) !== String(currentPrescriptionId)
+      ) {
+        return;
+      }
+
+      setSocketRefreshTick((value) => value + 1);
+    },
+  });
+
   useEffect(() => {
-    if (stage !== "awaiting_pharmacist") return undefined;
+    if (!currentPrescriptionId) return undefined;
+    if (!["reviewing", "awaiting_pharmacist"].includes(stage)) {
+      return undefined;
+    }
 
     let active = true;
     const poll = async () => {
       try {
-        const { data } = await fetchLatestPrescriptionStatus();
+        const { data } = await fetchPrescriptionStatusById(
+          currentPrescriptionId,
+        );
         if (!active || !data?.prescription) return;
 
-        if (data.prescription.status === "approved") {
-          setResult((prev) => ({
-            ...prev,
-            latestPrescription: data.prescription,
-          }));
-          setStage("approved");
-        } else if (data.prescription.status === "rejected") {
-          setResult((prev) => ({
-            ...prev,
-            latestPrescription: data.prescription,
-          }));
-          setStage("rejected");
+        const nextStatus = String(data.prescription.status || "").toLowerCase();
+
+        setResult((prev) => ({
+          ...prev,
+          latestPrescription: data.prescription,
+          status: data.prescription.status,
+        }));
+
+        const nextStage = toStageFromStatus(nextStatus);
+
+        if (nextStage === "approved") {
+          const extracted = Array.isArray(data.prescription.aiExtractedMedicines)
+            ? data.prescription.aiExtractedMedicines
+            : [];
+          const prepared = await prepareConfirmedMedicines(extracted);
+          if (!active) return;
+          setSelectedMeds(prepared);
+          setConfirming(true);
+          setStage("confirm");
+          return;
+        }
+
+        if (nextStage !== "upload") {
+          setStage(nextStage);
         }
       } catch (pollError) {
         // Keep silent to avoid noisy UI while polling.
@@ -85,20 +282,23 @@ const AIPrescriptionScanner = () => {
     };
 
     poll();
-    const interval = setInterval(poll, 10000);
+    const interval = setInterval(poll, stage === "reviewing" ? 4000 : 8000);
 
     return () => {
       active = false;
       clearInterval(interval);
     };
-  }, [stage]);
+  }, [stage, currentPrescriptionId, socketRefreshTick]);
 
   const reset = () => {
     setFile(null);
     setPreview(null);
     setError("");
     setResult(null);
+    setCurrentPrescriptionId(null);
     setStage("upload");
+    setConfirming(false);
+    setSelectedMeds([]);
   };
 
   const handleFileSelect = (selectedFile) => {
@@ -151,24 +351,20 @@ const AIPrescriptionScanner = () => {
       }
 
       setResult(data);
+      setCurrentPrescriptionId(data?.prescriptionId || null);
 
-      if (data.status === "ai_rejected") {
-        setStage("ai_rejected");
-      } else if (data.status === "rejected") {
-        setStage("rejected");
-      } else if (data.status === "expired") {
-        setStage("expired");
-      } else if (data.status === "awaiting_pharmacist") {
-        setStage("awaiting_pharmacist");
-      } else if (data.status === "approved") {
+      const initialStage = toStageFromStatus(data.status);
+
+      if (initialStage === "approved") {
         // Confirmation step: show confirmation UI instead of adding to cart
-        setSelectedMeds(
-          Array.isArray(data.medicines)
-            ? data.medicines.map((med) => ({ ...med, checked: true }))
-            : []
+        const prepared = await prepareConfirmedMedicines(
+          Array.isArray(data.medicines) ? data.medicines : [],
         );
+        setSelectedMeds(prepared);
         setConfirming(true);
         setStage("confirm");
+      } else if (initialStage !== "upload") {
+        setStage(initialStage);
       } else {
         setStage("upload");
         setError(data?.message || "Unexpected prescription status returned.");
@@ -197,14 +393,16 @@ const AIPrescriptionScanner = () => {
   };
   const handleToggleMed = (idx) => {
     setSelectedMeds((meds) =>
-      meds.map((med, i) => (i === idx ? { ...med, checked: !med.checked } : med))
+      meds.map((med, i) =>
+        i === idx ? { ...med, checked: !med.checked } : med,
+      ),
     );
   };
 
   // Add selected medicines to cart
   const handleAddToCart = () => {
     const medsToAdd = selectedMeds.filter((med) => med.checked);
-    medsToAdd.forEach((med) => addItem(med));
+    medsToAdd.forEach((med) => addItem(med, 1));
     toast.success(`Added ${medsToAdd.length} medicine(s) to cart!`);
     setTimeout(() => navigate("/cart"), 1500);
   };
@@ -249,8 +447,16 @@ const AIPrescriptionScanner = () => {
               {stage === "expired" && "Prescription expired"}
               {stage === "rejected" && "Rejected by pharmacist"}
               {stage === "approved" && "Approved"}
+              {stage === "confirm" && "Ready to confirm medicines"}
             </span>
           </div>
+
+          {currentPrescriptionId ? (
+            <p className="text-xs text-slate-400">
+              Tracking prescription: #
+              {String(currentPrescriptionId).slice(-8).toUpperCase()}
+            </p>
+          ) : null}
 
           {stage === "upload" && (
             <div className="grid md:grid-cols-2 gap-6">
@@ -486,14 +692,14 @@ const AIPrescriptionScanner = () => {
             </div>
           )}
 
-
           {/* Confirmation step UI */}
           {stage === "confirm" && (
             <div className="rounded-3xl border border-emerald-400/35 bg-emerald-500/10 p-8 space-y-6">
               <div className="mb-4">
                 <div className="rounded-t-xl bg-emerald-700/80 px-4 py-2 text-center">
                   <h2 className="text-lg font-bold text-white">
-                    AI found {selectedMeds.length} medicine{selectedMeds.length !== 1 ? "s" : ""} in your prescription
+                    AI found {selectedMeds.length} medicine
+                    {selectedMeds.length !== 1 ? "s" : ""} in your prescription
                   </h2>
                   <p className="text-emerald-100 text-sm">
                     Review and select which to add to cart
@@ -502,7 +708,10 @@ const AIPrescriptionScanner = () => {
               </div>
               <div className="space-y-3">
                 {selectedMeds.map((med, idx) => (
-                  <div key={med.name + idx} className="flex items-center gap-4 bg-slate-900/80 rounded-xl p-3">
+                  <div
+                    key={med.name + idx}
+                    className="flex items-center gap-4 bg-slate-900/80 rounded-xl p-3"
+                  >
                     <input
                       type="checkbox"
                       checked={!!med.checked}
@@ -511,16 +720,24 @@ const AIPrescriptionScanner = () => {
                       disabled={med.notInCatalog}
                     />
                     <div className="flex-1">
-                      <div className="font-bold text-white text-base">{med.name}</div>
+                      <div className="font-bold text-white text-base">
+                        {med.name}
+                      </div>
                       {med.dosage && (
-                        <div className="text-cyan-300 text-xs font-semibold">{med.dosage}</div>
+                        <div className="text-cyan-300 text-xs font-semibold">
+                          {med.dosage}
+                        </div>
                       )}
                       {med.quantity && (
-                        <div className="text-slate-400 text-xs">Qty: {med.quantity}</div>
+                        <div className="text-slate-400 text-xs">
+                          Qty: {med.quantity}
+                        </div>
                       )}
                     </div>
                     {med.notInCatalog ? (
-                      <span className="bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded">Not in catalog</span>
+                      <span className="bg-slate-700 text-slate-300 text-xs px-2 py-1 rounded">
+                        Not in catalog
+                      </span>
                     ) : (
                       <span className="text-emerald-200 text-xs font-bold">
                         ₹{med.price || med.mrp || "-"} In stock
@@ -530,18 +747,28 @@ const AIPrescriptionScanner = () => {
                 ))}
               </div>
               <div className="flex items-center gap-4 mt-2">
-                <button type="button" className="text-cyan-300 underline" onClick={handleSelectAll}>
+                <button
+                  type="button"
+                  className="text-cyan-300 underline"
+                  onClick={handleSelectAll}
+                >
                   Select All
                 </button>
-                <button type="button" className="text-cyan-300 underline" onClick={handleDeselectAll}>
+                <button
+                  type="button"
+                  className="text-cyan-300 underline"
+                  onClick={handleDeselectAll}
+                >
                   Deselect All
                 </button>
                 <span className="text-cyan-400 ml-2 text-sm font-semibold">
-                  {selectedMeds.filter((m) => m.checked).length} of {selectedMeds.length} selected
+                  {selectedMeds.filter((m) => m.checked).length} of{" "}
+                  {selectedMeds.length} selected
                 </span>
               </div>
               <div className="rounded-xl bg-amber-400/20 border border-amber-400/30 p-3 text-amber-200 text-sm font-semibold mt-4">
-                These medicines will be added to your cart. Prescription medicines still require pharmacist approval before checkout.
+                These medicines will be added to your cart. Prescription
+                medicines still require pharmacist approval before checkout.
               </div>
               <div className="flex flex-col md:flex-row gap-3 mt-6">
                 <button
@@ -550,7 +777,11 @@ const AIPrescriptionScanner = () => {
                   disabled={selectedMeds.filter((m) => m.checked).length === 0}
                   onClick={handleAddToCart}
                 >
-                  Add {selectedMeds.filter((m) => m.checked).length} Medicine{selectedMeds.filter((m) => m.checked).length !== 1 ? "s" : ""} to Cart
+                  Add {selectedMeds.filter((m) => m.checked).length} Medicine
+                  {selectedMeds.filter((m) => m.checked).length !== 1
+                    ? "s"
+                    : ""}{" "}
+                  to Cart
                 </button>
                 <button
                   type="button"

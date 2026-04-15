@@ -1,5 +1,8 @@
 import { Router } from "express";
 import {
+  getActiveTracking,
+  getOrderAgentLocation,
+  getMyOrders,
   listOrders,
   createOrder,
   updateOrderStatus,
@@ -12,7 +15,10 @@ import { requireRole } from "../middleware/roleMiddleware.js";
 
 const router = Router();
 router.get("/", authenticate, listOrders);
+router.get("/my-orders", authenticate, getMyOrders);
+router.get("/active-tracking", authenticate, getActiveTracking);
 router.post("/", authenticate, createOrder);
+router.get("/:orderId/agent-location", authenticate, getOrderAgentLocation);
 router.patch(
   "/:id/status",
   authenticate,

@@ -14,8 +14,7 @@ dotenv.config({
   ),
 });
 
-const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/swiftpharma";
+const MONGO_URI = process.env.MONGO_URI;
 
 // ── Schema definitions (inline to avoid import path issues) ────────────────
 const categorySchema = new mongoose.Schema(

@@ -3,6 +3,7 @@ import Order from "../models/Order.js";
 import User from "../models/User.js";
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
+import AgentLocation from "../models/AgentLocation.js";
 import fs from "fs";
 import path from "path";
 import {
@@ -14,6 +15,7 @@ import {
   ensureTrackingInitialized,
   appendTrackingEvent,
 } from "../utils/orderTracking.js";
+import { emitPrescriptionUpdate } from "../services/prescriptionEvents.js";
 
 const ORDER_STATUS_FLOW = [
   "pending",
@@ -40,6 +42,40 @@ const CANONICAL_TO_DB_STATUS = {
   out_for_delivery: "Out for Delivery",
   delivered: "Delivered",
   cancelled: "Cancelled",
+};
+
+const updateTimelineStages = ({ stages = [], approve = false }) => {
+  const now = new Date();
+  const stageMap = new Map(stages.map((stage) => [stage.stage, { ...stage }]));
+
+  const pharmacist = stageMap.get("pharmacist") || {
+    stage: "pharmacist",
+    status: "pending",
+    completedAt: null,
+    note: "Queued for pharmacist review",
+  };
+  pharmacist.status = "completed";
+  pharmacist.completedAt = now;
+  pharmacist.note = approve
+    ? "Reviewed by pharmacist and approved"
+    : "Reviewed by pharmacist and rejected";
+  stageMap.set("pharmacist", pharmacist);
+
+  const approved = stageMap.get("approved") || {
+    stage: "approved",
+    status: "pending",
+    completedAt: null,
+    note: "Awaiting final approval",
+  };
+  approved.status = approve ? "completed" : approved.status;
+  approved.completedAt = approve ? now : approved.completedAt;
+  approved.note = approve ? "Prescription approved" : approved.note;
+  stageMap.set("approved", approved);
+
+  const order = ["uploaded", "ocr", "ai", "pharmacist", "approved"];
+  return order
+    .map((stageKey) => stageMap.get(stageKey))
+    .filter(Boolean);
 };
 
 const normalizeStatusKey = (value) =>
@@ -98,6 +134,142 @@ const completedOrderStatuses = [
   "completed",
   "Completed",
 ];
+
+const getAutoAssignRadiusPolicyKm = () => {
+  const strictKm = Math.max(
+    1,
+    parseNumber(process.env.DELIVERY_AGENT_RADIUS_STRICT_KM, 10),
+  );
+  const defaultKm = Math.max(
+    strictKm,
+    parseNumber(process.env.DELIVERY_AGENT_RADIUS_DEFAULT_KM, 12),
+  );
+  const emergencyKm = Math.max(
+    defaultKm,
+    parseNumber(process.env.DELIVERY_AGENT_RADIUS_EMERGENCY_KM, 15),
+  );
+
+  return { strictKm, defaultKm, emergencyKm };
+};
+
+const estimateEtaMinutesFromDistanceKm = (distanceKm) => {
+  const speedKmPerHour = 22;
+  return Math.max(5, Math.ceil((Number(distanceKm || 0) / speedKmPerHour) * 60));
+};
+
+const autoAssignNearestDeliveryAgent = async (orderLike) => {
+  ensureTrackingInitialized(orderLike);
+
+  const destinationLat = Number(orderLike?.tracking?.destinationLocation?.lat);
+  const destinationLng = Number(orderLike?.tracking?.destinationLocation?.lng);
+
+  if (!Number.isFinite(destinationLat) || !Number.isFinite(destinationLng)) {
+    return {
+      assigned: false,
+      message: "Customer destination location is unavailable for this order",
+    };
+  }
+
+  const radiusPolicy = getAutoAssignRadiusPolicyKm();
+  const allowEmergency = parseBoolean(
+    String(process.env.DELIVERY_AGENT_ALLOW_EMERGENCY_DEFAULT ?? "true"),
+  );
+  const maxDistanceKm = allowEmergency
+    ? radiusPolicy.emergencyKm
+    : radiusPolicy.defaultKm;
+
+  const findNearestCandidate = async (maxDistanceMeters = null) => {
+    const geoNear = {
+      near: {
+        type: "Point",
+        coordinates: [destinationLng, destinationLat],
+      },
+      distanceField: "distanceMeters",
+      spherical: true,
+    };
+    if (Number.isFinite(maxDistanceMeters) && maxDistanceMeters > 0) {
+      geoNear.maxDistance = maxDistanceMeters;
+    }
+
+    const rows = await AgentLocation.aggregate([
+      {
+        $geoNear: geoNear,
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "agentId",
+          foreignField: "_id",
+          as: "agent",
+        },
+      },
+      { $unwind: "$agent" },
+      {
+        $match: {
+          "agent.role": "delivery",
+          "agent.suspended": { $ne: true },
+        },
+      },
+      { $sort: { distanceMeters: 1 } },
+      { $limit: 1 },
+    ]);
+
+    return rows[0] || null;
+  };
+
+  let selected = await findNearestCandidate(maxDistanceKm * 1000);
+  let outsideRadiusFallback = false;
+
+  if (!selected) {
+    const allowOutsideRadiusFallback = parseBoolean(
+      String(process.env.DELIVERY_AGENT_AUTO_ASSIGN_OUTSIDE_RADIUS ?? "true"),
+    );
+
+    if (allowOutsideRadiusFallback) {
+      selected = await findNearestCandidate();
+      outsideRadiusFallback = Boolean(selected);
+    }
+  }
+
+  if (!selected) {
+    return {
+      assigned: false,
+      message: `No nearby delivery agent found within ${maxDistanceKm} km of customer location`,
+    };
+  }
+
+  const distanceKm = Number((Number(selected.distanceMeters || 0) / 1000).toFixed(2));
+  const etaMinutes = estimateEtaMinutesFromDistanceKm(distanceKm);
+  const now = new Date();
+
+  orderLike.assignedAgent = selected.agent._id;
+  orderLike.tracking.deliveryAgentName = selected.agent.name;
+  orderLike.tracking.currentLocation = {
+    lat: Number(selected.location?.coordinates?.[1]),
+    lng: Number(selected.location?.coordinates?.[0]),
+    updatedAt: now,
+  };
+  orderLike.tracking.estimatedDeliveryTime = new Date(
+    now.getTime() + etaMinutes * 60 * 1000,
+  );
+
+  appendTrackingEvent(
+    orderLike,
+    "agent_assigned",
+    `Auto-assigned to ${selected.agent.name} (${distanceKm} km away${outsideRadiusFallback ? ", outside preferred radius" : ""}, ETA ~${etaMinutes} min)`,
+  );
+
+  return {
+    assigned: true,
+    agent: {
+      id: String(selected.agent._id),
+      name: selected.agent.name,
+      distanceKm,
+      etaMinutes,
+      outsideRadiusFallback,
+    },
+  };
+};
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
@@ -228,6 +400,16 @@ export const getPrescriptionQueue = async (req, res) => {
         aiExtractedMedicines: rx.aiExtractedMedicines || [],
         aiRejectionReason: rx.aiRejectionReason || null,
         aiFlags: rx.aiFlags || [],
+        doctorTrustScore: rx.doctorTrustScore ?? null,
+        handwritingMismatch: Boolean(rx.handwritingMismatch),
+        isDuplicateImage: Boolean(rx.isDuplicateImage),
+        duplicateOfPrescriptionId: rx.duplicateOfPrescriptionId || null,
+        geoFlag: Boolean(rx.geoFlag),
+        geoDistanceKm: rx.geoDistanceKm ?? null,
+        renewalRequested: Boolean(rx.renewalRequested),
+        renewalStatus: rx.renewalStatus || "none",
+        processingStages: rx.processingStages || [],
+        estimatedCompletionTime: rx.estimatedCompletionTime || null,
         doctorName: rx.doctorName || null,
         createdAt: rx.createdAt,
         user: {
@@ -458,16 +640,29 @@ export const adminListPrescriptions = async (req, res) => {
 
 export const approvePrescription = async (req, res) => {
   try {
+    const current = await Prescription.findById(req.params.id);
+    if (!current) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Prescription not found" });
+    }
+
+    const now = new Date();
     const updated = await Prescription.findByIdAndUpdate(
       req.params.id,
       {
         status: "approved",
-        approvedAt: new Date(),
+        approvedAt: now,
         rejectedAt: null,
         pharmacistNotes: req.body.notes || "",
         aiRejectionReason: null,
         isExpired: false,
         reviewedBy: req.user._id,
+        estimatedCompletionTime: now,
+        processingStages: updateTimelineStages({
+          stages: current.processingStages,
+          approve: true,
+        }),
       },
       { new: true },
     );
@@ -477,6 +672,13 @@ export const approvePrescription = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Prescription not found" });
     }
+
+    await emitPrescriptionUpdate({
+      userId: updated.userId,
+      prescriptionId: updated._id,
+      reason: "approved",
+      payload: { status: updated.status },
+    });
 
     return res.json({ success: true, prescription: updated });
   } catch (error) {
@@ -498,6 +700,13 @@ export const rejectPrescription = async (req, res) => {
         .json({ success: false, message: "Rejection reason is required" });
     }
 
+    const current = await Prescription.findById(req.params.id);
+    if (!current) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Prescription not found" });
+    }
+
     const updated = await Prescription.findByIdAndUpdate(
       req.params.id,
       {
@@ -507,6 +716,10 @@ export const rejectPrescription = async (req, res) => {
         pharmacistNotes: reason,
         aiRejectionReason: reason,
         reviewedBy: req.user._id,
+        processingStages: updateTimelineStages({
+          stages: current.processingStages,
+          approve: false,
+        }),
       },
       { new: true },
     );
@@ -516,6 +729,16 @@ export const rejectPrescription = async (req, res) => {
         .status(404)
         .json({ success: false, message: "Prescription not found" });
     }
+
+    await emitPrescriptionUpdate({
+      userId: updated.userId,
+      prescriptionId: updated._id,
+      reason: "anomaly",
+      payload: {
+        status: updated.status,
+        reason,
+      },
+    });
 
     return res.json({ success: true, prescription: updated });
   } catch (error) {
@@ -609,6 +832,18 @@ const mapOrderForAdmin = (order) => {
       amount:
         parseNumber(data?.payment?.amount, NaN) ||
         (parseNumber(data?.payment?.amount, NaN) === 0 ? 0 : computedAmount),
+    },
+    assignedAgent: data?.assignedAgent
+      ? {
+          _id: data.assignedAgent?._id || data.assignedAgent,
+          name: data.assignedAgent?.name || data?.tracking?.deliveryAgentName || null,
+        }
+      : null,
+    tracking: {
+      deliveryAgentName: data?.tracking?.deliveryAgentName || null,
+      estimatedDeliveryTime: data?.tracking?.estimatedDeliveryTime || null,
+      destinationLocation: data?.tracking?.destinationLocation || null,
+      currentLocation: data?.tracking?.currentLocation || null,
     },
     prescriptionId: data?.prescriptionId || null,
     statusHistory,
@@ -710,7 +945,8 @@ export const getAdminOrderById = async (req, res) => {
     const order = await Order.findById(req.params.id)
       .populate("user", "name email phone")
       .populate("items.product", "name isRx prescriptionRequired")
-      .populate("prescriptionId", "_id status createdAt");
+      .populate("prescriptionId", "_id status createdAt")
+      .populate("assignedAgent", "name");
 
     if (!order) {
       return res
@@ -741,7 +977,8 @@ export const updateAdminOrderStatus = async (req, res) => {
     const order = await Order.findById(req.params.id)
       .populate("user", "name email phone")
       .populate("items.product", "name isRx prescriptionRequired")
-      .populate("prescriptionId", "_id status createdAt");
+      .populate("prescriptionId", "_id status createdAt")
+      .populate("assignedAgent", "name");
 
     if (!order) {
       return res
@@ -768,8 +1005,20 @@ export const updateAdminOrderStatus = async (req, res) => {
       changedAt: new Date(),
     });
 
+    let autoAssignment = null;
     if (nextStatus === "out_for_delivery") {
       ensureTrackingInitialized(order);
+
+      autoAssignment = await autoAssignNearestDeliveryAgent(order);
+      if (!autoAssignment?.assigned) {
+        return res.status(400).json({
+          success: false,
+          message:
+            autoAssignment?.message ||
+            "No nearby delivery partner available for this order",
+        });
+      }
+
       if (note) {
         appendTrackingEvent(order, "dispatch_note", note);
       }
@@ -791,7 +1040,11 @@ export const updateAdminOrderStatus = async (req, res) => {
 
     await order.save();
 
-    return res.json({ success: true, order: mapOrderForAdmin(order) });
+    return res.json({
+      success: true,
+      order: mapOrderForAdmin(order),
+      autoAssignment,
+    });
   } catch (error) {
     console.error("updateAdminOrderStatus error", error);
     return res

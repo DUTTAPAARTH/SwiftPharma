@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  askAIPrompt,
   scanPrescription,
   retryExtraction,
 } from "../controllers/aiScanController.js";
@@ -29,12 +30,14 @@ const upload = multer({
 
 const router = express.Router();
 
+router.post("/", authenticate, askAIPrompt);
+
 // AI prescription scan endpoint - REQUIRES AUTHENTICATION
 router.post(
   "/scan-prescription",
   upload.single("image"),
   authenticate,
-  scanPrescription
+  scanPrescription,
 );
 
 // Retry extraction with manual OCR text - REQUIRES AUTHENTICATION

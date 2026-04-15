@@ -149,6 +149,18 @@ const normalizeReminderInput = (body = {}, { partial = false } = {}) => {
     payload.frequency = String(body.frequency || "daily");
   if (body.color !== undefined) payload.color = normalizeColor(body.color);
   if (body.withFood !== undefined) payload.withFood = Boolean(body.withFood);
+  if (body.isCritical !== undefined) {
+    payload.isCritical = Boolean(body.isCritical);
+  }
+  if (body.escalationWindowMinutes !== undefined) {
+    const windowMinutes = Math.floor(
+      clampNumber(body.escalationWindowMinutes, 30),
+    );
+    payload.escalationWindowMinutes = Math.max(5, Math.min(180, windowMinutes));
+  }
+  if (body.caregiverId !== undefined) {
+    payload.caregiverId = body.caregiverId || null;
+  }
   if (body.currentStock !== undefined) {
     payload.currentStock = Math.max(
       0,

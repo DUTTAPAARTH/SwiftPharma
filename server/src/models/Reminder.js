@@ -41,6 +41,15 @@ const reminderSchema = new mongoose.Schema(
     refillReminderAt: { type: Number, default: 5 },
     currentStock: { type: Number, default: 0 },
     doseLog: [doseLogSchema],
+    isCritical: { type: Boolean, default: false, index: true },
+    escalationWindowMinutes: { type: Number, default: 30 },
+    caregiverId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    lastAcknowledgedAt: { type: Date, default: null },
+    missedCount: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

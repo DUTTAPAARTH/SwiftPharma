@@ -23,15 +23,28 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
+    let mounted = true;
+    let pollId;
+
     const load = async () => {
       try {
         const { data } = await fetchOrders();
+        if (!mounted) return;
         setOrders(normalizeOrders(data));
       } catch (_) {
+        if (!mounted) return;
         setOrders([]);
       }
     };
+
     load();
+
+    pollId = window.setInterval(load, 10000);
+
+    return () => {
+      mounted = false;
+      if (pollId) window.clearInterval(pollId);
+    };
   }, []);
 
   return (
@@ -189,16 +202,17 @@ const Orders = () => {
                           : status === "out_for_delivery"
                             ? 3
                             : 2;
-                      return <OrderTrackingTimeline currentStep={step} />;
 
-                      {
-                        normalizeStatus(order.status) ===
-                          "out_for_delivery" && (
-                          <div className="px-6 pb-4">
-                            <LiveMapEmbed orderId={order._id} />
-                          </div>
-                        );
-                      }
+                      return (
+                        <>
+                          <OrderTrackingTimeline currentStep={step} />
+                          {status === "out_for_delivery" ? (
+                            <div className="mt-6 px-2 pb-2">
+                              <LiveMapEmbed orderId={order._id} />
+                            </div>
+                          ) : null}
+                        </>
+                      );
                     })()}
                   </div>
 

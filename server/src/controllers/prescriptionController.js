@@ -7,6 +7,7 @@ import { uploadBufferToCloudinary } from "../services/uploadService.js";
 import { parsePrescriptionOCR } from "../services/prescriptionParser.js";
 import { filterMedicineLines } from "../services/lineFilter.js";
 import { getPrescriptionLifecycleState } from "../utils/prescriptionLifecycle.js";
+import { emitPrescriptionUpdate } from "../services/prescriptionEvents.js";
 
 const uploadsDir = path.resolve(process.cwd(), "uploads", "prescriptions");
 const ensureUploadsDir = async () => {
@@ -1037,6 +1038,45 @@ const requireOcrText = (ocrText, res) => {
   return clean;
 };
 
+const buildInitialTimeline = () => {
+  const now = new Date();
+  return {
+    processingStages: [
+      {
+        stage: "uploaded",
+        status: "completed",
+        completedAt: now,
+        note: "Prescription image uploaded",
+      },
+      {
+        stage: "ocr",
+        status: "completed",
+        completedAt: now,
+        note: "OCR extraction completed",
+      },
+      {
+        stage: "ai",
+        status: "pending",
+        completedAt: null,
+        note: "AI validation pending",
+      },
+      {
+        stage: "pharmacist",
+        status: "pending",
+        completedAt: null,
+        note: "Queued for pharmacist review",
+      },
+      {
+        stage: "approved",
+        status: "pending",
+        completedAt: null,
+        note: "Awaiting final approval",
+      },
+    ],
+    estimatedCompletionTime: new Date(now.getTime() + 30 * 60 * 1000),
+  };
+};
+
 export const uploadPrescription = async (req, res) => {
   try {
     await ensureUploadsDir();
@@ -1098,6 +1138,14 @@ export const uploadPrescription = async (req, res) => {
       isExpired: false,
       medicines,
       status: "pending",
+      ...buildInitialTimeline(),
+    });
+
+    await emitPrescriptionUpdate({
+      userId: req.user.id,
+      prescriptionId: prescription._id,
+      reason: "upload",
+      payload: { status: prescription.status },
     });
 
     return res.status(201).json(
@@ -1259,11 +1307,20 @@ export const reuploadPrescription = async (req, res) => {
         isExpired: false,
         status: "pending",
         medicines,
+        ...buildInitialTimeline(),
       },
       { new: true },
     );
 
     if (!updated) return res.status(404).json({ message: "Not found" });
+
+    await emitPrescriptionUpdate({
+      userId: req.user.id,
+      prescriptionId: updated._id,
+      reason: "upload",
+      payload: { status: updated.status, reupload: true },
+    });
+
     return res.json(
       buildResponse(updated, { ocrText, doctorName, issueDate, medicines }),
     );
@@ -1318,6 +1375,54 @@ export const matchPrescriptionForOrder = async (prescriptionId, userId) => {
   if (lifecycle.status !== "approved")
     return { ok: false, reason: "Prescription expired" };
   return { ok: true, prescription };
+};
+
+export const requestPrescriptionRenewal = async (req, res) => {
+  try {
+    const prescription = await Prescription.findById(req.params.id);
+    if (!prescription) {
+      return res.status(404).json({ success: false, message: "Not found" });
+    }
+
+    if (String(prescription.userId) !== String(req.user.id)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only request renewal for your own prescription",
+      });
+    }
+
+    prescription.renewalRequested = true;
+    prescription.renewalRequestedAt = new Date();
+    prescription.renewalStatus = "pending";
+    prescription.estimatedCompletionTime = new Date(
+      Date.now() + 24 * 60 * 60 * 1000,
+    );
+
+    await prescription.save();
+
+    await emitPrescriptionUpdate({
+      userId: req.user.id,
+      prescriptionId: prescription._id,
+      reason: "renewal",
+      payload: {
+        status: prescription.status,
+        renewalRequested: true,
+        renewalStatus: prescription.renewalStatus,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: "Renewal request submitted",
+      prescription,
+    });
+  } catch (error) {
+    console.error("requestPrescriptionRenewal error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to request renewal",
+    });
+  }
 };
 
 // Test OCR endpoint

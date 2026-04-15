@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import http from "http";
 
 dotenv.config({ path: ".env" });
 console.log(
@@ -9,27 +10,32 @@ console.log(
 // Important: load env before importing app/config modules that read process.env
 const { default: app, startAppServices } = await import("./src/app.js");
 const { default: connectDB } = await import("./src/config/db.js");
+const { initSocket } = await import("./src/socket.js");
+const { startEmergencyExpiryJob } =
+  await import("./src/jobs/emergencyExpiry.js");
+const { startEmergencyEscalationJob } =
+  await import("./src/jobs/emergencyEscalation.js");
+const { startVaultReminderJob } = await import("./src/jobs/vaultReminder.js");
+const { startDoseEscalationJob } = await import("./src/jobs/doseEscalation.js");
 
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB and start server
 const startServer = async () => {
   try {
-    // Try to connect to MongoDB
-    try {
-      await connectDB();
-      console.log("✅ MongoDB connected successfully");
-      startAppServices();
-    } catch (dbError) {
-      console.warn("⚠️  MongoDB connection failed - running without database");
-      console.warn("   Make sure MongoDB is installed and running locally");
-      console.warn(
-        "   or update MONGO_URI in .env with a valid connection string",
-      );
-    }
+    await connectDB();
+    startAppServices();
 
-    // Start Express server
-    const server = app.listen(PORT, () => {
+    // Start Express server via HTTP server so Socket.IO can attach
+    const server = http.createServer(app);
+    initSocket(server);
+
+    startEmergencyExpiryJob();
+    startEmergencyEscalationJob();
+    startVaultReminderJob();
+    startDoseEscalationJob();
+
+    server.listen(PORT, () => {
       console.log(`🚀 SwiftPharma API running on http://localhost:${PORT}`);
       console.log(`📋 Health check: http://localhost:${PORT}/health`);
       console.log(`🔗 Auth endpoints: http://localhost:${PORT}/api/auth/*`);

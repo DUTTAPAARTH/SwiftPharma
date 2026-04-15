@@ -7,7 +7,7 @@ import { useCart } from "../../hooks/useCart";
 const links = [
   { href: "/home", label: "Home", icon: "home" },
   { href: "/categories", label: "Categories", icon: "category" },
-  { href: "/ai-assistant", label: "AI Assistant", icon: "smart_toy" },
+  { href: "/health-companion", label: "Health AI", icon: "health_and_safety" },
   { href: "/ai-prescription", label: "Prescriptions", icon: "prescriptions" },
   { href: "/prescription-status", label: "Rx Status", icon: "fact_check" },
   { href: "/subscriptions", label: "Subscriptions", icon: "autorenew" },
@@ -18,6 +18,7 @@ const links = [
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { user, logout } = useContext(AuthContext);
   const { cartCount } = useCart();
@@ -38,7 +39,7 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="fixed top-0 left-0 w-full z-50 px-4 sm:px-6 lg:px-8 py-4 pointer-events-none">
+    <div className="fixed top-0 left-0 w-full z-[2000] px-4 sm:px-6 lg:px-8 py-4 pointer-events-none">
       <header
         className={`mx-auto max-w-[1280px] pointer-events-auto transition-all duration-500 rounded-[24px] border ${
           scrolled
@@ -103,9 +104,9 @@ const Navbar = () => {
             </Link>
 
             {user ? (
-              <div className="flex items-center gap-3 pl-2">
-                <Link
-                  to="/profile"
+              <div className="flex items-center gap-3 pl-2 relative">
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center gap-3 p-1 pr-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 transition-all group"
                 >
                   <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-500">
@@ -116,7 +117,46 @@ const Navbar = () => {
                   <span className="hidden sm:block text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">
                     {user.name?.split(" ")[0] || "User"}
                   </span>
-                </Link>
+                </button>
+                {profileOpen && (
+                  <div className="absolute top-14 right-0 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 min-w-48 z-[2100]">
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="block px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Profile
+                    </Link>
+                    <Link
+                      to="/orders"
+                      onClick={() => setProfileOpen(false)}
+                      className="block px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Orders
+                    </Link>
+                    <Link
+                      to="/health-companion"
+                      onClick={() => setProfileOpen(false)}
+                      className="block px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Health Companion
+                    </Link>
+                    <Link
+                      to="/caregiver"
+                      onClick={() => setProfileOpen(false)}
+                      className="block px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Caregiver Settings
+                    </Link>
+                    <Link
+                      to="/dose-history"
+                      onClick={() => setProfileOpen(false)}
+                      className="block px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      Dose History
+                    </Link>
+                  </div>
+                )}
                 <button
                   onClick={handleLogout}
                   className="size-11 flex items-center justify-center rounded-2xl text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all"
@@ -149,7 +189,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {open && (
-        <div className="mt-3 mx-auto max-w-[1280px] pointer-events-auto lg:hidden animate-in slide-in-from-top duration-300">
+        <div className="mt-3 mx-auto max-w-[1280px] pointer-events-auto lg:hidden animate-in slide-in-from-top duration-300 z-[2100] relative">
           <nav className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl p-3 border border-slate-100 dark:border-slate-800 shadow-xl space-y-1">
             {links.map((link) => (
               <Link
