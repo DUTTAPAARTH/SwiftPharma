@@ -12,6 +12,7 @@ import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import AIPrescriptionScanner from "./pages/AIPrescriptionScanner";
 import PrescriptionStatus from "./pages/PrescriptionStatus";
+import DoctorLiveConsultationDemo from "./pages/DoctorLiveConsultationDemo";
 import ChatPage from "./components/ChatPage";
 import HealthCompanionDock from "./components/HealthCompanionDock";
 import DeliveryDashboard from "./pages/DeliveryDashboard";
@@ -151,6 +152,10 @@ const RoutesConfig = () => (
       <Route
         path="/health-companion"
         element={withProtectedBoundary(<ChatPage />)}
+      />
+      <Route
+        path="/doctor-live-demo"
+        element={withProtectedBoundary(<DoctorLiveConsultationDemo />)}
       />
 
       {/* Admin protected routes */}

@@ -47,6 +47,7 @@ const HealthCompanionPanel = ({
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [switchingSession, setSwitchingSession] = useState(false);
   const [mentionBanner, setMentionBanner] = useState(null);
+  const [showProfile, setShowProfile] = useState(!compact);
 
   const messagesRef = useRef(null);
 
@@ -80,6 +81,16 @@ const HealthCompanionPanel = ({
     if (!messagesRef.current) return;
     messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
   }, [messages]);
+
+  useEffect(() => {
+    if (compact) {
+      setShowProfile(false);
+      return;
+    }
+    if (fullPage) {
+      setShowProfile(true);
+    }
+  }, [compact, fullPage]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -414,14 +425,21 @@ const HealthCompanionPanel = ({
       aria-hidden={!fullPage && !isOpen}
     >
       <div
-        className={`h-full rounded-[28px] ${panelShellClass} overflow-hidden flex flex-col md:flex-row ${
+        className={`h-full rounded-[28px] ${panelShellClass} overflow-hidden min-h-0 ${
           fullPage
             ? "min-h-[70vh]"
             : "w-full h-[84vh] max-h-[84vh] md:h-[80vh] md:max-h-[80vh]"
         }`}
       >
-        {!compact ? (
-          <aside className="hidden md:block w-[320px] border-r border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 overflow-y-auto">
+        <div
+          className={`grid h-full min-h-0 ${
+            !compact && showProfile
+              ? "grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)]"
+              : "grid-cols-1"
+          }`}
+        >
+        {!compact && showProfile ? (
+          <aside className="order-1 border-b lg:border-b-0 lg:border-r border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 overflow-y-auto max-h-[42vh] lg:max-h-none">
             <h2 className="text-lg font-black text-white">
               Health Profile
             </h2>
@@ -439,18 +457,37 @@ const HealthCompanionPanel = ({
           </aside>
         ) : null}
 
-        <div className="flex-1 flex flex-col min-h-0 bg-[radial-gradient(circle_at_top_left,rgba(19,182,236,0.12),transparent_32%),linear-gradient(180deg,rgba(8,17,35,0.92),rgba(13,24,46,0.96))]">
-          <header className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base md:text-lg font-black text-white">
+        <div className="order-2 flex flex-col min-h-0 overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(19,182,236,0.12),transparent_32%),linear-gradient(180deg,rgba(8,17,35,0.92),rgba(13,24,46,0.96))]">
+          <header className="px-3 md:px-4 py-3 border-b border-white/10">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base md:text-lg font-black text-white">
                 Personal Health AI Companion
-              </h3>
-              <p className="text-xs md:text-sm text-slate-400">
-                Memory is {hasSetup ? "active" : "limited until profile setup"}.
-              </p>
+                </h3>
+                <p className="text-xs md:text-sm text-slate-400">
+                  Memory is {hasSetup ? "active" : "limited until profile setup"}.
+                </p>
+              </div>
+
+              <button
+                onClick={handleEndSession}
+                disabled={!session?.isActive || streaming}
+                className="shrink-0 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-60"
+              >
+                End Session
+              </button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {!compact ? (
+                <button
+                  type="button"
+                  onClick={() => setShowProfile((prev) => !prev)}
+                  className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/5"
+                >
+                  {showProfile ? "Hide Profile" : "Show Profile"}
+                </button>
+              ) : null}
               {compact ? (
                 <Link
                   to="/health-companion"
@@ -468,22 +505,15 @@ const HealthCompanionPanel = ({
                   Close
                 </button>
               ) : null}
-              <button
-                onClick={handleEndSession}
-                disabled={!session?.isActive || streaming}
-                className="rounded-lg border border-white/10 px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-white/5 disabled:opacity-60"
-              >
-                End Session
-              </button>
             </div>
           </header>
 
-          <div className="px-4 pt-3 flex items-center gap-2 overflow-x-auto pb-1">
+          <div className="px-3 md:px-4 pt-2 flex flex-wrap md:flex-nowrap items-center gap-2 md:overflow-x-auto pb-1">
             <button
               type="button"
               onClick={handleNewSession}
               disabled={streaming || switchingSession}
-              className="shrink-0 rounded-full border border-teal-600 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100 disabled:opacity-60"
+              className="rounded-full border border-teal-600 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-100 disabled:opacity-60"
             >
               + New Chat
             </button>
@@ -497,7 +527,7 @@ const HealthCompanionPanel = ({
                   type="button"
                   onClick={() => handleSwitchSession(item._id)}
                   disabled={streaming || switchingSession}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors disabled:opacity-60 ${
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors disabled:opacity-60 ${
                     selected
                       ? "bg-white text-slate-900 border-white"
                       : "bg-white/5 text-slate-200 border-white/10 hover:bg-white/10"
@@ -513,15 +543,15 @@ const HealthCompanionPanel = ({
           </div>
 
           {sessionsLoading || switchingSession ? (
-            <p className="px-4 mt-1 text-xs text-slate-400">Updating chat history...</p>
+            <p className="px-3 md:px-4 mt-1 text-xs text-slate-400">Updating chat history...</p>
           ) : null}
 
           {mentionBanner?.mentions?.length ? (
-            <div className="mx-4 mt-3 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3">
+            <div className="mx-3 md:mx-4 mt-2 rounded-xl border border-amber-400/30 bg-amber-500/10 p-3">
               <p className="text-sm font-semibold text-amber-100">
                 I detected potential health memory mentions: {mentionBanner.mentions.join(", ")}
               </p>
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   onClick={() => handleConfirmAllMentions(true)}
                   className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-slate-950"
@@ -540,7 +570,7 @@ const HealthCompanionPanel = ({
 
           <div
             ref={messagesRef}
-            className="mx-4 mt-3 flex-1 overflow-y-auto space-y-3 rounded-xl bg-white/5 p-3 border border-white/10"
+            className="mx-3 md:mx-4 mt-2 flex-1 overflow-y-auto space-y-2 rounded-xl bg-white/5 p-2.5 md:p-3 border border-white/10"
           >
             {messages.length === 0 ? (
               <p className="text-sm text-slate-400">
@@ -558,26 +588,27 @@ const HealthCompanionPanel = ({
             )}
           </div>
 
-          <div className="mx-4 mt-3 mb-4 flex gap-2">
+          <div className="mx-3 md:mx-4 mt-2 mb-3 flex flex-col sm:flex-row gap-2">
             <textarea
               rows={2}
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder="Ask about symptoms, interactions, lifestyle, medicine safety..."
-              className="flex-1 resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+              className="w-full flex-1 resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500"
             />
             <button
               onClick={onSend}
               disabled={streaming || !input.trim()}
-              className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60"
+              className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:opacity-60 sm:self-auto"
             >
               {streaming ? "Streaming..." : "Send"}
             </button>
           </div>
 
-          <p className="px-4 pb-4 text-xs text-slate-400">
+          <p className="px-3 md:px-4 pb-3 text-xs text-slate-400">
             This companion provides educational guidance and cannot replace a licensed clinician.
           </p>
+        </div>
         </div>
       </div>
     </section>
