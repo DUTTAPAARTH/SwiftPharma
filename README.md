@@ -2,7 +2,7 @@
 
 🏥 A modern, full-stack online pharmacy delivery platform inspired by Blinkit, designed for the Indian market with a focus on fast delivery, verified products, and user privacy.
 
-**Live Demo**: [swift-pharma-client.vercel.app](https://swift-pharma-client.vercel.app) &nbsp;|&nbsp; **API**: [swiftpharma.onrender.com](https://swiftpharma.onrender.com/health)
+**Live Demo**: [swift-pharma-client.vercel.app](https://swift-pharma-client.vercel.app)
 
 ---
 
