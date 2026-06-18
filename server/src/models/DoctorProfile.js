@@ -8,7 +8,6 @@ const doctorProfileSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: undefined,
-      index: true,
       sparse: true,
     },
     handwritingPatternHash: { type: String, trim: true, default: "" },
