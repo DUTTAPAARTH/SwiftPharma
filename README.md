@@ -1,6 +1,6 @@
-# SwiftPharma
+# SwiftPharma — Fast & Reliable Medicine Delivery
 
-> Fast, reliable medicine delivery — built for India.
+🏥 A modern, full-stack online pharmacy delivery platform inspired by Blinkit, designed for the Indian market with a focus on fast delivery, verified products, and user privacy.
 
 **Live Demo**: [swift-pharma-client.vercel.app](https://swift-pharma-client.vercel.app) &nbsp;|&nbsp; **API**: [swiftpharma.onrender.com](https://swiftpharma.onrender.com/health)
 
