@@ -1,7 +1,54 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
+
+/* ── Google Maps-style popup CSS ────────────────────────────────────────── */
+const HERO_POPUP_CSS = `
+  .hero-map-popup .leaflet-popup-content-wrapper {
+    background: rgba(15,23,42,0.96);
+    border: 1px solid rgba(99,102,241,0.35);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+    padding: 0;
+    overflow: hidden;
+    min-width: 200px;
+    backdrop-filter: blur(12px);
+  }
+  .hero-map-popup .leaflet-popup-content { margin: 0; padding: 0; }
+  .hero-map-popup .leaflet-popup-tip-container { display: none; }
+  .hero-map-popup .leaflet-popup-close-button {
+    color: #94a3b8 !important; font-size: 18px !important;
+    top: 8px !important; right: 10px !important; z-index: 10;
+  }
+  .hero-map-popup .leaflet-popup-close-button:hover { color: #fff !important; }
+  .hpcard { font-family: system-ui, sans-serif; }
+  .hpcard-head { padding: 11px 14px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .hpcard-title { font-size: 13px; font-weight: 800; color: #e2e8f0; margin: 0 0 2px; }
+  .hpcard-sub   { font-size: 11px; color: #64748b; margin: 0; }
+  .hpcard-body  { padding: 8px 14px 11px; }
+  .hpcard-row   { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 4px;
+                  font-size: 11.5px; color: #94a3b8; line-height: 1.4; }
+  .hpcard-icon  { flex-shrink: 0; font-size: 12px; margin-top: 1px; }
+  .hpcard-badge { display: inline-block; border-radius: 6px; padding: 1px 8px;
+                  font-size: 10px; font-weight: 700; letter-spacing: .05em;
+                  text-transform: uppercase; margin-top: 5px; }
+  .hpcard-badge.cyan   { background: rgba(6,182,212,.15); color: #06b6d4; }
+  .hpcard-badge.green  { background: rgba(34,197,94,.15);  color: #22c55e; }
+  .hpcard-badge.violet { background: rgba(139,92,246,.15); color: #a78bfa; }
+`;
+
+function InjectHeroPopupStyles() {
+  useEffect(() => {
+    const id = "hero-map-popup-styles";
+    if (document.getElementById(id)) return;
+    const el = document.createElement("style");
+    el.id = id;
+    el.textContent = HERO_POPUP_CSS;
+    document.head.appendChild(el);
+  }, []);
+  return null;
+}
 
 const userIcon = L.divIcon({
   className: "hero-user-marker-shell",
@@ -17,6 +64,26 @@ const agentIcon = L.divIcon({
   iconAnchor: [14, 14],
 });
 
+
+
+/* Non-passive wheel zoom for the Hero map */
+const WheelZoomController = () => {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    map.scrollWheelZoom.disable();
+    const onWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.deltaY < 0) map.zoomIn(1, { animate: true });
+      else map.zoomOut(1, { animate: true });
+    };
+    container.addEventListener("wheel", onWheel, { passive: false });
+    return () => container.removeEventListener("wheel", onWheel);
+  }, [map]);
+  return null;
+};
+
 const MapViewportController = ({ userLocation, agentLocation }) => {
   const map = useMap();
 
@@ -30,21 +97,15 @@ const MapViewportController = ({ userLocation, agentLocation }) => {
         ? [Number(agentLocation.lat), Number(agentLocation.lng)]
         : null;
 
-    if (userPoint && agentPoint) {
-      map.fitBounds([userPoint, agentPoint], {
-        padding: [40, 40],
-        maxZoom: 16,
-      });
+    const allPoints = [userPoint, agentPoint].filter(Boolean);
+
+    if (allPoints.length >= 2) {
+      map.fitBounds(allPoints, { padding: [50, 50], maxZoom: 14, animate: true });
       return;
     }
 
-    if (userPoint) {
-      map.setView(userPoint, 15, { animate: true });
-      return;
-    }
-
-    if (agentPoint) {
-      map.setView(agentPoint, 14, { animate: true });
+    if (allPoints.length === 1) {
+      map.setView(allPoints[0], 13, { animate: true });
     }
   }, [
     map,
@@ -192,6 +253,8 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                <WheelZoomController />
+                <InjectHeroPopupStyles />
 
                 <MapViewportController
                   userLocation={userLocation}
@@ -209,7 +272,31 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
                   <Marker
                     position={[userLocation.lat, userLocation.lng]}
                     icon={userIcon}
-                  />
+                  >
+                    <Popup className="hero-map-popup" maxWidth={240}>
+                      <div className="hpcard">
+                        <div className="hpcard-head">
+                          <p className="hpcard-title">📍 Your Location</p>
+                          <p className="hpcard-sub">Live GPS position</p>
+                        </div>
+                        <div className="hpcard-body">
+                          <div className="hpcard-row">
+                            <span className="hpcard-icon">🌐</span>
+                            <span style={{fontSize:'10px',opacity:.7}}>
+                              {userLocation.lat.toFixed(5)}, {userLocation.lng.toFixed(5)}
+                            </span>
+                          </div>
+                          {userLocation.accuracy > 0 && (
+                            <div className="hpcard-row">
+                              <span className="hpcard-icon">🎯</span>
+                              <span>Accuracy ~{Math.round(userLocation.accuracy)} m</span>
+                            </div>
+                          )}
+                          <span className="hpcard-badge violet">You are here</span>
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
                 ) : null}
 
                 {hasActiveTracking &&
@@ -221,13 +308,37 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
                       Number(agentLocation.lng),
                     ]}
                     icon={agentIcon}
-                  />
+                  >
+                    <Popup className="hero-map-popup" maxWidth={240}>
+                      <div className="hpcard">
+                        <div className="hpcard-head">
+                          <p className="hpcard-title">🛵 Delivery Agent</p>
+                          <p className="hpcard-sub">SwiftPharma Rider</p>
+                        </div>
+                        <div className="hpcard-body">
+                          <div className="hpcard-row">
+                            <span className="hpcard-icon">📦</span>
+                            <span>Your order is on the way</span>
+                          </div>
+                          <div className="hpcard-row">
+                            <span className="hpcard-icon">📡</span>
+                            <span style={{fontSize:'10px',opacity:.7}}>
+                              {Number(agentLocation.lat).toFixed(5)}, {Number(agentLocation.lng).toFixed(5)}
+                            </span>
+                          </div>
+                          <span className="hpcard-badge green">Live tracking</span>
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
                 ) : null}
+
+
               </MapContainer>
 
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-blue-500/10"></div>
 
-              <div className="absolute bottom-4 left-4 right-4 z-[500] rounded-2xl border border-white/30 bg-white/85 p-3 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/85">
+              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-[500] rounded-2xl border border-white/30 bg-white/85 p-3 backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/85">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                   Live location
                 </p>

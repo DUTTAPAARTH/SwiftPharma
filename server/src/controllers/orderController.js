@@ -423,6 +423,40 @@ export const createOrder = async (req, res) => {
       prescriptionId: compliance.prescriptionId || prescriptionId || null,
     });
 
+    // ── Auto-advance to Out for Delivery with tracking initialised ──────────
+    // This gives every new order a live tracking map immediately (demo mode).
+    // Skip if the env flag DEMO_AUTO_DISPATCH=false is explicitly set.
+    const autoDispatch = process.env.DEMO_AUTO_DISPATCH !== "false";
+    if (autoDispatch) {
+      order.status = "Out for Delivery";
+      ensureTrackingInitialized(order);
+
+      // If user supplied a delivery location, keep it as destination
+      if (hasValidDeliveryLocation) {
+        order.tracking.destinationLocation = { lat: deliveryLat, lng: deliveryLng };
+      }
+
+      const AGENT_NAMES = [
+        "Rajesh Kumar", "Amit Sharma", "Priya Singh",
+        "Sunil Das", "Mohan Roy", "Deepa Verma",
+      ];
+      if (!order.tracking.deliveryAgentName) {
+        order.tracking.deliveryAgentName =
+          AGENT_NAMES[Math.floor(Math.random() * AGENT_NAMES.length)];
+      }
+
+      order.trackingStartedAt = new Date();
+      if (!Array.isArray(order.statusHistory)) order.statusHistory = [];
+      order.statusHistory.push(
+        { status: "Approved",          note: "Order confirmed",       changedAt: new Date(Date.now() - 4 * 60 * 1000) },
+        { status: "Packed",            note: "Order packed",          changedAt: new Date(Date.now() - 2 * 60 * 1000) },
+        { status: "Out for Delivery",  note: "Agent picked up order", changedAt: new Date() },
+      );
+      appendTrackingEvent(order, "out_for_delivery", "Agent picked up from store");
+      await order.save();
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     return res.status(201).json({
       ...order.toObject(),
       rxAutoAttached: Boolean(compliance.smartReuse?.autoAttached),

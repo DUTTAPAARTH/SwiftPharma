@@ -47,6 +47,7 @@ const CategoryDetail = () => {
     base: null,
     options: [],
   });
+  const [substituteLoading, setSubstituteLoading] = useState(false);
   const [error, setError] = useState(null);
   const [openFaq, setOpenFaq] = useState("");
 
@@ -194,6 +195,43 @@ const CategoryDetail = () => {
       base: product,
       options,
     });
+  };
+
+  const handleAddSubstituteToCart = (product) => {
+    if (!product) return;
+    addItem({
+      id: product._id || product.id,
+      name: product.name,
+      price: product.price || 0,
+      mrp: product.mrp || product.price || 0,
+      isRx: product.requiresRx,
+      requiresRx: product.requiresRx,
+      image: product.images?.[0],
+      composition: product.composition || "",
+      strength: product.strength || "",
+      manufacturer: product.manufacturer || "",
+    });
+    setSubstituteModal({ open: false, base: null, options: [] });
+  };
+
+  const handleReplaceWithSubstitute = (substituteProduct) => {
+    if (!substituteProduct || !substituteModal.base) return;
+    const baseId = substituteModal.base._id || substituteModal.base.id;
+    replaceItem
+      ? replaceItem(baseId, {
+          id: substituteProduct._id || substituteProduct.id,
+          name: substituteProduct.name,
+          price: substituteProduct.price || 0,
+          mrp: substituteProduct.mrp || substituteProduct.price || 0,
+          isRx: substituteProduct.requiresRx,
+          requiresRx: substituteProduct.requiresRx,
+          image: substituteProduct.images?.[0],
+          composition: substituteProduct.composition || "",
+          strength: substituteProduct.strength || "",
+          manufacturer: substituteProduct.manufacturer || "",
+        })
+      : handleAddSubstituteToCart(substituteProduct);
+    setSubstituteModal({ open: false, base: null, options: [] });
   };
 
   if (categoryLoading) {

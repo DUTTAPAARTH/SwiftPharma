@@ -1,7 +1,13 @@
 import axios from "axios";
 
+// In production VITE_API_URL should be the full backend URL, e.g. https://api.swiftpharma.com
+// In development the Vite proxy rewrites /api → http://localhost:5000/api
+const baseURL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, "")}/api`
+  : "/api";
+
 const apiClient = axios.create({
-  baseURL: "/api",
+  baseURL,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",

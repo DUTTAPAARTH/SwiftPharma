@@ -2,8 +2,7 @@ import mongoose from "mongoose";
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 
-const PRODUCT_PLACEHOLDER_URL =
-  "https://via.placeholder.com/200x200/0a0f1e/00bcd4?text=%F0%9F%92%8A";
+const PRODUCT_PLACEHOLDER_URL = null;
 
 const OCR_NOISE_WORDS = new Set([
   "tab",
@@ -158,7 +157,7 @@ export const getProduct = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
   try {
     const { categoryName } = req.params;
-    const { limit = 50, skip = 0 } = req.query;
+    const { limit = 500, skip = 0 } = req.query;
 
     // Find category by slug or name (case-insensitive)
     const category = await Category.findOne({

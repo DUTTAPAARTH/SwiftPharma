@@ -93,12 +93,15 @@ const HealthCompanionPanel = ({
   }, [compact, fullPage]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const bootstrap = async () => {
       try {
         const [profileResponse, sessionsResponse] = await Promise.all([
           getHealthProfile(),
           listChatSessions(false),
         ]);
+        if (cancelled) return;
         setProfile(profileResponse?.profile || null);
 
         const availableSessions = Array.isArray(sessionsResponse?.sessions)
@@ -113,6 +116,23 @@ const HealthCompanionPanel = ({
 
         if (preferredSession?._id) {
           const details = await getChatSession(preferredSession._id);
+          if (cancelled) return;
+          const nextSession = details?.session || null;
+          setSession(nextSession);
+          setMessages(nextSession?.messages || []);
+          setCurrentSessionId(String(nextSession?._id || ""));
+          return;
+        }
+
+        // Re-check sessions before creating to avoid duplicates (React StrictMode)
+        const recheck = await listChatSessions(false);
+        if (cancelled) return;
+        const recheckSessions = Array.isArray(recheck?.sessions) ? recheck.sessions : [];
+        if (recheckSessions.length > 0) {
+          setSessionList(recheckSessions);
+          const existing = recheckSessions.find((s) => s.isActive) || recheckSessions[0];
+          const details = await getChatSession(existing._id);
+          if (cancelled) return;
           const nextSession = details?.session || null;
           setSession(nextSession);
           setMessages(nextSession?.messages || []);
@@ -123,6 +143,7 @@ const HealthCompanionPanel = ({
         const createdSession = await createChatSession({
           title: "New Health Chat",
         });
+        if (cancelled) return;
 
         const nextSession = createdSession?.session || null;
         setSession(nextSession);
@@ -132,13 +153,14 @@ const HealthCompanionPanel = ({
           setCurrentSessionId(String(nextSession._id || ""));
         }
       } catch (error) {
-        toast.error(error?.message || "Failed to initialize health companion");
+        if (!cancelled) toast.error(error?.message || "Failed to initialize health companion");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     bootstrap();
+    return () => { cancelled = true; };
   }, [setCurrentSessionId]);
 
   useEffect(() => {

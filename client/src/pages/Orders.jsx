@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import OrderTrackingTimeline from "../components/timeline/OrderTrackingTimeline";
-import LiveMapEmbed from "../components/tracking/LiveMapEmbed";
 import { fetchOrders } from "../services/orderService";
 
 const normalizeOrders = (payload) => {
@@ -206,11 +205,6 @@ const Orders = () => {
                       return (
                         <>
                           <OrderTrackingTimeline currentStep={step} />
-                          {status === "out_for_delivery" ? (
-                            <div className="mt-6 px-2 pb-2">
-                              <LiveMapEmbed orderId={order._id} />
-                            </div>
-                          ) : null}
                         </>
                       );
                     })()}

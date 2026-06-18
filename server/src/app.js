@@ -38,10 +38,17 @@ initializeMedicalMCP().catch((error) => {
   console.error("[medical-mcp] initialization failed", error);
 });
 
-// CORS configuration for credentials
+// CORS — CLIENT_URL can be a single URL or comma-separated list of allowed origins
+const rawClientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+const allowedOrigins = rawClientUrl.split(",").map((o) => o.trim()).filter(Boolean);
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, Postman, same-origin)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
     credentials: true,
   }),
 );

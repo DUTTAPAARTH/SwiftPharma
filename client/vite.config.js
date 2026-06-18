@@ -8,10 +8,14 @@ export default defineConfig({
     port: 5173,
     open: true,
     proxy: {
-      // Proxy API requests to the backend
       "/api": {
         target: "http://localhost:5000",
         changeOrigin: true,
+      },
+      "/socket.io": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        ws: true,
       },
     },
   },

@@ -2,6 +2,7 @@ import AgentLocation from "../models/AgentLocation.js";
 import CaregiverLink from "../models/CaregiverLink.js";
 import EmergencyCallLog from "../models/EmergencyCallLog.js";
 import EmergencyRelay from "../models/EmergencyRelay.js";
+import Hospital from "../models/Hospital.js";
 import Product from "../models/Product.js";
 import RelayHistory from "../models/RelayHistory.js";
 import User from "../models/User.js";
@@ -12,7 +13,6 @@ import {
   getIO,
   notifyRelayClaimed,
 } from "../socket.js";
-import { hospitalPharmacies } from "../data/hospitalPharmacies.js";
 import {
   haversineDistanceKm,
   kmToSphereRadians,
@@ -553,24 +553,34 @@ export const getFallbackPharmacies = async (req, res) => {
     });
   }
 
-  const nearest = hospitalPharmacies
-    .map((item) => ({
-      ...item,
-      distanceKm: Number(
-        haversineDistanceKm(
-          { lat, lng },
-          { lat: item.lat, lng: item.lng },
-        ).toFixed(2),
-      ),
-    }))
-    .sort((a, b) => a.distanceKm - b.distanceKm)
-    .slice(0, 3);
+  try {
+    const hospitals = await Hospital.find({ isActive: true });
+    
+    const nearest = hospitals
+      .map((item) => ({
+        ...item.toObject(),
+        distanceKm: Number(
+          haversineDistanceKm(
+            { lat, lng },
+            { lat: item.lat, lng: item.lng },
+          ).toFixed(2),
+        ),
+      }))
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      .slice(0, 3);
 
-  return res.json({
-    success: true,
-    pharmacies: nearest,
-    message: "Nearby hospital pharmacies that may have stock",
-  });
+    return res.json({
+      success: true,
+      pharmacies: nearest,
+      message: "Nearby hospital pharmacies that may have stock",
+    });
+  } catch (error) {
+    console.error("getFallbackPharmacies error", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching hospitals",
+    });
+  }
 };
 
 export const getRelayHistory = async (req, res) => {

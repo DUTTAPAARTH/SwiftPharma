@@ -48,7 +48,17 @@ const Navbar = () => {
         }`}
       >
         <div className="px-6 flex items-center justify-between h-12 md:h-14">
-          {/* Logo */}
+          {/* Logo + Back button */}
+          <div className="flex items-center gap-2">
+            {location.pathname !== "/home" && (
+              <button
+                onClick={() => navigate(-1)}
+                className="size-10 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary hover:bg-white dark:hover:bg-slate-700 hover:border-primary/30 transition-all shadow-sm"
+                aria-label="Go back"
+              >
+                <span className="material-symbols-outlined text-xl">arrow_back</span>
+              </button>
+            )}
           <Link to="/home" className="flex items-center gap-3 group">
             <div className="size-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
               <span className="material-symbols-outlined text-2xl font-bold">
@@ -59,6 +69,7 @@ const Navbar = () => {
               SwiftPharma
             </h2>
           </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1 p-1.5 bg-slate-100/60 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60 backdrop-blur-md">

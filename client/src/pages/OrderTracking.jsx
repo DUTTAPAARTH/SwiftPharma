@@ -6,6 +6,7 @@ import {
   Polyline,
   TileLayer,
   Popup,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -14,6 +15,46 @@ import iconShadow from "leaflet/dist/images/marker-shadow.png";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import { fetchOrderTracking } from "../services/trackingService";
+
+/* ── Google Maps-style popup CSS ─────────────────────────────────────────── */
+const OT_POPUP_CSS = `
+  .ot-popup .leaflet-popup-content-wrapper {
+    background: rgba(13,20,36,0.97);
+    border: 1px solid rgba(6,182,212,0.3);
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+    padding: 0; overflow: hidden; min-width: 210px;
+  }
+  .ot-popup .leaflet-popup-content { margin: 0; padding: 0; }
+  .ot-popup .leaflet-popup-tip-container { display: none; }
+  .ot-popup .leaflet-popup-close-button {
+    color: #94a3b8 !important; font-size: 18px !important;
+    top: 8px !important; right: 10px !important; z-index: 10;
+  }
+  .ot-popup .leaflet-popup-close-button:hover { color: #fff !important; }
+  .otcard { font-family: system-ui, sans-serif; }
+  .otcard-head { padding: 10px 14px 7px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .otcard-title { font-size: 13px; font-weight: 800; color: #e2e8f0; margin: 0 0 2px; }
+  .otcard-sub   { font-size: 11px; color: #64748b; margin: 0; }
+  .otcard-body  { padding: 7px 14px 11px; }
+  .otcard-row   { display: flex; gap: 6px; margin-bottom: 4px; font-size: 11.5px; color: #94a3b8; line-height: 1.4; }
+  .otcard-badge { display: inline-block; border-radius: 6px; padding: 1px 8px;
+                  font-size: 10px; font-weight: 700; letter-spacing:.05em; text-transform: uppercase; margin-top: 5px; }
+  .otcard-badge.cyan   { background: rgba(6,182,212,.15); color: #06b6d4; }
+  .otcard-badge.orange { background: rgba(249,115,22,.15); color: #f97316; }
+`;
+
+function InjectOTPopupStyles() {
+  useEffect(() => {
+    const id = "ot-popup-styles";
+    if (document.getElementById(id)) return;
+    const el = document.createElement("style");
+    el.id = id;
+    el.textContent = OT_POPUP_CSS;
+    document.head.appendChild(el);
+  }, []);
+  return null;
+}
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -79,6 +120,37 @@ const formatTrackingLabel = (value) => {
 
   return map[normalized] || String(value || "Update");
 };
+
+/* Non-passive wheel zoom — bypasses Leaflet 1.9 passive handler */
+function WheelZoomController() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    map.scrollWheelZoom.disable();
+    const onWheel = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.deltaY < 0) map.zoomIn(1, { animate: true });
+      else map.zoomOut(1, { animate: true });
+    };
+    container.addEventListener("wheel", onWheel, { passive: false });
+    return () => container.removeEventListener("wheel", onWheel);
+  }, [map]);
+  return null;
+}
+
+/* Auto-fit to show all markers */
+function FitBounds({ points }) {
+  const map = useMap();
+  const key = JSON.stringify(points);
+  useEffect(() => {
+    const valid = points.filter(Boolean);
+    if (!valid.length) return;
+    if (valid.length === 1) { map.setView(valid[0], 14, { animate: true }); return; }
+    map.fitBounds(L.latLngBounds(valid), { padding: [50, 50], maxZoom: 15, animate: true });
+  }, [map, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
 
 const toValidPoint = (location) => {
   const lat = Number(location?.lat);
@@ -192,39 +264,67 @@ const OrderTracking = () => {
                 </p>
               </div>
 
-              <div className="h-[460px] rounded-2xl border border-[#1f2a46]">
+              <div className="h-[460px] rounded-2xl border border-[#1f2a46] overflow-hidden">
                 <MapContainer
-                  style={{ height: "400px", width: "100%" }}
+                  style={{ height: "460px", width: "100%" }}
                   center={[agentLat, agentLng]}
                   zoom={14}
-                  scrollWheelZoom
+                  scrollWheelZoom={false}
+                  zoomControl={true}
+                  attributionControl={false}
                 >
+                  <WheelZoomController />
+                  <InjectOTPopupStyles />
+                  <FitBounds points={[currentPoint, destinationPoint].filter(Boolean)} />
                   <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                     attribution="CartoDB"
                   />
 
-                  {currentPoint ? (
+                  {currentPoint && (
                     <Marker position={currentPoint} icon={agentIcon}>
-                      <Popup>
-                        Agent {tracking?.deliveryAgentName || "Assigned"}
+                      <Popup className="ot-popup" maxWidth={250}>
+                        <div className="otcard">
+                          <div className="otcard-head">
+                            <p className="otcard-title">🚴 Delivery Agent</p>
+                            <p className="otcard-sub">Live location</p>
+                          </div>
+                          <div className="otcard-body">
+                            {tracking?.deliveryAgentName && (
+                              <div className="otcard-row"><span>👤</span><span>{tracking.deliveryAgentName}</span></div>
+                            )}
+                            <div className="otcard-row"><span>⏱</span><span>ETA: <strong style={{color:"#e2e8f0"}}>{formatEta(tracking?.estimatedDeliveryTime)}</strong></span></div>
+                            <div className="otcard-row"><span style={{fontSize:'10px',opacity:.6}}>📡 {currentPoint[0].toFixed(4)}, {currentPoint[1].toFixed(4)}</span></div>
+                            <span className="otcard-badge cyan">On the way</span>
+                          </div>
+                        </div>
                       </Popup>
                     </Marker>
-                  ) : null}
+                  )}
 
-                  {destinationPoint ? (
+                  {destinationPoint && (
                     <Marker position={destinationPoint} icon={destinationIcon}>
-                      <Popup>Delivery destination</Popup>
+                      <Popup className="ot-popup" maxWidth={250}>
+                        <div className="otcard">
+                          <div className="otcard-head">
+                            <p className="otcard-title">📍 Delivery Address</p>
+                            <p className="otcard-sub">Your location</p>
+                          </div>
+                          <div className="otcard-body">
+                            {payload?.deliveryAddress && (
+                              <div className="otcard-row"><span>🏠</span><span>{payload.deliveryAddress}</span></div>
+                            )}
+                            <div className="otcard-row"><span style={{fontSize:'10px',opacity:.6}}>🗺 {destinationPoint[0].toFixed(4)}, {destinationPoint[1].toFixed(4)}</span></div>
+                            <span className="otcard-badge orange">Destination</span>
+                          </div>
+                        </div>
+                      </Popup>
                     </Marker>
-                  ) : null}
+                  )}
 
-                  {linePoints.length === 2 ? (
-                    <Polyline
-                      positions={linePoints}
-                      color="#00bcd4"
-                      weight={4}
-                    />
-                  ) : null}
+                  {linePoints.length === 2 && (
+                    <Polyline positions={linePoints} color="#00bcd4" weight={3} dashArray="8 5" opacity={0.8} />
+                  )}
                 </MapContainer>
               </div>
             </section>

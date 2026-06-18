@@ -30,7 +30,7 @@ export const searchMedicines = (query) =>
   apiClient.get(`/products?search=${encodeURIComponent(query)}`);
 
 export const fetchProductsByCategory = async (categorySlug) => {
-  const response = await apiClient.get(`/products/category/${categorySlug}`);
+  const response = await apiClient.get(`/products/category/${categorySlug}?limit=500`);
   return response.data;
 };
 

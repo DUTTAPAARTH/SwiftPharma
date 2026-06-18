@@ -5,7 +5,7 @@ import { useWishlist } from "../../hooks/useWishlist";
 import { ensureAuthenticated } from "../../utils/auth";
 
 const normalizeImageSrc = (value) => {
-  if (!value) return "";
+  if (!value) return null;
   if (value.startsWith("http://") || value.startsWith("https://")) {
     return value;
   }
@@ -144,20 +144,20 @@ const ProductCard = (props) => {
         </button>
 
         <div className="absolute inset-0">
+          {imageSrc && (
           <img
-            src={imageSrc || ""}
+            src={imageSrc}
             alt={name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            style={{ display: imageSrc ? "block" : "none" }}
             onError={(e) => {
               e.target.style.display = "none";
-              if (e.target.nextSibling) {
-                e.target.nextSibling.style.display = "flex";
-              }
+              const fallback = e.target.parentElement?.querySelector(".img-fallback");
+              if (fallback) fallback.style.display = "flex";
             }}
           />
+          )}
           <div
-            className="absolute inset-0 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700"
+            className="img-fallback absolute inset-0 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700"
             style={{ display: imageSrc ? "none" : "flex" }}
           >
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/70 dark:bg-slate-900/70 shadow-inner backdrop-blur-sm border border-white/50 dark:border-slate-600/50">
