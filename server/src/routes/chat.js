@@ -560,15 +560,4 @@ router.post("/sessions/:sessionId/end", async (req, res) => {
   }
 });
 
-// Catch-all for debugging unmatched routes
-router.all("*", (req, res) => {
-  console.log(`[chat] Unmatched route: ${req.method} ${req.path}`);
-  console.log(`[chat] Original URL: ${req.originalUrl}`);
-  console.log(`[chat] User authenticated: ${!!req.user}`);
-  res.status(404).json({
-    success: false,
-    message: `Route not found: ${req.method} ${req.path}`,
-  });
-});
-
 export default router;
