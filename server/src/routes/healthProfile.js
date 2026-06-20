@@ -208,6 +208,21 @@ router.post("/sync-vault", async (req, res) => {
 router.post("/confirm-mention", async (req, res) => {
   try {
     const userId = req.user?._id;
+    
+    console.log("[confirm-mention] Request:", { 
+      userId, 
+      body: req.body,
+      hasUser: !!req.user 
+    });
+
+    if (!userId) {
+      console.error("[confirm-mention] No userId found in request");
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
     const mentionText = String(req.body?.mentionText || "").trim();
     const accepted = Boolean(req.body?.accepted);
 
@@ -258,11 +273,20 @@ router.post("/confirm-mention", async (req, res) => {
 
     await profile.save();
 
+    console.log("[confirm-mention] Success:", { userId, mentionText, accepted });
+
     return res.json({
       success: true,
       profile,
     });
   } catch (error) {
+    console.error("[confirm-mention] Error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.user?._id,
+      body: req.body
+    });
+    
     if (error instanceof mongoose.Error.ValidationError) {
       return res.status(400).json({
         success: false,
