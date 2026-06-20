@@ -413,3 +413,4 @@ export const getPendingAlerts = async (req, res) => {
     });
   }
 };
+

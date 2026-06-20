@@ -7,3 +7,4 @@ const router = express.Router();
 router.post("/check", authenticate, checkDrugInteractions);
 
 export default router;
+

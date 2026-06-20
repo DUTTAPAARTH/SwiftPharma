@@ -90,3 +90,4 @@ export const getDrugInfoByName = async (req, res) => {
     });
   }
 };
+

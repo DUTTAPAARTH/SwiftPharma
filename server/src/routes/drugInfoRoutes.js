@@ -7,3 +7,4 @@ const router = express.Router();
 router.get("/:medicineName", authenticate, getDrugInfoByName);
 
 export default router;
+

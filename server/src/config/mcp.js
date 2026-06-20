@@ -18,3 +18,4 @@ export const initializeMedicalMCP = async () => {
   mcpInitialized = true;
   console.log("[medical-mcp] initialized");
 };
+

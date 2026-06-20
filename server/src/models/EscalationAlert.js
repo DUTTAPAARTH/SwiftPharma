@@ -50,3 +50,4 @@ escalationAlertSchema.index({ caregiverId: 1, status: 1 });
 escalationAlertSchema.index({ reminderId: 1, scheduledAt: 1 });
 
 export default mongoose.model("EscalationAlert", escalationAlertSchema);
+

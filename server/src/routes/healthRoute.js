@@ -20,3 +20,4 @@ router.get("/cors-check", (_req, res) => {
 });
 
 export default router;
+

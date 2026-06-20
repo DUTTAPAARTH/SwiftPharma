@@ -1,4 +1,4 @@
-﻿import Prescription from "../models/Prescription.js";
+import Prescription from "../models/Prescription.js";
 import Order from "../models/Order.js";
 import User from "../models/User.js";
 import Product from "../models/Product.js";
@@ -664,7 +664,7 @@ export const approvePrescription = async (req, res) => {
           approve: true,
         }),
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!updated) {
@@ -721,7 +721,7 @@ export const rejectPrescription = async (req, res) => {
           approve: false,
         }),
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!updated) {
@@ -1324,7 +1324,7 @@ export const updateAdminProduct = async (req, res) => {
     }
 
     const updated = await Product.findByIdAndUpdate(req.params.id, payload, {
-      new: true,
+      returnDocument: 'after',
     }).populate("category", "name");
 
     return res.json({ success: true, product: updated });
@@ -1342,7 +1342,7 @@ export const deleteAdminProduct = async (req, res) => {
     const updated = await Product.findByIdAndUpdate(
       req.params.id,
       { isActive: false },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!updated) {
@@ -1372,7 +1372,7 @@ export const updateAdminProductStock = async (req, res) => {
     const product = await Product.findByIdAndUpdate(
       req.params.id,
       { stock },
-      { new: true },
+      { returnDocument: 'after' },
     ).populate("category", "name");
 
     if (!product) {
@@ -2181,7 +2181,7 @@ export const updateAdminUserRole = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { role: normalizedRole },
-      { new: true },
+      { returnDocument: 'after' },
     ).select("name email phone role createdAt suspended");
 
     if (!user) {
@@ -2212,7 +2212,7 @@ export const toggleAdminUserSuspend = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { suspended },
-      { new: true },
+      { returnDocument: 'after' },
     ).select("name email phone role createdAt suspended");
 
     if (!user) {
@@ -2229,3 +2229,4 @@ export const toggleAdminUserSuspend = async (req, res) => {
       .json({ success: false, message: "Failed to update user status" });
   }
 };
+

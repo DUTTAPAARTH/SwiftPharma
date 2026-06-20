@@ -371,3 +371,4 @@ prescriptionSchema.index({ prescriptionDNA: 1 });
 prescriptionSchema.index({ geoFlag: 1, createdAt: -1 });
 
 export default mongoose.model("Prescription", prescriptionSchema);
+

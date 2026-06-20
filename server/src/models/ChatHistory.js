@@ -39,3 +39,4 @@ chatHistorySchema.pre("findOneAndUpdate", function updateTimestamp(next) {
 const ChatHistory = mongoose.model("ChatHistory", chatHistorySchema);
 
 export default ChatHistory;
+

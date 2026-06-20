@@ -8,3 +8,4 @@ const router = Router();
 router.get("/", listCategories);
 router.post("/", createCategory);
 export default router;
+

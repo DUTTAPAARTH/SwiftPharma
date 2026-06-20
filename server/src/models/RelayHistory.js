@@ -39,3 +39,4 @@ const relayHistorySchema = new mongoose.Schema(
 );
 
 export default mongoose.model("RelayHistory", relayHistorySchema);
+

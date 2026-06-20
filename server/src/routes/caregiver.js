@@ -26,3 +26,4 @@ router.post("/alerts/:alertId/respond", authenticate, respondToAlert);
 router.get("/alerts/pending", authenticate, getPendingAlerts);
 
 export default router;
+

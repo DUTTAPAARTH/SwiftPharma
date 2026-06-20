@@ -140,3 +140,4 @@ export function filterMedicineLines(ocrText) {
 }
 
 export default filterMedicineLines;
+

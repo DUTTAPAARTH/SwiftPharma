@@ -93,3 +93,4 @@ router.patch("/emergency/:relayId/cancel", adminCancelRelay);
 router.patch("/emergency/:relayId/reassign", adminReassignRelay);
 
 export default router;
+

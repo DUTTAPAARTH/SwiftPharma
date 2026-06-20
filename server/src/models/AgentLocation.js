@@ -29,3 +29,4 @@ const AgentLocationSchema = new mongoose.Schema({
 AgentLocationSchema.index({ location: "2dsphere" });
 
 export default mongoose.model("AgentLocation", AgentLocationSchema);
+

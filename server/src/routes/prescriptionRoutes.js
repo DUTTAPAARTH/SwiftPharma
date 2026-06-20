@@ -55,3 +55,4 @@ router.patch(
 router.post("/:id/request-renewal", authenticate, requestPrescriptionRenewal);
 
 export default router;
+

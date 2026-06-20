@@ -35,3 +35,4 @@ router.get("/track/:token", getRelayByToken);
 router.patch("/contact", authenticate, updateEmergencyContact);
 
 export default router;
+

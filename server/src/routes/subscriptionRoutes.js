@@ -23,3 +23,4 @@ router.patch("/:id/resume", resumeSubscription);
 router.patch("/:id/cancel", cancelSubscription);
 
 export default router;
+

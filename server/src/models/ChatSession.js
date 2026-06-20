@@ -40,3 +40,4 @@ const chatSessionSchema = new mongoose.Schema(
 chatSessionSchema.index({ userId: 1, isActive: 1, createdAt: -1 });
 
 export default mongoose.model("ChatSession", chatSessionSchema);
+

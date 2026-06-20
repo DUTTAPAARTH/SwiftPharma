@@ -23,3 +23,4 @@ router.post(
   createProduct,
 );
 export default router;
+

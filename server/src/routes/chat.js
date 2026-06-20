@@ -210,7 +210,7 @@ const upsertMentionMemory = async ({ userId, sessionId, mentions = [] }) => {
   const profile = await HealthProfile.findOneAndUpdate(
     { userId },
     { $setOnInsert: { userId } },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
   );
 
   const indexByText = new Map(
@@ -561,3 +561,4 @@ router.post("/sessions/:sessionId/end", async (req, res) => {
 });
 
 export default router;
+

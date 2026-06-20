@@ -5,3 +5,4 @@ export const signToken = (payload) =>
 
 export const verifyToken = (token) =>
   jwt.verify(token, process.env.JWT_SECRET || "devsecret");
+

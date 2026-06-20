@@ -64,3 +64,4 @@ const healthProfileSchema = new mongoose.Schema(
 );
 
 export default mongoose.model("HealthProfile", healthProfileSchema);
+

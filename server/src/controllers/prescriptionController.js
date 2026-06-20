@@ -1309,7 +1309,7 @@ export const reuploadPrescription = async (req, res) => {
         medicines,
         ...buildInitialTimeline(),
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!updated) return res.status(404).json({ message: "Not found" });
@@ -1353,7 +1353,7 @@ export const adminReviewPrescription = async (req, res) => {
       req.params.id,
       update,
       {
-        new: true,
+        returnDocument: 'after',
       },
     );
     if (!updated) return res.status(404).json({ message: "Not found" });
@@ -1491,3 +1491,4 @@ export const testOcr = async (req, res) => {
 
 // Export helper functions for reuse
 export { runOcr, parseMedicines };
+

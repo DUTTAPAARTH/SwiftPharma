@@ -422,3 +422,4 @@ export const checkInteractions = async (medicineNames = []) => {
 
   return warnings;
 };
+

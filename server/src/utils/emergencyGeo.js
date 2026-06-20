@@ -29,3 +29,4 @@ export const haversineDistanceKm = (a = {}, b = {}) => {
 };
 
 export const kmToSphereRadians = (km) => Number(km || 0) / EARTH_RADIUS_KM;
+

@@ -52,3 +52,4 @@ const productUpload = createUpload("products", [
 
 export const uploadPrescriptionFiles = prescriptionUpload.array("images", 5);
 export const uploadProductImage = productUpload.single("image");
+

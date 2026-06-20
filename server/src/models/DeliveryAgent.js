@@ -10,3 +10,4 @@ const deliveryAgentSchema = new mongoose.Schema(
 );
 
 export default mongoose.model("DeliveryAgent", deliveryAgentSchema);
+

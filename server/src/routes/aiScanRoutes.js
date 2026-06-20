@@ -44,3 +44,4 @@ router.post(
 router.post("/retry-extraction", authenticate, retryExtraction);
 
 export default router;
+

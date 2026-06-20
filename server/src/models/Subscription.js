@@ -69,3 +69,4 @@ subscriptionSchema.methods.calculateNextRefillDate = function () {
 };
 
 export default mongoose.model("Subscription", subscriptionSchema);
+

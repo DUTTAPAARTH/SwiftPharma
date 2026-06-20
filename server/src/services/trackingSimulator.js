@@ -88,3 +88,4 @@ export const startTrackingSimulator = () => {
 
   console.log("[tracking-simulator] running every 30 seconds");
 };
+

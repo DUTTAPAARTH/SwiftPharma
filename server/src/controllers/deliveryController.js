@@ -43,7 +43,7 @@ export const upsertDeliveryLocation = async (req, res) => {
       },
       {
         upsert: true,
-        new: true,
+        returnDocument: 'after',
         setDefaultsOnInsert: true,
       },
     );
@@ -77,3 +77,4 @@ export const upsertDeliveryLocation = async (req, res) => {
     });
   }
 };
+

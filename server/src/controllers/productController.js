@@ -240,3 +240,4 @@ export const createProduct = async (req, res) => {
     return res.status(500).json({ message: "Failed to create product" });
   }
 };
+

@@ -52,3 +52,4 @@ const VaultItemSchema = new mongoose.Schema({
 VaultItemSchema.index({ userId: 1, productName: 1 });
 
 export default mongoose.model("VaultItem", VaultItemSchema);
+

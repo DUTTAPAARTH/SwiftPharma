@@ -103,7 +103,7 @@ router.patch("/", async (req, res) => {
     const profile = await HealthProfile.findOneAndUpdate(
       { userId },
       { $set: payload },
-      { new: true, upsert: true, setDefaultsOnInsert: true },
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
     );
 
     return res.json({
@@ -160,7 +160,7 @@ router.post("/sync-vault", async (req, res) => {
         $setOnInsert: { userId },
         $set: { lastSyncedAt: new Date() },
       },
-      { new: true, upsert: true, setDefaultsOnInsert: true },
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
     );
 
     const byText = new Map(
@@ -236,7 +236,7 @@ router.post("/confirm-mention", async (req, res) => {
     const profile = await HealthProfile.findOneAndUpdate(
       { userId },
       { $setOnInsert: { userId } },
-      { new: true, upsert: true, setDefaultsOnInsert: true },
+      { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
     );
 
     const key = mentionText.toLowerCase();
@@ -303,3 +303,4 @@ router.post("/confirm-mention", async (req, res) => {
 });
 
 export default router;
+

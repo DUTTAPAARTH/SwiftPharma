@@ -18,3 +18,4 @@ export const uploadBufferToCloudinary = (buffer, filename = "rx") =>
     );
     stream.end(buffer);
   });
+

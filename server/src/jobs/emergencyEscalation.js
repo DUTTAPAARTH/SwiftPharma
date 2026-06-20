@@ -121,3 +121,4 @@ export const startEmergencyEscalationJob = () => {
   escalationStarted = true;
   console.log("[emergencyEscalation] started (every 2 minutes)");
 };
+

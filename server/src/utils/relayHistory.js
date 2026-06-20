@@ -37,6 +37,7 @@ export const upsertRelayHistory = async (relayLike, outcome) => {
   return RelayHistory.findOneAndUpdate(
     { relayId: relayLike._id },
     { $set: payload },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
   );
 };
+

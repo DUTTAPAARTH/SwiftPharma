@@ -8,3 +8,4 @@ router.post("/log", authenticate, logDose);
 router.get("/", authenticate, getDoseLogs);
 
 export default router;
+

@@ -108,3 +108,4 @@ emergencyRelaySchema.pre("save", function ensureTrackingToken() {
 emergencyRelaySchema.index({ geoLocation: "2dsphere" });
 
 export default mongoose.model("EmergencyRelay", emergencyRelaySchema);
+

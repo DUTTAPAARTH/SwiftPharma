@@ -105,3 +105,4 @@ export const callAI = async (systemPrompt, userMessage) => {
     failed: true,
   };
 };
+

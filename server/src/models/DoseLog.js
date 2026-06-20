@@ -30,3 +30,4 @@ doseLogNewSchema.index({ patientId: 1, scheduledAt: -1 });
 doseLogNewSchema.index({ reminderId: 1, scheduledAt: 1 });
 
 export default mongoose.model("DoseLog", doseLogNewSchema);
+

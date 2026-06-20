@@ -252,7 +252,7 @@ export const claimRelay = async (req, res) => {
           lastEscalatedAt: now,
         },
       },
-      { new: true },
+      { returnDocument: 'after' },
     ).populate("claimedBy", "name");
 
     if (!relay) {
@@ -470,7 +470,7 @@ export const updateEmergencyContact = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $set: { emergencyContact: { name, phone } } },
-      { new: true },
+      { returnDocument: 'after' },
     ).select("name email role emergencyContact");
 
     if (!user) {
@@ -680,3 +680,4 @@ export const reorderRelayHistory = async (req, res) => {
       .json({ success: false, message: "Failed to reorder medicines" });
   }
 };
+

@@ -24,3 +24,4 @@ doctorProfileSchema.index({ registrationNumber: 1 }, { unique: true, sparse: tru
 doctorProfileSchema.index({ doctorNameNormalized: 1, lastSeenAt: -1 });
 
 export default mongoose.model("DoctorProfile", doctorProfileSchema);
+

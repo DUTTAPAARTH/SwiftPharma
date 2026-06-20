@@ -44,3 +44,4 @@ caregiverLinkSchema.pre("save", function ensureInviteToken(next) {
 });
 
 export default mongoose.model("CaregiverLink", caregiverLinkSchema);
+
