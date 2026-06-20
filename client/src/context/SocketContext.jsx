@@ -35,7 +35,7 @@ export const SocketProvider = ({ children }) => {
       const socketUrl = resolveSocketUrl();
       
       socketRef.current = io(socketUrl, {
-        transports: ["polling"],
+        transports: ["websocket"],
         auth: { token },
         withCredentials: true,
         reconnection: true,
