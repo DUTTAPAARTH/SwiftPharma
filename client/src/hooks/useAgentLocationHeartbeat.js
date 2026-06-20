@@ -14,13 +14,9 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
           if (stopped) return;
           const lat = Number(position.coords.latitude);
           const lng = Number(position.coords.longitude);
-          const accuracy = Number(position.coords.accuracy || 999);
-          
-          // Only accept positions with accuracy better than 150m (relaxed from 100m)
-          if (!Number.isFinite(lat) || !Number.isFinite(lng) || accuracy > 150) return;
-          
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
           try {
-            await upsertDeliveryLocation({ lat, lng, accuracy });
+            await upsertDeliveryLocation({ lat, lng });
           } catch {
             // Silent failure: do not interrupt delivery workflow.
           }
@@ -28,7 +24,7 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
         () => {
           // Silent failure: some devices/users block location updates.
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 },
       );
     };
 

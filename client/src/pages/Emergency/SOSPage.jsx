@@ -140,23 +140,12 @@ const SOSPage = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           if (!mounted) return;
-          const accuracy = Number(position.coords.accuracy || 999);
           const nextLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-            accuracy,
           };
           setLocation(nextLocation);
-          
-          // Show accuracy feedback to user
-          if (accuracy <= 50) {
-            setLocationAddress(`Current location captured (${Math.round(accuracy)}m accuracy)`);
-          } else if (accuracy <= 100) {
-            setLocationAddress(`Current location captured (~${Math.round(accuracy)}m accuracy - may be imprecise)`);
-          } else {
-            setLocationAddress(`Location captured (low accuracy: ${Math.round(accuracy)}m)`);
-          }
-          
+          setLocationAddress("Current location captured");
           setLocState("ready");
         },
         () => {
@@ -165,7 +154,7 @@ const SOSPage = () => {
           setLocationAddress("Location permission not granted yet");
           setLocState("error");
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
       );
     };
 
@@ -279,7 +268,7 @@ const SOSPage = () => {
         setLocState("error");
         setLocationAddress("Location permission not granted yet");
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
   };
 

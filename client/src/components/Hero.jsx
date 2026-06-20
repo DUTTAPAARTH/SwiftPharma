@@ -137,36 +137,22 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
       return undefined;
     }
 
-    let hasInitialFix = false;
-
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        const accuracy = Number(position.coords.accuracy || 999);
-        const newLocation = {
+        setUserLocation({
           lat: Number(position.coords.latitude),
           lng: Number(position.coords.longitude),
-          accuracy,
-        };
-        
-        // Accept first position quickly (even if not perfect) to avoid waiting
-        if (!hasInitialFix) {
-          hasInitialFix = true;
-          setUserLocation(newLocation);
-          setLocationStatus("ready");
-        } 
-        // After initial fix, only update if accuracy improves or is good enough
-        else if (accuracy <= 100) {
-          setUserLocation(newLocation);
-          setLocationStatus("ready");
-        }
+          accuracy: Number(position.coords.accuracy || 0),
+        });
+        setLocationStatus("ready");
       },
       () => {
         setLocationStatus("denied");
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 15000, // Reduced from 30s for faster initial response
+        maximumAge: 10000,
+        timeout: 15000,
       },
     );
 
