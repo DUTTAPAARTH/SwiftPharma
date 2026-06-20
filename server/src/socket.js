@@ -7,12 +7,20 @@ export const connectedUsers = new Map();
 const agentSockets = new Map();
 const socketToUser = new Map();
 
-const getOrigin = () => process.env.CLIENT_URL || "http://localhost:5173";
+const getAllowedOrigins = () => {
+  const raw = process.env.CLIENT_URL || "http://localhost:5173";
+  return raw.split(",").map((o) => o.trim().replace(/\/$/, "")).filter(Boolean);
+};
 
 export const initSocket = (httpServer) => {
   ioInstance = new Server(httpServer, {
     cors: {
-      origin: getOrigin(),
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const allowed = getAllowedOrigins();
+        if (allowed.includes(origin.replace(/\/$/, ""))) return callback(null, true);
+        callback(new Error(`Socket CORS: origin ${origin} not allowed`));
+      },
       credentials: true,
     },
   });

@@ -60,7 +60,7 @@ const DeliveryDashboard = () => {
 
     const socket = io(socketUrl(), {
       auth: { token },
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
       withCredentials: true,
     });
 
