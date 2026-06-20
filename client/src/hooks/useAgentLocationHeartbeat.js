@@ -9,7 +9,8 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
     let stopped = false;
     let watchId = null;
 
-    // Use watchPosition for continuous accurate tracking
+    // Use watchPosition for continuous real-time tracking
+    // maximumAge: 0 ensures fresh GPS reading every time, no cache
     watchId = navigator.geolocation.watchPosition(
       async (position) => {
         if (stopped) return;
@@ -17,20 +18,30 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
         const lng = Number(position.coords.longitude);
         const accuracy = Number(position.coords.accuracy || 999);
         
+        console.log(`[GPS] Fresh location: ${lat.toFixed(6)}, ${lng.toFixed(6)} (${Math.round(accuracy)}m)`);
+        
         // Only send positions with reasonable accuracy
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-        if (accuracy > 100) return; // Skip very inaccurate positions
+        if (accuracy > 100) {
+          console.warn(`[GPS] Skipping inaccurate position: ${Math.round(accuracy)}m`);
+          return;
+        }
         
         try {
           await upsertDeliveryLocation({ lat, lng, accuracy });
-        } catch {
-          // Silent failure: do not interrupt delivery workflow.
+          console.log(`[GPS] Position updated on server`);
+        } catch (err) {
+          console.error(`[GPS] Failed to update position:`, err);
         }
       },
-      () => {
-        // Silent failure: some devices/users block location updates.
+      (error) => {
+        console.error(`[GPS] Error:`, error.message);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 10000, 
+        maximumAge: 0  // Always get fresh position, never use cache
+      },
     );
 
     return () => {
