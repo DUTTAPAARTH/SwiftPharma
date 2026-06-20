@@ -23,13 +23,11 @@ export const initSocket = (httpServer) => {
       origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, Postman, same-origin)
         if (!origin) {
-          console.log(`[socket] ✓ Allowed: No origin header`);
           return callback(null, true);
         }
         
         const normalizedOrigin = origin.replace(/\/$/, "");
         if (allowedOrigins.includes(normalizedOrigin)) {
-          console.log(`[socket] ✓ Allowed origin: ${normalizedOrigin}`);
           return callback(null, true);
         }
         
