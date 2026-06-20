@@ -42,21 +42,45 @@ const getCurrentLocation = () =>
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = Number(position?.coords?.latitude);
-        const lng = Number(position?.coords?.longitude);
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-          reject(new Error("Invalid location coordinates"));
-          return;
-        }
-        resolve({ lat, lng });
-      },
-      () => {
-        reject(new Error("Location permission denied"));
-      },
-      { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 },
-    );
+    // Try to get best possible accuracy with retries
+    let bestPosition = null;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    const tryGetPosition = () => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = Number(position?.coords?.latitude);
+          const lng = Number(position?.coords?.longitude);
+          const accuracy = Number(position?.coords?.accuracy || 999);
+          
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            reject(new Error("Invalid location coordinates"));
+            return;
+          }
+
+          // Keep trying if accuracy is poor and we have attempts left
+          if (accuracy > 100 && attempts < maxAttempts) {
+            attempts++;
+            setTimeout(tryGetPosition, 2000);
+            return;
+          }
+
+          // Accept best position we got
+          if (!bestPosition || accuracy < bestPosition.accuracy) {
+            bestPosition = { lat, lng, accuracy };
+          }
+          
+          resolve(bestPosition || { lat, lng, accuracy });
+        },
+        () => {
+          reject(new Error("Location permission denied"));
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+      );
+    };
+
+    tryGetPosition();
   });
 
 const Checkout = () => {

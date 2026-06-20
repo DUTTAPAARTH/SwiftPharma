@@ -137,22 +137,40 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
       return undefined;
     }
 
+    let bestAccuracy = Infinity;
+    let hasInitialPosition = false;
+
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        setUserLocation({
+        const accuracy = Number(position.coords.accuracy || 999);
+        const newLocation = {
           lat: Number(position.coords.latitude),
           lng: Number(position.coords.longitude),
-          accuracy: Number(position.coords.accuracy || 0),
-        });
-        setLocationStatus("ready");
+          accuracy,
+        };
+
+        // Always accept first position for quick display
+        if (!hasInitialPosition) {
+          hasInitialPosition = true;
+          bestAccuracy = accuracy;
+          setUserLocation(newLocation);
+          setLocationStatus("ready");
+          return;
+        }
+
+        // Update only if accuracy improves
+        if (accuracy < bestAccuracy) {
+          bestAccuracy = accuracy;
+          setUserLocation(newLocation);
+        }
       },
       () => {
         setLocationStatus("denied");
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 10000,
-        timeout: 15000,
+        maximumAge: 0,  // Force fresh readings for continuous refinement
+        timeout: 30000,  // Give 30s for GPS to achieve good lock
       },
     );
 

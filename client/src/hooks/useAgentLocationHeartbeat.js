@@ -8,32 +8,42 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
 
     let stopped = false;
 
-    const tick = () => {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          if (stopped) return;
-          const lat = Number(position.coords.latitude);
-          const lng = Number(position.coords.longitude);
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-          try {
-            await upsertDeliveryLocation({ lat, lng });
-          } catch {
-            // Silent failure: do not interrupt delivery workflow.
-          }
-        },
-        () => {
-          // Silent failure: some devices/users block location updates.
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 15000 },
-      );
-    };
+    let watchId = null;
 
-    tick();
-    const timer = window.setInterval(tick, intervalMs);
+    // Use watchPosition for continuous accurate tracking
+    watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        if (stopped) return;
+        const lat = Number(position.coords.latitude);
+        const lng = Number(position.coords.longitude);
+        const accuracy = Number(position.coords.accuracy || 999);
+        
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+        
+        // Only send reasonably accurate positions
+        if (accuracy > 100) return;
+        
+        try {
+          await upsertDeliveryLocation({ lat, lng, accuracy });
+        } catch {
+          // Silent failure: do not interrupt delivery workflow.
+        }
+      },
+      () => {
+        // Silent failure: some devices/users block location updates.
+      },
+      { 
+        enableHighAccuracy: true, 
+        timeout: 30000,
+        maximumAge: 0  // Always fresh for best accuracy
+      },
+    );
 
     return () => {
       stopped = true;
-      window.clearInterval(timer);
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
     };
   }, [enabled, intervalMs]);
 };

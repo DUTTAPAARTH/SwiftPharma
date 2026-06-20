@@ -137,16 +137,44 @@ const SOSPage = () => {
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
+      // Get best accuracy with progressive refinement
+      let bestAccuracy = Infinity;
+      let bestLocation = null;
+      let refineCount = 0;
+      const maxRefines = 3;
+
+      const watchId = navigator.geolocation.watchPosition(
         (position) => {
           if (!mounted) return;
-          const nextLocation = {
+          
+          const accuracy = Number(position.coords.accuracy || 999);
+          const currentLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
+            accuracy,
           };
-          setLocation(nextLocation);
-          setLocationAddress("Current location captured");
-          setLocState("ready");
+
+          // Always set first position
+          if (!bestLocation) {
+            bestLocation = currentLocation;
+            bestAccuracy = accuracy;
+            setLocation(currentLocation);
+            setLocationAddress(`Location detected (${Math.round(accuracy)}m accuracy)`);
+            setLocState("ready");
+          }
+          // Update if accuracy improves
+          else if (accuracy < bestAccuracy) {
+            bestLocation = currentLocation;
+            bestAccuracy = accuracy;
+            setLocation(currentLocation);
+            setLocationAddress(`Location refined (${Math.round(accuracy)}m accuracy)`);
+          }
+
+          refineCount++;
+          // Stop after getting good accuracy or max attempts
+          if (accuracy < 50 || refineCount >= maxRefines) {
+            navigator.geolocation.clearWatch(watchId);
+          }
         },
         () => {
           if (!mounted) return;
@@ -154,7 +182,7 @@ const SOSPage = () => {
           setLocationAddress("Location permission not granted yet");
           setLocState("error");
         },
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
+        { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 },
       );
     };
 
@@ -247,19 +275,21 @@ const SOSPage = () => {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const accuracy = Number(position.coords.accuracy || 999);
         const nextLocation = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
+          accuracy,
         };
         setLocation(nextLocation);
-        setLocationAddress("Current location captured");
+        setLocationAddress(`Location updated (${Math.round(accuracy)}m)`);
         setLocState("ready");
       },
       () => {
         setLocState("error");
         setLocationAddress("Location permission not granted yet");
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 },
     );
   };
 
