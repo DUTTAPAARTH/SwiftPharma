@@ -49,16 +49,15 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, curl, Postman, same-origin)
       if (!origin) {
-        console.log("[cors] Allowing request with no origin");
         return callback(null, true);
       }
       
       const normalizedOrigin = origin.replace(/\/$/, "");
       if (allowedOrigins.includes(normalizedOrigin)) {
-        console.log(`[cors] Allowing origin: ${origin}`);
         return callback(null, true);
       }
       
+      // Only log when blocking (error case)
       console.error(`[cors] CORS blocked origin: ${origin}`);
       console.error(`[cors] Allowed origins are: ${allowedOrigins.join(", ")}`);
       callback(new Error(`CORS: origin ${origin} not allowed`));

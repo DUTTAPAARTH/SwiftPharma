@@ -23,16 +23,15 @@ export const initSocket = (httpServer) => {
       origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, Postman, same-origin)
         if (!origin) {
-          console.log("[socket] Allowing request with no origin");
           return callback(null, true);
         }
         
         const normalizedOrigin = origin.replace(/\/$/, "");
         if (allowedOrigins.includes(normalizedOrigin)) {
-          console.log(`[socket] ✓ Allowing origin: ${origin}`);
           return callback(null, true);
         }
         
+        // Only log when blocking (error case)
         console.error(`[socket] ✗ CORS blocked origin: ${origin}`);
         console.error(`[socket] Allowed origins are: ${allowedOrigins.join(", ")}`);
         callback(new Error(`Socket CORS: origin ${origin} not allowed`));
