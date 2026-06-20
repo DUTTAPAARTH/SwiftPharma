@@ -15,6 +15,7 @@ const getAllowedOrigins = () => {
 export const initSocket = (httpServer) => {
   const allowedOrigins = getAllowedOrigins();
   console.log("[socket] Allowed origins:", allowedOrigins);
+  console.log("[socket] Initializing Socket.IO server...");
   
   ioInstance = new Server(httpServer, {
     transports: ["polling", "websocket"],
@@ -28,11 +29,11 @@ export const initSocket = (httpServer) => {
         
         const normalizedOrigin = origin.replace(/\/$/, "");
         if (allowedOrigins.includes(normalizedOrigin)) {
-          console.log(`[socket] Allowing origin: ${origin}`);
+          console.log(`[socket] ✓ Allowing origin: ${origin}`);
           return callback(null, true);
         }
         
-        console.error(`[socket] CORS blocked origin: ${origin}`);
+        console.error(`[socket] ✗ CORS blocked origin: ${origin}`);
         console.error(`[socket] Allowed origins are: ${allowedOrigins.join(", ")}`);
         callback(new Error(`Socket CORS: origin ${origin} not allowed`));
       },
