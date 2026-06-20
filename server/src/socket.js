@@ -44,11 +44,9 @@ export const initSocket = (httpServer) => {
       methods: ["GET", "POST"],
     },
     allowEIO3: true,
-    pingTimeout: 60000,
-    pingInterval: 25000,
-    // Handle connection errors gracefully
+    pingTimeout: 20000,
+    pingInterval: 15000,
     connectTimeout: 45000,
-    // Allow reconnection with same session
     cookie: false,
   });
 
