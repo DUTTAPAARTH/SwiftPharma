@@ -153,15 +153,23 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
         if (!hasInitialPosition) {
           hasInitialPosition = true;
           bestAccuracy = accuracy;
+          console.log(`[GPS Hero] Initial position: ${accuracy.toFixed(0)}m accuracy`, newLocation);
           setUserLocation(newLocation);
           setLocationStatus("ready");
           return;
         }
 
+        // Log every position attempt
+        console.log(`[GPS Hero] New position received: ${accuracy.toFixed(0)}m accuracy (best so far: ${bestAccuracy.toFixed(0)}m)`);
+
         // Update only if accuracy improves
         if (accuracy < bestAccuracy) {
+          const improvement = bestAccuracy - accuracy;
           bestAccuracy = accuracy;
+          console.log(`[GPS Hero] ✅ Better accuracy! Improved by ${improvement.toFixed(0)}m → Now ${accuracy.toFixed(0)}m`);
           setUserLocation(newLocation);
+        } else {
+          console.log(`[GPS Hero] ⏭️ Skipped - no improvement (${accuracy.toFixed(0)}m vs best ${bestAccuracy.toFixed(0)}m)`);
         }
       },
       () => {
