@@ -347,11 +347,15 @@ router.get("/sessions/:sessionId", async (req, res) => {
 });
 
 router.post("/sessions/:sessionId/message", async (req, res) => {
+  console.log(`[chat] POST /sessions/${req.params.sessionId}/message called`);
+  console.log(`[chat] User ID: ${req.user?._id}, Body:`, req.body);
+  
   const userId = req.user?._id;
   const { sessionId } = req.params;
   const userMessage = String(req.body?.message || "").trim();
 
   if (!userMessage) {
+    console.log(`[chat] Missing message in request`);
     return res.status(400).json({
       success: false,
       message: "message is required",
@@ -359,6 +363,7 @@ router.post("/sessions/:sessionId/message", async (req, res) => {
   }
 
   if (!sessionId) {
+    console.log(`[chat] Missing sessionId`);
     return res.status(400).json({
       success: false,
       message: "sessionId is required",
@@ -368,6 +373,7 @@ router.post("/sessions/:sessionId/message", async (req, res) => {
   try {
     const session = await ChatSession.findOne({ _id: sessionId, userId, isActive: true });
     if (!session) {
+      console.log(`[chat] Session not found: ${sessionId} for user ${userId}`);
       return res.status(404).json({
         success: false,
         message: "Active session not found",
@@ -552,6 +558,17 @@ router.post("/sessions/:sessionId/end", async (req, res) => {
       error: error.message,
     });
   }
+});
+
+// Catch-all for debugging unmatched routes
+router.all("*", (req, res) => {
+  console.log(`[chat] Unmatched route: ${req.method} ${req.path}`);
+  console.log(`[chat] Original URL: ${req.originalUrl}`);
+  console.log(`[chat] User authenticated: ${!!req.user}`);
+  res.status(404).json({
+    success: false,
+    message: `Route not found: ${req.method} ${req.path}`,
+  });
 });
 
 export default router;
