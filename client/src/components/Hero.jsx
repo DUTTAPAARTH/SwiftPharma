@@ -139,20 +139,25 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        setUserLocation({
-          lat: Number(position.coords.latitude),
-          lng: Number(position.coords.longitude),
-          accuracy: Number(position.coords.accuracy || 0),
-        });
-        setLocationStatus("ready");
+        const accuracy = Number(position.coords.accuracy || 999);
+        
+        // Only update if accuracy is better than 100m
+        if (accuracy <= 100) {
+          setUserLocation({
+            lat: Number(position.coords.latitude),
+            lng: Number(position.coords.longitude),
+            accuracy,
+          });
+          setLocationStatus("ready");
+        }
       },
       () => {
         setLocationStatus("denied");
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 10000,
-        timeout: 15000,
+        maximumAge: 5000,
+        timeout: 30000,
       },
     );
 
