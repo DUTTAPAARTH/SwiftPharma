@@ -19,6 +19,10 @@ export const initSocket = (httpServer) => {
   
   ioInstance = new Server(httpServer, {
     transports: ["polling", "websocket"],
+    connectionStateRecovery: {
+      maxDisconnectionDuration: 2 * 60 * 1000, // recover sessions up to 2 min after disconnect
+      skipMiddlewares: true,
+    },
     cors: {
       origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, Postman, same-origin)
@@ -48,9 +52,8 @@ export const initSocket = (httpServer) => {
     cookie: false,
   });
 
-  // Log connection errors (suppress code 1 = "Session ID unknown" which is expected during reconnection)
+  // Log connection errors
   ioInstance.engine.on("connection_error", (err) => {
-    if (err.code === 1) return; // Normal: old clients reconnecting after server restart
     console.error("[socket] Connection error:", err.code, err.message);
   });
 
