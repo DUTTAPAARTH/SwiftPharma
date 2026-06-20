@@ -141,6 +141,12 @@ const SOSPage = () => {
         (position) => {
           if (!mounted) return;
           const accuracy = Number(position.coords.accuracy || 999);
+          
+          // Warn if terrible accuracy (desktop without GPS)
+          if (accuracy > 500) {
+            console.error(`[SOS GPS] Very poor accuracy: ${Math.round(accuracy)}m - device may not have GPS`);
+          }
+          
           const nextLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
@@ -156,8 +162,10 @@ const SOSPage = () => {
             accuracyText = `${Math.round(accuracy)}m - Good`;
           } else if (accuracy <= 150) {
             accuracyText = `${Math.round(accuracy)}m - Fair`;
-          } else {
+          } else if (accuracy <= 500) {
             accuracyText = `${Math.round(accuracy)}m - Low accuracy`;
+          } else {
+            accuracyText = `${Math.round(accuracy / 1000)}km - No GPS (Wi-Fi/IP location)`;
           }
           
           setLocationAddress(`Location (${accuracyText})`);

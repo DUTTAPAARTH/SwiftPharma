@@ -148,7 +148,16 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
           accuracy,
         };
         
-        // Accept first position immediately for fast display (even if not perfect)
+        // Reject terrible Wi-Fi/IP-based positions (desktop browsers without GPS)
+        if (accuracy > 500) {
+          console.warn(`[Hero GPS] Rejecting poor accuracy: ${Math.round(accuracy)}m (likely Wi-Fi/IP location)`);
+          if (!hasInitialFix) {
+            setLocationStatus("ready"); // Show map at default position
+          }
+          return;
+        }
+        
+        // Accept first reasonable position (< 500m) for fast display
         if (!hasInitialFix) {
           hasInitialFix = true;
           setUserLocation(newLocation);
