@@ -1,14 +1,5 @@
-import { useContext, useEffect, useMemo, useState } from "react";
-import { io } from "socket.io-client";
-import { AuthContext } from "../context/AuthContext";
-
-const resolveSocketUrl = () => {
-  const apiBase = String(import.meta.env.VITE_API_URL || "");
-  if (apiBase) {
-    return apiBase.replace(/\/api\/?$/, "");
-  }
-  return window.location.origin;
-};
+import { useEffect } from "react";
+import { useSocket } from "../context/SocketContext";
 
 export const useEmergencySocket = ({
   onClaimed,
@@ -23,108 +14,120 @@ export const useEmergencySocket = ({
   onHealthMention,
   onAmbulanceCalled,
 } = {}) => {
-  const { token } = useContext(AuthContext);
-  const [connected, setConnected] = useState(false);
-
-  const socketUrl = useMemo(resolveSocketUrl, []);
+  const { connected, on, off } = useSocket();
 
   useEffect(() => {
-    if (!token) return undefined;
+    if (!connected) return undefined;
 
-    const socket = io(socketUrl, {
-      transports: ["polling"],
-      auth: { token },
-      withCredentials: true,
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-      timeout: 20000,
-      autoConnect: false, // Prevent immediate connection
-    });
-
-    socket.on("connect", () => {
-      setConnected(true);
-    });
-
-    socket.on("disconnect", () => {
-      setConnected(false);
-    });
-
-    socket.on("emergency:claimed", (payload) => {
+    const handleClaimed = (payload) => {
       if (typeof onClaimed === "function") {
         onClaimed(payload?.relay || null);
       }
-    });
+    };
 
-    socket.on("emergency:cancelled", (payload) => {
+    const handleCancelled = (payload) => {
       if (typeof onCancelled === "function") {
         onCancelled(payload?.relay || null);
       }
-    });
+    };
 
-    socket.on("emergency:updated", (payload) => {
+    const handleUpdated = (payload) => {
       if (typeof onUpdated === "function") {
         onUpdated(payload?.relay || null);
       }
-    });
+    };
 
-    socket.on("emergency:escalated", (payload) => {
+    const handleEscalated = (payload) => {
       if (typeof onEscalated === "function") {
         onEscalated(payload || null);
       }
-    });
+    };
 
-    socket.on("emergency:fallback", (payload) => {
+    const handleFallback = (payload) => {
       if (typeof onFallback === "function") {
         onFallback(payload || null);
       }
-    });
+    };
 
-    socket.on("alert:dose_missed", (payload) => {
+    const handleDoseMissed = (payload) => {
       if (typeof onDoseMissed === "function") {
         onDoseMissed(payload || null);
       }
-    });
+    };
 
-    socket.on("alert:caregiver_notify", (payload) => {
+    const handleCaregiverNotify = (payload) => {
       if (typeof onCaregiverNotify === "function") {
         onCaregiverNotify(payload || null);
       }
-    });
+    };
 
-    socket.on("alert:help_requested", (payload) => {
+    const handleHelpRequested = (payload) => {
       if (typeof onHelpRequested === "function") {
         onHelpRequested(payload || null);
       }
-    });
+    };
 
-    socket.on("prescription:update", (payload) => {
+    const handlePrescriptionUpdate = (payload) => {
       if (typeof onPrescriptionUpdate === "function") {
-        onPrescriptionUpdate(payload?.relay || null);
+        onPrescriptionUpdate(payload || null);
       }
-    });
+    };
 
-    socket.on("chat:health_mention_found", (payload) => {
+    const handleHealthMention = (payload) => {
       if (typeof onHealthMention === "function") {
         onHealthMention(payload || null);
       }
-    });
+    };
 
-    socket.on("ambulance_called", (payload) => {
+    const handleAmbulanceCalled = (payload) => {
       if (typeof onAmbulanceCalled === "function") {
         onAmbulanceCalled(payload || null);
       }
-    });
+    };
 
-    // Connect after all listeners are set up
-    socket.connect();
+    // Register all handlers
+    if (onClaimed) on("emergency:claimed", handleClaimed);
+    if (onCancelled) on("emergency:cancelled", handleCancelled);
+    if (onUpdated) on("emergency:updated", handleUpdated);
+    if (onEscalated) on("emergency:escalated", handleEscalated);
+    if (onFallback) on("emergency:fallback", handleFallback);
+    if (onDoseMissed) on("alert:dose_missed", handleDoseMissed);
+    if (onCaregiverNotify) on("alert:caregiver_notify", handleCaregiverNotify);
+    if (onHelpRequested) on("alert:help_requested", handleHelpRequested);
+    if (onPrescriptionUpdate) on("prescription:update", handlePrescriptionUpdate);
+    if (onHealthMention) on("chat:health_mention_found", handleHealthMention);
+    if (onAmbulanceCalled) on("ambulance_called", handleAmbulanceCalled);
 
     return () => {
-      socket.removeAllListeners();
-      socket.disconnect();
-      setConnected(false);
+      // Clean up all handlers
+      if (onClaimed) off("emergency:claimed", handleClaimed);
+      if (onCancelled) off("emergency:cancelled", handleCancelled);
+      if (onUpdated) off("emergency:updated", handleUpdated);
+      if (onEscalated) off("emergency:escalated", handleEscalated);
+      if (onFallback) off("emergency:fallback", handleFallback);
+      if (onDoseMissed) off("alert:dose_missed", handleDoseMissed);
+      if (onCaregiverNotify) off("alert:caregiver_notify", handleCaregiverNotify);
+      if (onHelpRequested) off("alert:help_requested", handleHelpRequested);
+      if (onPrescriptionUpdate) off("prescription:update", handlePrescriptionUpdate);
+      if (onHealthMention) off("chat:health_mention_found", handleHealthMention);
+      if (onAmbulanceCalled) off("ambulance_called", handleAmbulanceCalled);
     };
-  }, [token, socketUrl]); // Only re-run if token or socketUrl changes
+  }, [
+    connected,
+    on,
+    off,
+    onClaimed,
+    onCancelled,
+    onUpdated,
+    onEscalated,
+    onFallback,
+    onDoseMissed,
+    onCaregiverNotify,
+    onHelpRequested,
+    onPrescriptionUpdate,
+    onHealthMention,
+    onAmbulanceCalled,
+  ]);
 
   return { connected };
 };
