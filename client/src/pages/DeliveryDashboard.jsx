@@ -60,8 +60,12 @@ const DeliveryDashboard = () => {
 
     const socket = io(socketUrl(), {
       auth: { token },
-      transports: ["polling"],
+      transports: ["polling", "websocket"],
       withCredentials: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      timeout: 20000,
     });
 
     socket.emit("agent:register", { agentId: user?.id || user?._id });
