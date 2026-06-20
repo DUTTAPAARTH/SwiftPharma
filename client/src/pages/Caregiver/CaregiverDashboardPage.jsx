@@ -5,6 +5,7 @@ import Navbar from "../../components/layout/Navbar";
 import Footer from "../../components/layout/Footer";
 import * as caregiverService from "../../services/caregiverService.js";
 import { useEmergencySocket } from "../../hooks/useEmergencySocket";
+import { useSocket } from "../../context/SocketContext";
 
 const AdherenceRing = ({ value }) => {
   const radius = 45;
@@ -90,6 +91,11 @@ const CaregiverDashboardPage = () => {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
+  const { onReconnect } = useSocket();
+
+  useEffect(() => {
+    return onReconnect(() => setRefreshTick((v) => v + 1));
+  }, [onReconnect]);
 
   useEmergencySocket({
     onPrescriptionUpdate: () => {
