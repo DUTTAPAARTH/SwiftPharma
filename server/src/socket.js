@@ -42,9 +42,19 @@ export const initSocket = (httpServer) => {
     allowEIO3: true,
     pingTimeout: 60000,
     pingInterval: 25000,
+    // Handle connection errors gracefully
+    connectTimeout: 45000,
+    // Allow reconnection with same session
+    cookie: false,
+  });
+
+  // Log connection errors
+  ioInstance.engine.on("connection_error", (err) => {
+    console.error("[socket] Connection error:", err.code, err.message);
   });
 
   ioInstance.on("connection", (socket) => {
+    console.log(`[socket] Client connected: ${socket.id}`);
     const token = socket.handshake?.auth?.token;
     let authenticatedUserId = null;
 
@@ -81,7 +91,8 @@ export const initSocket = (httpServer) => {
       socket.join("delivery:agents");
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", (reason) => {
+      console.log(`[socket] Client disconnected: ${socket.id}, reason: ${reason}`);
       const userId = socketToUser.get(socket.id);
       if (userId) {
         const existing = connectedUsers.get(userId);
