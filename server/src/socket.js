@@ -13,17 +13,33 @@ const getAllowedOrigins = () => {
 };
 
 export const initSocket = (httpServer) => {
+  const allowedOrigins = getAllowedOrigins();
+  console.log("[socket] Allowed origins:", allowedOrigins);
+  
   ioInstance = new Server(httpServer, {
-    transports: ["polling"],
+    transports: ["polling", "websocket"],
     cors: {
       origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        const allowed = getAllowedOrigins();
-        if (allowed.includes(origin.replace(/\/$/, ""))) return callback(null, true);
+        // Allow requests with no origin (mobile apps, Postman, same-origin)
+        if (!origin) {
+          console.log("[socket] Allowing request with no origin");
+          return callback(null, true);
+        }
+        
+        const normalizedOrigin = origin.replace(/\/$/, "");
+        if (allowedOrigins.includes(normalizedOrigin)) {
+          console.log(`[socket] Allowing origin: ${origin}`);
+          return callback(null, true);
+        }
+        
+        console.error(`[socket] CORS blocked origin: ${origin}`);
+        console.error(`[socket] Allowed origins are: ${allowedOrigins.join(", ")}`);
         callback(new Error(`Socket CORS: origin ${origin} not allowed`));
       },
       credentials: true,
+      methods: ["GET", "POST"],
     },
+    allowEIO3: true,
   });
 
   ioInstance.on("connection", (socket) => {

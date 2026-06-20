@@ -41,12 +41,26 @@ initializeMedicalMCP().catch((error) => {
 // CORS — CLIENT_URL can be a single URL or comma-separated list of allowed origins
 const rawClientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 const allowedOrigins = rawClientUrl.split(",").map((o) => o.trim().replace(/\/$/, "")).filter(Boolean);
+console.log("[cors] Allowed origins:", allowedOrigins);
+console.log("[cors] NODE_ENV:", process.env.NODE_ENV);
+
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, curl, Postman, same-origin)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin.replace(/\/$/, ""))) return callback(null, true);
+      if (!origin) {
+        console.log("[cors] Allowing request with no origin");
+        return callback(null, true);
+      }
+      
+      const normalizedOrigin = origin.replace(/\/$/, "");
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        console.log(`[cors] Allowing origin: ${origin}`);
+        return callback(null, true);
+      }
+      
+      console.error(`[cors] CORS blocked origin: ${origin}`);
+      console.error(`[cors] Allowed origins are: ${allowedOrigins.join(", ")}`);
       callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     credentials: true,
