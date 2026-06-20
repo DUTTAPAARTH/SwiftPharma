@@ -148,15 +148,17 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
           accuracy,
         };
         
-        // Accept first position immediately for fast display
+        // Accept first position immediately for fast display (even if not perfect)
         if (!hasInitialFix) {
           hasInitialFix = true;
           setUserLocation(newLocation);
           setLocationStatus("ready");
+          console.log(`[Hero GPS] Initial location: ${Math.round(accuracy)}m`);
         }
-        // Then continuously update with better accuracy
-        else if (accuracy <= 100) {
+        // Then continuously update only with better accuracy (< 80m)
+        else if (accuracy <= 80) {
           setUserLocation(newLocation);
+          console.log(`[Hero GPS] Refined to: ${Math.round(accuracy)}m`);
         }
       },
       () => {
@@ -165,7 +167,7 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
       {
         enableHighAccuracy: true,
         maximumAge: 0,
-        timeout: 10000,
+        timeout: 20000,  // 20s for accurate fix
       },
     );
 

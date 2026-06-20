@@ -53,12 +53,13 @@ const getCurrentLocation = () =>
           return;
         }
         
+        console.log(`[Checkout GPS] Location acquired: ${Math.round(accuracy)}m accuracy`);
         resolve({ lat, lng, accuracy });
       },
       () => {
         reject(new Error("Location permission denied"));
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
     );
   });
 

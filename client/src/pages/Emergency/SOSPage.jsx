@@ -148,12 +148,21 @@ const SOSPage = () => {
           };
           setLocation(nextLocation);
           
-          // Show accuracy to user
-          const accuracyText = accuracy <= 100 
-            ? `${Math.round(accuracy)}m accuracy`
-            : "low accuracy";
-          setLocationAddress(`Current location (${accuracyText})`);
+          // Show accuracy to user with color coding
+          let accuracyText;
+          if (accuracy <= 50) {
+            accuracyText = `${Math.round(accuracy)}m - Excellent`;
+          } else if (accuracy <= 80) {
+            accuracyText = `${Math.round(accuracy)}m - Good`;
+          } else if (accuracy <= 150) {
+            accuracyText = `${Math.round(accuracy)}m - Fair`;
+          } else {
+            accuracyText = `${Math.round(accuracy)}m - Low accuracy`;
+          }
+          
+          setLocationAddress(`Location (${accuracyText})`);
           setLocState("ready");
+          console.log(`[SOS GPS] Location: ${Math.round(accuracy)}m accuracy`);
         },
         () => {
           if (!mounted) return;
@@ -161,7 +170,7 @@ const SOSPage = () => {
           setLocationAddress("Location permission not granted yet");
           setLocState("error");
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
       );
     };
 
@@ -275,7 +284,7 @@ const SOSPage = () => {
         setLocState("error");
         setLocationAddress("Location permission not granted yet");
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
     );
   };
 

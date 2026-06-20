@@ -22,14 +22,14 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
         
         // Only send positions with reasonable accuracy
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-        if (accuracy > 100) {
-          console.warn(`[GPS] Skipping inaccurate position: ${Math.round(accuracy)}m`);
+        if (accuracy > 80) {
+          console.warn(`[GPS] Skipping inaccurate position: ${Math.round(accuracy)}m - waiting for better fix`);
           return;
         }
         
         try {
           await upsertDeliveryLocation({ lat, lng, accuracy });
-          console.log(`[GPS] Position updated on server`);
+          console.log(`[GPS] Position updated on server (${Math.round(accuracy)}m accuracy)`);
         } catch (err) {
           console.error(`[GPS] Failed to update position:`, err);
         }
@@ -39,8 +39,8 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
       },
       { 
         enableHighAccuracy: true, 
-        timeout: 10000, 
-        maximumAge: 0  // Always get fresh position, never use cache
+        timeout: 20000,  // 20s - allow GPS time for accurate satellite lock
+        maximumAge: 0    // Always get fresh position, never use cache
       },
     );
 
