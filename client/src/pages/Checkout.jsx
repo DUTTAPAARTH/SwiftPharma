@@ -46,16 +46,19 @@ const getCurrentLocation = () =>
       (position) => {
         const lat = Number(position?.coords?.latitude);
         const lng = Number(position?.coords?.longitude);
+        const accuracy = Number(position?.coords?.accuracy || 999);
+        
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
           reject(new Error("Invalid location coordinates"));
           return;
         }
-        resolve({ lat, lng });
+        
+        resolve({ lat, lng, accuracy });
       },
       () => {
         reject(new Error("Location permission denied"));
       },
-      { enableHighAccuracy: true, timeout: 7000, maximumAge: 30000 },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
   });
 
