@@ -1,11 +1,17 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { io } from "socket.io-client";
 import DeliveryAgentOrderCard from "../components/cards/DeliveryAgentOrderCard";
 import Button from "../components/common/Button";
 import { AuthContext } from "../context/AuthContext";
-import { useSocket } from "../context/SocketContext";
 import { useAgentLocationHeartbeat } from "../hooks/useAgentLocationHeartbeat";
 import { claimRelay, getNearbyRelays } from "../services/emergencyService";
+
+const socketUrl = () => {
+  const apiBase = String(import.meta.env.VITE_API_URL || "");
+  if (apiBase) return apiBase.replace(/\/api\/?$/, "");
+  return window.location.origin;
+};
 
 const sinceTime = (value) => {
   const created = new Date(value).getTime();
@@ -17,7 +23,6 @@ const sinceTime = (value) => {
 
 const DeliveryDashboard = () => {
   const { token, user } = useContext(AuthContext);
-  const { connected, emit, on, off } = useSocket();
   const [relays, setRelays] = useState([]);
   const [toastMessage, setToastMessage] = useState("");
   const isDelivery = useMemo(
@@ -51,25 +56,36 @@ const DeliveryDashboard = () => {
   }, [isDelivery]);
 
   useEffect(() => {
-    if (!isDelivery || !connected) return undefined;
+    if (!isDelivery || !token) return undefined;
 
-    // Register as delivery agent
-    emit("agent:register", { agentId: user?.id || user?._id });
+    const socket = io(socketUrl(), {
+      auth: { token },
+      transports: ["polling"],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      timeout: 20000,
+      autoConnect: false,
+    });
 
-    const handleEmergencyNew = ({ relay }) => {
+    socket.on("emergency:new", ({ relay }) => {
       if (!relay?._id) return;
       setRelays((prev) => {
         if (prev.some((item) => item._id === relay._id)) return prev;
         return [relay, ...prev];
       });
-    };
+    });
 
-    on("emergency:new", handleEmergencyNew);
+    // Connect and register after listeners are set up
+    socket.connect();
+    socket.emit("agent:register", { agentId: user?.id || user?._id });
 
     return () => {
-      off("emergency:new", handleEmergencyNew);
+      socket.removeAllListeners();
+      socket.disconnect();
     };
-  }, [isDelivery, connected, emit, on, off, user?.id, user?._id]);
+  }, [isDelivery, token]); // Removed user?.id from dependencies to prevent reconnection loops
 
   const claim = async (relayId) => {
     try {
