@@ -165,7 +165,7 @@ const SOSPage = () => {
           setLocationAddress("Location permission not granted yet");
           setLocState("error");
         },
-        { enableHighAccuracy: true, timeout: 25000, maximumAge: 3000 },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
       );
     };
 
@@ -279,7 +279,7 @@ const SOSPage = () => {
         setLocState("error");
         setLocationAddress("Location permission not granted yet");
       },
-      { enableHighAccuracy: true, timeout: 25000, maximumAge: 3000 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
     );
   };
 

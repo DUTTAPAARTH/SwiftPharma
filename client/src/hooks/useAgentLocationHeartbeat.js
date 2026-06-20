@@ -16,8 +16,8 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
           const lng = Number(position.coords.longitude);
           const accuracy = Number(position.coords.accuracy || 999);
           
-          // Only accept positions with accuracy better than 100m
-          if (!Number.isFinite(lat) || !Number.isFinite(lng) || accuracy > 100) return;
+          // Only accept positions with accuracy better than 150m (relaxed from 100m)
+          if (!Number.isFinite(lat) || !Number.isFinite(lng) || accuracy > 150) return;
           
           try {
             await upsertDeliveryLocation({ lat, lng, accuracy });
@@ -28,7 +28,7 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
         () => {
           // Silent failure: some devices/users block location updates.
         },
-        { enableHighAccuracy: true, timeout: 25000, maximumAge: 3000 },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
       );
     };
 
