@@ -8,6 +8,7 @@ const doctorProfileSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: undefined,
+      unique: true,
       sparse: true,
     },
     handwritingPatternHash: { type: String, trim: true, default: "" },
@@ -20,7 +21,7 @@ const doctorProfileSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-doctorProfileSchema.index({ registrationNumber: 1 }, { unique: true, sparse: true });
+
 doctorProfileSchema.index({ doctorNameNormalized: 1, lastSeenAt: -1 });
 
 export default mongoose.model("DoctorProfile", doctorProfileSchema);

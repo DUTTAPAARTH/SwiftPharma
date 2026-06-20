@@ -105,6 +105,7 @@ const prescriptionSchema = new mongoose.Schema(
       type: String,
       trim: true,
       immutable: true,
+      index: true,
       sparse: true,
     },
     isDuplicateImage: { type: Boolean, default: false, index: true },
@@ -367,7 +368,6 @@ prescriptionSchema.pre("findOneAndUpdate", function (next) {
 prescriptionSchema.index({ userId: 1, status: 1 });
 prescriptionSchema.index({ retentionExpiresAt: 1 });
 prescriptionSchema.index({ userId: 1, renewalRequested: 1, renewalStatus: 1 });
-prescriptionSchema.index({ prescriptionDNA: 1 });
 prescriptionSchema.index({ geoFlag: 1, createdAt: -1 });
 
 export default mongoose.model("Prescription", prescriptionSchema);
