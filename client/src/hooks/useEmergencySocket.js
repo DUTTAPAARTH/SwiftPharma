@@ -32,7 +32,7 @@ export const useEmergencySocket = ({
     if (!token) return undefined;
 
     const socket = io(socketUrl, {
-      transports: ["polling", "websocket"],
+      transports: ["polling"],
       auth: { token },
       withCredentials: true,
     });

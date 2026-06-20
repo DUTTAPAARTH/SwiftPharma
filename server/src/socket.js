@@ -14,6 +14,7 @@ const getAllowedOrigins = () => {
 
 export const initSocket = (httpServer) => {
   ioInstance = new Server(httpServer, {
+    transports: ["polling"],
     cors: {
       origin: (origin, callback) => {
         if (!origin) return callback(null, true);
