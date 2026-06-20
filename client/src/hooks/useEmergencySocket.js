@@ -39,6 +39,7 @@ export const useEmergencySocket = ({
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
       timeout: 20000,
+      autoConnect: false, // Prevent immediate connection
     });
 
     socket.on("connect", () => {
@@ -99,7 +100,7 @@ export const useEmergencySocket = ({
 
     socket.on("prescription:update", (payload) => {
       if (typeof onPrescriptionUpdate === "function") {
-        onPrescriptionUpdate(payload || null);
+        onPrescriptionUpdate(payload?.relay || null);
       }
     });
 
@@ -115,25 +116,15 @@ export const useEmergencySocket = ({
       }
     });
 
+    // Connect after all listeners are set up
+    socket.connect();
+
     return () => {
+      socket.removeAllListeners();
       socket.disconnect();
       setConnected(false);
     };
-  }, [
-    token,
-    socketUrl,
-    onClaimed,
-    onCancelled,
-    onEscalated,
-    onUpdated,
-    onFallback,
-    onDoseMissed,
-    onCaregiverNotify,
-    onHelpRequested,
-    onPrescriptionUpdate,
-    onHealthMention,
-    onAmbulanceCalled,
-  ]);
+  }, [token, socketUrl]); // Only re-run if token or socketUrl changes
 
   return { connected };
 };

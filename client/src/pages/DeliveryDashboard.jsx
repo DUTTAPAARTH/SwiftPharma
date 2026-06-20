@@ -66,9 +66,8 @@ const DeliveryDashboard = () => {
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
       timeout: 20000,
+      autoConnect: false,
     });
-
-    socket.emit("agent:register", { agentId: user?.id || user?._id });
 
     socket.on("emergency:new", ({ relay }) => {
       if (!relay?._id) return;
@@ -78,10 +77,15 @@ const DeliveryDashboard = () => {
       });
     });
 
+    // Connect and register after listeners are set up
+    socket.connect();
+    socket.emit("agent:register", { agentId: user?.id || user?._id });
+
     return () => {
+      socket.removeAllListeners();
       socket.disconnect();
     };
-  }, [isDelivery, token, user?.id, user?._id]);
+  }, [isDelivery, token]); // Removed user?.id from dependencies to prevent reconnection loops
 
   const claim = async (relayId) => {
     try {
