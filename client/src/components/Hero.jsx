@@ -377,7 +377,11 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
                 </p>
                 {locationStatus === "ready" && userLocation ? (
                   <p className="mt-1 text-xs text-slate-500">
-                    Accuracy approx {Math.round(userLocation.accuracy || 0)} m
+                    {userLocation.accuracy <= 50
+                      ? `📍 High accuracy (±${Math.round(userLocation.accuracy)}m)`
+                      : userLocation.accuracy <= 200
+                        ? `📍 Approx location (±${Math.round(userLocation.accuracy)}m)`
+                        : `📍 Estimated location (±${Math.round(userLocation.accuracy)}m) — use mobile for better accuracy`}
                   </p>
                 ) : null}
               </div>
