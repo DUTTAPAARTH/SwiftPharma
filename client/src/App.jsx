@@ -1,4 +1,3 @@
-import { SpeedInsights } from "@vercel/speed-insights/react";
 import RoutesConfig from "./routes";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
@@ -18,7 +17,6 @@ const App = () => {
               <HealthCompanionProvider>
                 <DoseAlertBanner />
                 <RoutesConfig />
-                <SpeedInsights />
               </HealthCompanionProvider>
             </ThemeProvider>
           </WishlistProvider>
