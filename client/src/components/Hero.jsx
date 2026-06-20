@@ -175,8 +175,8 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 20000,  // 20s for accurate fix
+        maximumAge: 8000,  // Allow 8s cache for position refinement
+        timeout: 15000,
       },
     );
 

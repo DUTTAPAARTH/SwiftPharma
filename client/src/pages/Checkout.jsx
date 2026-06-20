@@ -59,7 +59,7 @@ const getCurrentLocation = () =>
       () => {
         reject(new Error("Location permission denied"));
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
     );
   });
 

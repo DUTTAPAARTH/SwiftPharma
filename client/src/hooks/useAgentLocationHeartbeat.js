@@ -39,8 +39,8 @@ export const useAgentLocationHeartbeat = (enabled, intervalMs = 30000) => {
       },
       { 
         enableHighAccuracy: true, 
-        timeout: 20000,  // 20s - allow GPS time for accurate satellite lock
-        maximumAge: 0    // Always get fresh position, never use cache
+        timeout: 15000,
+        maximumAge: 5000  // Allow 5s cache for refinement, fresh enough for real-time tracking
       },
     );
 
