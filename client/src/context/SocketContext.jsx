@@ -39,8 +39,9 @@ export const SocketProvider = ({ children }) => {
         auth: { token },
         withCredentials: true,
         reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+        reconnectionDelayMax: 10000,
+        reconnectionAttempts: Infinity,
         timeout: 20000,
         autoConnect: false,
       });
