@@ -184,8 +184,8 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 0,  // Force fresh readings for continuous refinement
-        timeout: 30000,  // Give 30s for GPS to achieve good lock
+        maximumAge: 60000,  // Allow 60s cached Wi-Fi position (avoids IP fallback)
+        timeout: 30000,
       },
     );
 
