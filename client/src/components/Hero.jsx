@@ -137,45 +137,21 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
       return undefined;
     }
 
-    let hasInitialFix = false;
-
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        const accuracy = Number(position.coords.accuracy || 999);
-        const newLocation = {
+        setUserLocation({
           lat: Number(position.coords.latitude),
           lng: Number(position.coords.longitude),
-          accuracy,
-        };
-        
-        // Reject terrible Wi-Fi/IP-based positions (desktop browsers without GPS)
-        if (accuracy > 500) {
-          console.warn(`[Hero GPS] Rejecting poor accuracy: ${Math.round(accuracy)}m (likely Wi-Fi/IP location)`);
-          if (!hasInitialFix) {
-            setLocationStatus("ready"); // Show map at default position
-          }
-          return;
-        }
-        
-        // Accept first reasonable position (< 500m) for fast display
-        if (!hasInitialFix) {
-          hasInitialFix = true;
-          setUserLocation(newLocation);
-          setLocationStatus("ready");
-          console.log(`[Hero GPS] Initial location: ${Math.round(accuracy)}m`);
-        }
-        // Then continuously update only with better accuracy (< 80m)
-        else if (accuracy <= 80) {
-          setUserLocation(newLocation);
-          console.log(`[Hero GPS] Refined to: ${Math.round(accuracy)}m`);
-        }
+          accuracy: Number(position.coords.accuracy || 0),
+        });
+        setLocationStatus("ready");
       },
       () => {
         setLocationStatus("denied");
       },
       {
         enableHighAccuracy: true,
-        maximumAge: 8000,  // Allow 8s cache for position refinement
+        maximumAge: 10000,
         timeout: 15000,
       },
     );

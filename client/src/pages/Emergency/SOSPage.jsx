@@ -140,37 +140,13 @@ const SOSPage = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           if (!mounted) return;
-          const accuracy = Number(position.coords.accuracy || 999);
-          
-          // Warn if terrible accuracy (desktop without GPS)
-          if (accuracy > 500) {
-            console.error(`[SOS GPS] Very poor accuracy: ${Math.round(accuracy)}m - device may not have GPS`);
-          }
-          
           const nextLocation = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-            accuracy,
           };
           setLocation(nextLocation);
-          
-          // Show accuracy to user with color coding
-          let accuracyText;
-          if (accuracy <= 50) {
-            accuracyText = `${Math.round(accuracy)}m - Excellent`;
-          } else if (accuracy <= 80) {
-            accuracyText = `${Math.round(accuracy)}m - Good`;
-          } else if (accuracy <= 150) {
-            accuracyText = `${Math.round(accuracy)}m - Fair`;
-          } else if (accuracy <= 500) {
-            accuracyText = `${Math.round(accuracy)}m - Low accuracy`;
-          } else {
-            accuracyText = `${Math.round(accuracy / 1000)}km - No GPS (Wi-Fi/IP location)`;
-          }
-          
-          setLocationAddress(`Location (${accuracyText})`);
+          setLocationAddress("Current location captured");
           setLocState("ready");
-          console.log(`[SOS GPS] Location: ${Math.round(accuracy)}m accuracy`);
         },
         () => {
           if (!mounted) return;
@@ -178,7 +154,7 @@ const SOSPage = () => {
           setLocationAddress("Location permission not granted yet");
           setLocState("error");
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
       );
     };
 
@@ -271,28 +247,19 @@ const SOSPage = () => {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const accuracy = Number(position.coords.accuracy || 999);
         const nextLocation = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
-          accuracy,
         };
         setLocation(nextLocation);
-        
-        // Show accuracy feedback
-        if (accuracy <= 50) {
-          setLocationAddress(`Location updated (${Math.round(accuracy)}m accuracy)`);
-        } else {
-          setLocationAddress(`Location updated (~${Math.round(accuracy)}m accuracy)`);
-        }
-        
+        setLocationAddress("Current location captured");
         setLocState("ready");
       },
       () => {
         setLocState("error");
         setLocationAddress("Location permission not granted yet");
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
   };
 
