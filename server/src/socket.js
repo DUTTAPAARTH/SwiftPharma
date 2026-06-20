@@ -52,8 +52,9 @@ export const initSocket = (httpServer) => {
     cookie: false,
   });
 
-  // Log connection errors
+  // Log connection errors (code 1 = Session ID unknown is expected during deployments)
   ioInstance.engine.on("connection_error", (err) => {
+    if (err.code === 1) return;
     console.error("[socket] Connection error:", err.code, err.message);
   });
 
