@@ -142,7 +142,14 @@ const Hero = ({ hasActiveTracking = false, agentLocation = null }) => {
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        const accuracy = Number(position.coords.accuracy || 999);
+        const accuracy = Number(position.coords.accuracy || 999999);
+
+        // Reject wildly inaccurate IP-based fallback positions (>20km = useless)
+        if (accuracy > 20000) {
+          console.log(`[GPS Hero] Rejected IP-fallback position: ${accuracy.toFixed(0)}m`);
+          return;
+        }
+
         const newLocation = {
           lat: Number(position.coords.latitude),
           lng: Number(position.coords.longitude),
